@@ -584,7 +584,7 @@ export default function Home() {
                 {actualDebtToGdp.toFixed(1)}%
               </div>
               <div style={styles.kpiSubtext}>
-                {actualDebtToGdp > 120 ? '⚠️ Above sustainable' : actualDebtToGdp > 100 ? '⚠️ Elevated' : '✓ Manageable'}
+                {actualDebtToGdp > 120 ? '⚠️ High — Fix: grow GDP, not cut' : actualDebtToGdp > 100 ? '⚠️ Elevated' : '✓ Manageable'}
               </div>
             </div>
             
@@ -627,38 +627,44 @@ export default function Home() {
               <div style={styles.gaugeLabel}>THE HAMILTONIAN SHARE</div>
               <div style={styles.gaugeWrapper}>
                 <svg viewBox="0 0 200 120" style={{ width: '100%', maxWidth: '300px' }}>
-                  {/* Background arc */}
+                  {/* Background arc (full semi-circle) */}
                   <path
                     d="M 20 100 A 80 80 0 0 1 180 100"
                     fill="none"
                     stroke={COLORS.border}
-                    strokeWidth="16"
+                    strokeWidth="14"
                     strokeLinecap="round"
                   />
-                  {/* Filled arc based on Hamiltonian share (0% = 0deg, 100% = 180deg) */}
+                  {/* Filled arc - uses stroke-dasharray for proper fill */}
                   <path
-                    d={`M 20 100 A 80 80 0 0 1 ${20 + 160 * Math.min(HAMILTONIAN_SHARE * 100 / 100, 1) * Math.cos(Math.PI * (1 - HAMILTONIAN_SHARE))} ${100 - 80 * Math.sin(Math.PI * HAMILTONIAN_SHARE)}`}
+                    d="M 20 100 A 80 80 0 0 1 180 100"
                     fill="none"
                     stroke={COLORS.hamiltonian}
-                    strokeWidth="16"
+                    strokeWidth="14"
                     strokeLinecap="round"
-                    style={{ filter: `drop-shadow(0 0 10px ${COLORS.hamiltonian}66)` }}
+                    strokeDasharray={`${251.3 * HAMILTONIAN_SHARE} 251.3`}
+                    style={{ filter: `drop-shadow(0 0 10px ${COLORS.hamiltonian}88)` }}
                   />
-                  {/* Target marker at 30% */}
-                  <line
-                    x1={20 + 160 * 0.3 * Math.cos(Math.PI * (1 - 0.3))}
-                    y1={100 - 80 * Math.sin(Math.PI * 0.3)}
-                    x2={20 + 160 * 0.3 * Math.cos(Math.PI * (1 - 0.3)) + 10 * Math.cos(Math.PI * (1 - 0.3))}
-                    y2={100 - 80 * Math.sin(Math.PI * 0.3) - 10 * Math.sin(Math.PI * 0.3)}
+                  {/* Target marker at 30% - gold tick */}
+                  <path
+                    d="M 20 100 A 80 80 0 0 1 180 100"
+                    fill="none"
                     stroke={COLORS.gold}
-                    strokeWidth="3"
+                    strokeWidth="20"
+                    strokeLinecap="butt"
+                    strokeDasharray="4 247.3"
+                    strokeDashoffset={-251.3 * 0.30 + 2}
                   />
-                  <text x="100" y="85" textAnchor="middle" fill={COLORS.hamiltonian} fontSize="36" fontWeight="700" fontFamily="'JetBrains Mono', monospace">
+                  {/* Center text */}
+                  <text x="100" y="75" textAnchor="middle" fill={COLORS.hamiltonian} fontSize="42" fontWeight="700" fontFamily="'JetBrains Mono', monospace" style={{ textShadow: `0 0 20px ${COLORS.hamiltonian}66` }}>
                     {(HAMILTONIAN_SHARE * 100).toFixed(0)}%
                   </text>
-                  <text x="100" y="105" textAnchor="middle" fill={COLORS.textMuted} fontSize="10">
+                  <text x="100" y="95" textAnchor="middle" fill={COLORS.textMuted} fontSize="11">
                     Target: 30%+
                   </text>
+                  {/* Scale labels */}
+                  <text x="15" y="115" textAnchor="start" fill={COLORS.textDim} fontSize="9">0%</text>
+                  <text x="185" y="115" textAnchor="end" fill={COLORS.textDim} fontSize="9">100%</text>
                 </svg>
               </div>
               <div style={styles.gaugeTagline}>
@@ -717,35 +723,6 @@ export default function Home() {
             <strong>Methodology:</strong> Hamiltonian Share = Federal spending on capital assets (infrastructure, energy, manufacturing, R&D, defense capital) 
             as a percentage of total federal outlays. Based on OMB Budget Object Class data and BEA fixed investment series.
             <br /><em>A "national debt, if not excessive, will be to us a national blessing" — Hamilton, 1781</em>
-          </div>
-        </section>
-
-        {/* ================================================================ */}
-        {/* WHY WE BUILD - First Principles */}
-        {/* ================================================================ */}
-        <section style={styles.philosophySection}>
-          <h2 style={styles.philosophyTitle}>WHY WE BUILD</h2>
-          <div style={styles.philosophyGrid}>
-            <div style={styles.philosophyCard}>
-              <div style={styles.philIcon}>🎯</div>
-              <p><strong>Create, Don't Copy</strong><br />
-              America invents. Others mass-produce. We create the next breakthrough — that's who we are.</p>
-            </div>
-            <div style={styles.philosophyCard}>
-              <div style={styles.philIcon}>🏛️</div>
-              <p><strong>First Principles</strong><br />
-              Hamilton knew: productive debt builds nations. We forgot. Time to remember.</p>
-            </div>
-            <div style={styles.philosophyCard}>
-              <div style={styles.philIcon}>🦅</div>
-              <p><strong>America First</strong><br />
-              Build for us, not against anyone. Self-sufficiency is the goal. Independence is victory.</p>
-            </div>
-            <div style={styles.philosophyCard}>
-              <div style={styles.philIcon}>⚒️</div>
-              <p><strong>Work is Dignity</strong><br />
-              AI is our tool, not our replacement. We are makers, not just consumers. Built to build.</p>
-            </div>
           </div>
         </section>
 
@@ -1035,6 +1012,35 @@ export default function Home() {
                 </span>{' '}
                 in savings and economic opportunity. Plus: job security, stable grid, funded benefits.
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* WHY WE BUILD - First Principles (Philosophy as conclusion) */}
+        {/* ================================================================ */}
+        <section style={styles.philosophySection}>
+          <h2 style={styles.philosophyTitle}>WHY WE BUILD</h2>
+          <div style={styles.philosophyGrid}>
+            <div style={styles.philosophyCard}>
+              <div style={styles.philIcon}>🎯</div>
+              <p><strong>Create, Don't Copy</strong><br />
+              America invents. Others mass-produce. We create the next breakthrough — that's who we are.</p>
+            </div>
+            <div style={styles.philosophyCard}>
+              <div style={styles.philIcon}>🏛️</div>
+              <p><strong>First Principles</strong><br />
+              Hamilton knew: productive debt builds nations. We forgot. Time to remember.</p>
+            </div>
+            <div style={styles.philosophyCard}>
+              <div style={styles.philIcon}>🦅</div>
+              <p><strong>America First</strong><br />
+              Build for us, not against anyone. Self-sufficiency is the goal. Independence is victory.</p>
+            </div>
+            <div style={styles.philosophyCard}>
+              <div style={styles.philIcon}>⚒️</div>
+              <p><strong>Work is Dignity</strong><br />
+              AI is our tool, not our replacement. We are makers, not just consumers. Built to build.</p>
             </div>
           </div>
         </section>
