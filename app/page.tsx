@@ -1002,7 +1002,12 @@ export default function Home() {
               <div style={styles.inputGroup}>
                 <label>Build Rate Scenario</label>
                 <div style={styles.scenarioButtons}>
-                  {[2, 3, 4, 5].map(rate => (
+                  {[
+                    { rate: 2, label: '2%', sublabel: 'Now' },
+                    { rate: 3, label: '3%', sublabel: 'Genesis' },
+                    { rate: 4, label: '4%', sublabel: 'Ambitious' },
+                    { rate: 5, label: '5%', sublabel: 'Mobilization' },
+                  ].map(({ rate, label, sublabel }) => (
                     <button
                       key={rate}
                       onClick={() => setBuildScenario(rate)}
@@ -1010,16 +1015,20 @@ export default function Home() {
                         ...styles.scenarioBtn,
                         backgroundColor: buildScenario === rate ? COLORS.hamiltonian : 'transparent',
                         color: buildScenario === rate ? COLORS.bg : COLORS.text,
+                        flexDirection: 'column',
+                        gap: '2px',
                       }}
                     >
-                      {rate}%
+                      <span style={{ fontWeight: 700 }}>{label}</span>
+                      <span style={{ fontSize: '0.6rem', opacity: 0.8 }}>{sublabel}</span>
                     </button>
                   ))}
                 </div>
-                <div style={styles.scenarioLabels}>
-                  <span>Now</span>
-                  <span>Target</span>
-                  <span>Mobilization</span>
+                <div style={styles.scenarioExplainer}>
+                  {buildScenario === 2 && <span style={{ color: COLORS.other }}>Status quo — decline continues</span>}
+                  {buildScenario === 3 && <span style={{ color: COLORS.warning }}>Genesis Direction — <strong>sustainable</strong>, stops the bleeding</span>}
+                  {buildScenario === 4 && <span style={{ color: COLORS.accent }}>Beyond Genesis — Infrastructure Bank + Permitting Reform</span>}
+                  {buildScenario === 5 && <span style={{ color: COLORS.hamiltonian }}>Full American System — <strong>winning</strong>, competitive with China</span>}
                 </div>
               </div>
             </div>
@@ -1889,6 +1898,18 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: COLORS.textDim,
     marginTop: '0.5rem',
     paddingLeft: '0.5rem',
+  },
+  scenarioExplainer: {
+    fontSize: '0.7rem',
+    textAlign: 'center' as const,
+    marginTop: '0.75rem',
+    padding: '0.5rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '6px',
+    minHeight: '2rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   stakeResults: {},
   stakeResultsTitle: {
