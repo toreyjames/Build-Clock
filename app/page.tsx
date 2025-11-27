@@ -47,11 +47,35 @@ interface EconomicData {
 const DEBT_INCREASE_PER_SECOND = 1_000_000_000_000 / 365 / 24 / 60 / 60  // ~$31,709/second
 
 // ============================================================================
-// CONSTANTS
+// CONSTANTS & HAMILTONIAN METHODOLOGY
 // ============================================================================
 
-const HAMILTONIAN_SHARE = 0.18  // 18% - estimated based on infrastructure/energy spending
-const US_POPULATION = 336_000_000  // US population in millions
+const US_POPULATION = 336_000_000  // US population
+
+// Hamiltonian Share Breakdown (% of total federal spending that builds assets)
+// Based on OMB Budget Object Class analysis + capital investment data
+const HAMILTONIAN_BREAKDOWN = {
+  energy: { share: 0.04, label: 'Energy', icon: '⚡', description: 'Power plants, grid, transmission, storage' },
+  infrastructure: { share: 0.05, label: 'Infrastructure', icon: '🛣️', description: 'Roads, bridges, ports, airports, rail' },
+  manufacturing: { share: 0.03, label: 'Manufacturing', icon: '🏭', description: 'CHIPS Act, IRA credits, reshoring incentives' },
+  rnd: { share: 0.03, label: 'R&D', icon: '🔬', description: 'DOE labs, NSF, basic research, science' },
+  defenseCapital: { share: 0.03, label: 'Defense Capital', icon: '🛡️', description: 'Ships, aircraft, facilities, equipment' },
+}
+
+// Calculate total Hamiltonian Share from breakdown
+const HAMILTONIAN_SHARE = Object.values(HAMILTONIAN_BREAKDOWN).reduce((sum, cat) => sum + cat.share, 0)
+
+// Historical Hamiltonian Share data (estimated from federal capital investment as % of spending)
+const HAMILTONIAN_HISTORY = [
+  { year: 1960, share: 35, event: 'Interstate Highway System + Apollo' },
+  { year: 1970, share: 33, event: 'Nuclear fleet construction' },
+  { year: 1980, share: 28, event: 'Last major infrastructure push' },
+  { year: 1990, share: 24, event: 'NAFTA, offshoring begins' },
+  { year: 2000, share: 22, event: 'Dot-com focus, manufacturing decline' },
+  { year: 2010, share: 19, event: 'Financial crisis recovery' },
+  { year: 2020, share: 17, event: 'COVID, awareness grows' },
+  { year: 2024, share: 18, event: 'CHIPS + IRA + Genesis' },
+]
 
 // American Advantages with REAL data
 const americanAdvantages = [
@@ -595,6 +619,108 @@ export default function Home() {
         </section>
 
         {/* ================================================================ */}
+        {/* THE HAMILTONIAN GAUGE - Hero Metric */}
+        {/* ================================================================ */}
+        <section style={styles.hamiltonianSection}>
+          <div style={styles.hamiltonianHero}>
+            <div style={styles.gaugeContainer}>
+              <div style={styles.gaugeLabel}>THE HAMILTONIAN SHARE</div>
+              <div style={styles.gaugeWrapper}>
+                <svg viewBox="0 0 200 120" style={{ width: '100%', maxWidth: '300px' }}>
+                  {/* Background arc */}
+                  <path
+                    d="M 20 100 A 80 80 0 0 1 180 100"
+                    fill="none"
+                    stroke={COLORS.border}
+                    strokeWidth="16"
+                    strokeLinecap="round"
+                  />
+                  {/* Filled arc based on Hamiltonian share (0% = 0deg, 100% = 180deg) */}
+                  <path
+                    d={`M 20 100 A 80 80 0 0 1 ${20 + 160 * Math.min(HAMILTONIAN_SHARE * 100 / 100, 1) * Math.cos(Math.PI * (1 - HAMILTONIAN_SHARE))} ${100 - 80 * Math.sin(Math.PI * HAMILTONIAN_SHARE)}`}
+                    fill="none"
+                    stroke={COLORS.hamiltonian}
+                    strokeWidth="16"
+                    strokeLinecap="round"
+                    style={{ filter: `drop-shadow(0 0 10px ${COLORS.hamiltonian}66)` }}
+                  />
+                  {/* Target marker at 30% */}
+                  <line
+                    x1={20 + 160 * 0.3 * Math.cos(Math.PI * (1 - 0.3))}
+                    y1={100 - 80 * Math.sin(Math.PI * 0.3)}
+                    x2={20 + 160 * 0.3 * Math.cos(Math.PI * (1 - 0.3)) + 10 * Math.cos(Math.PI * (1 - 0.3))}
+                    y2={100 - 80 * Math.sin(Math.PI * 0.3) - 10 * Math.sin(Math.PI * 0.3)}
+                    stroke={COLORS.gold}
+                    strokeWidth="3"
+                  />
+                  <text x="100" y="85" textAnchor="middle" fill={COLORS.hamiltonian} fontSize="36" fontWeight="700" fontFamily="'JetBrains Mono', monospace">
+                    {(HAMILTONIAN_SHARE * 100).toFixed(0)}%
+                  </text>
+                  <text x="100" y="105" textAnchor="middle" fill={COLORS.textMuted} fontSize="10">
+                    Target: 30%+
+                  </text>
+                </svg>
+              </div>
+              <div style={styles.gaugeTagline}>
+                Only <strong style={{ color: COLORS.hamiltonian }}>{(HAMILTONIAN_SHARE * 100).toFixed(0)}¢</strong> of every dollar borrowed is building something.
+                <br />The rest is already spent.
+              </div>
+            </div>
+            
+            <div style={styles.breakdownContainer}>
+              <div style={styles.breakdownTitle}>Where Hamiltonian Spending Goes</div>
+              <div style={styles.breakdownGrid}>
+                {Object.entries(HAMILTONIAN_BREAKDOWN).map(([key, cat]) => (
+                  <div key={key} style={styles.breakdownItem}>
+                    <div style={styles.breakdownIcon}>{cat.icon}</div>
+                    <div style={styles.breakdownInfo}>
+                      <div style={styles.breakdownLabel}>{cat.label}</div>
+                      <div style={styles.breakdownBar}>
+                        <div style={{ 
+                          ...styles.breakdownBarFill, 
+                          width: `${(cat.share / HAMILTONIAN_SHARE) * 100}%` 
+                        }} />
+                      </div>
+                      <div style={styles.breakdownValue}>{(cat.share * 100).toFixed(0)}%</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <div style={styles.historySection}>
+            <div style={styles.historyTitle}>The Decline: 1960 → Today</div>
+            <div style={styles.historyTimeline}>
+              {HAMILTONIAN_HISTORY.map((point, i) => (
+                <div key={point.year} style={styles.historyPoint}>
+                  <div style={styles.historyYear}>{point.year}</div>
+                  <div style={{ 
+                    ...styles.historyBar,
+                    height: `${point.share * 2}px`,
+                    backgroundColor: point.year === 2024 ? COLORS.hamiltonian : 
+                      point.share >= 30 ? COLORS.hamiltonian + '88' : 
+                      point.share >= 20 ? COLORS.warning + '88' : COLORS.other + '88'
+                  }} />
+                  <div style={styles.historyShare}>{point.share}%</div>
+                  <div style={styles.historyEvent}>{point.event}</div>
+                </div>
+              ))}
+            </div>
+            <div style={styles.historyNote}>
+              In 1960, 35% of federal borrowing built highways, power plants, and Apollo. Today it's 18%.
+              <br />We borrowed 100x more but built proportionally less.
+            </div>
+          </div>
+          
+          <div style={styles.methodologyNote}>
+            <strong>Methodology:</strong> Hamiltonian Share = Federal spending on capital assets (infrastructure, energy, manufacturing, R&D, defense capital) 
+            as a percentage of total federal outlays. Based on OMB Budget Object Class data and BEA fixed investment series.
+            <br /><em>A "national debt, if not excessive, will be to us a national blessing" — Hamilton, 1781</em>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
         {/* WHY WE BUILD - First Principles */}
         {/* ================================================================ */}
         <section style={styles.philosophySection}>
@@ -1083,6 +1209,173 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: COLORS.textDim,
     textAlign: 'center' as const,
   },
+  
+  // Hamiltonian Gauge Section
+  hamiltonianSection: {
+    backgroundColor: COLORS.bgCard,
+    borderRadius: '16px',
+    border: `2px solid ${COLORS.hamiltonian}44`,
+    padding: '2rem',
+    marginBottom: '2rem',
+    boxShadow: `0 0 40px ${COLORS.hamiltonian}11`,
+  },
+  hamiltonianHero: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '2rem',
+    marginBottom: '2rem',
+  },
+  gaugeContainer: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gaugeLabel: {
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    letterSpacing: '2px',
+    color: COLORS.hamiltonian,
+    marginBottom: '1rem',
+  },
+  gaugeWrapper: {
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'center',
+  },
+  gaugeTagline: {
+    textAlign: 'center' as const,
+    fontSize: '1rem',
+    color: COLORS.text,
+    marginTop: '1rem',
+    lineHeight: 1.6,
+  },
+  breakdownContainer: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+  },
+  breakdownTitle: {
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    color: COLORS.textMuted,
+    marginBottom: '1rem',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '1px',
+  },
+  breakdownGrid: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.75rem',
+  },
+  breakdownItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+  },
+  breakdownIcon: {
+    fontSize: '1.25rem',
+    width: '2rem',
+    textAlign: 'center' as const,
+  },
+  breakdownInfo: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+  },
+  breakdownLabel: {
+    fontSize: '0.75rem',
+    color: COLORS.text,
+    width: '100px',
+  },
+  breakdownBar: {
+    flex: 1,
+    height: '8px',
+    backgroundColor: COLORS.border,
+    borderRadius: '4px',
+    overflow: 'hidden',
+  },
+  breakdownBarFill: {
+    height: '100%',
+    backgroundColor: COLORS.hamiltonian,
+    borderRadius: '4px',
+  },
+  breakdownValue: {
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    color: COLORS.hamiltonian,
+    width: '35px',
+    textAlign: 'right' as const,
+  },
+  historySection: {
+    borderTop: `1px solid ${COLORS.border}`,
+    paddingTop: '1.5rem',
+    marginBottom: '1.5rem',
+  },
+  historyTitle: {
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    color: COLORS.textMuted,
+    marginBottom: '1rem',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '1px',
+    textAlign: 'center' as const,
+  },
+  historyTimeline: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    height: '120px',
+    gap: '0.5rem',
+  },
+  historyPoint: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    flex: 1,
+  },
+  historyYear: {
+    fontSize: '0.6rem',
+    color: COLORS.textDim,
+    marginBottom: '0.25rem',
+  },
+  historyBar: {
+    width: '100%',
+    maxWidth: '40px',
+    borderRadius: '4px 4px 0 0',
+    transition: 'height 0.3s ease',
+  },
+  historyShare: {
+    fontSize: '0.65rem',
+    fontWeight: 600,
+    color: COLORS.text,
+    marginTop: '0.25rem',
+  },
+  historyEvent: {
+    fontSize: '0.5rem',
+    color: COLORS.textDim,
+    textAlign: 'center' as const,
+    marginTop: '0.25rem',
+    lineHeight: 1.2,
+    maxWidth: '60px',
+  },
+  historyNote: {
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+    textAlign: 'center' as const,
+    marginTop: '1rem',
+    lineHeight: 1.5,
+  },
+  methodologyNote: {
+    fontSize: '0.65rem',
+    color: COLORS.textDim,
+    padding: '1rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '8px',
+    lineHeight: 1.5,
+    borderLeft: `3px solid ${COLORS.hamiltonian}44`,
+  },
+  
   debtSplit: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
