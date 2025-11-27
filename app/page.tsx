@@ -1,21 +1,34 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { 
   PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, BarChart, Bar
 } from 'recharts'
 
 // ============================================================================
-// CONSTANTS & DATA
+// API & DATA FETCHING
 // ============================================================================
 
-const TOTAL_DEBT = 36.1
-const HAMILTONIAN_SHARE = 0.18
-const HAMILTONIAN_DEBT = TOTAL_DEBT * HAMILTONIAN_SHARE
-const OTHER_DEBT = TOTAL_DEBT * (1 - HAMILTONIAN_SHARE)
-const US_POPULATION = 336
-const DEBT_PER_CITIZEN = (TOTAL_DEBT * 1_000_000_000_000) / (US_POPULATION * 1_000_000)
+// Treasury Fiscal Data API - Real federal debt data
+const TREASURY_API = 'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny?sort=-record_date&page[size]=1'
+
+interface DebtData {
+  totalDebt: number           // in trillions
+  lastUpdated: string
+  isLoading: boolean
+  error: string | null
+}
+
+// Estimated daily debt increase (based on ~$1T/year deficit)
+const DEBT_INCREASE_PER_SECOND = 1_000_000_000_000 / 365 / 24 / 60 / 60  // ~$31,709/second
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const HAMILTONIAN_SHARE = 0.18  // 18% - estimated based on infrastructure/energy spending
+const US_POPULATION = 336_000_000  // US population in millions
 
 // American Advantages with REAL data
 const americanAdvantages = [
@@ -265,17 +278,36 @@ const COLORS = {
 // COMPONENTS
 // ============================================================================
 
-function TickingNumber({ value, prefix = '', suffix = '', decimals = 0, color = COLORS.text, size = '2rem' }: { 
-  value: number; prefix?: string; suffix?: string; decimals?: number; color?: string; size?: string 
+function TickingDebt({ 
+  baseValue, 
+  prefix = '', 
+  suffix = '', 
+  decimals = 4, 
+  color = COLORS.text, 
+  size = '2rem',
+  tickRate = DEBT_INCREASE_PER_SECOND
+}: { 
+  baseValue: number
+  prefix?: string
+  suffix?: string
+  decimals?: number
+  color?: string
+  size?: string
+  tickRate?: number
 }) {
-  const [displayValue, setDisplayValue] = useState(value)
+  const [displayValue, setDisplayValue] = useState(baseValue)
+  
+  useEffect(() => {
+    setDisplayValue(baseValue)
+  }, [baseValue])
   
   useEffect(() => {
     const interval = setInterval(() => {
-      setDisplayValue(prev => prev + (Math.random() * 0.00001))
+      // Add realistic debt increase per tick (100ms = 0.1 seconds)
+      setDisplayValue(prev => prev + (tickRate * 0.1 / 1_000_000_000_000))
     }, 100)
     return () => clearInterval(interval)
-  }, [])
+  }, [tickRate])
   
   return (
     <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: size, fontWeight: 700, color, textShadow: `0 0 20px ${color}44` }}>
@@ -292,6 +324,55 @@ export default function Home() {
   const [selectedState, setSelectedState] = useState('Texas')
   const [householdSize, setHouseholdSize] = useState(3)
   const [buildScenario, setBuildScenario] = useState(4)
+  
+  // Real debt data from Treasury API
+  const [debtData, setDebtData] = useState<DebtData>({
+    totalDebt: 36.1,  // fallback value in trillions
+    lastUpdated: '',
+    isLoading: true,
+    error: null
+  })
+
+  // Fetch real debt data from Treasury
+  const fetchDebtData = useCallback(async () => {
+    try {
+      const response = await fetch(TREASURY_API)
+      const data = await response.json()
+      
+      if (data.data && data.data.length > 0) {
+        const latestRecord = data.data[0]
+        const totalDebtInTrillions = parseFloat(latestRecord.tot_pub_debt_out_amt) / 1_000_000_000_000
+        
+        setDebtData({
+          totalDebt: totalDebtInTrillions,
+          lastUpdated: latestRecord.record_date,
+          isLoading: false,
+          error: null
+        })
+      }
+    } catch (err) {
+      console.error('Failed to fetch debt data:', err)
+      setDebtData(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'Failed to fetch live data. Using estimate.'
+      }))
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchDebtData()
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchDebtData, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [fetchDebtData])
+
+  // Calculated values based on real debt
+  const totalDebt = debtData.totalDebt
+  const hamiltonianDebt = totalDebt * HAMILTONIAN_SHARE
+  const otherDebt = totalDebt * (1 - HAMILTONIAN_SHARE)
+  const debtPerCitizen = (totalDebt * 1_000_000_000_000) / US_POPULATION
+  const hamiltonianPerCitizen = debtPerCitizen * HAMILTONIAN_SHARE
   
   const stateInfo = stateData[selectedState]
   const multiplier = buildScenario >= 4 ? 2.2 : buildScenario >= 3 ? 1.8 : 1.4
@@ -319,27 +400,36 @@ export default function Home() {
           
           <div style={styles.heroRight}>
             <div style={styles.debtBox}>
-              <div style={styles.debtLabel}>TOTAL FEDERAL DEBT</div>
-              <TickingNumber value={TOTAL_DEBT} prefix="$" suffix=" TRILLION" decimals={4} size="2.2rem" />
+              <div style={styles.debtLabel}>
+                TOTAL FEDERAL DEBT
+                {debtData.isLoading && <span style={styles.liveIndicator}> ⟳</span>}
+                {!debtData.isLoading && !debtData.error && <span style={styles.liveIndicatorLive}> ● LIVE</span>}
+              </div>
+              <TickingDebt baseValue={totalDebt} prefix="$" suffix=" TRILLION" decimals={4} size="2.2rem" />
+              {debtData.lastUpdated && (
+                <div style={styles.dataSource}>
+                  Source: Treasury Dept • Updated: {debtData.lastUpdated}
+                </div>
+              )}
             </div>
             
             <div style={styles.debtSplit}>
               <div style={{ ...styles.debtSplitBox, borderColor: COLORS.hamiltonian }}>
                 <div style={styles.splitLabel}>BUILDING AMERICA</div>
-                <TickingNumber value={HAMILTONIAN_DEBT} prefix="$" suffix="T" decimals={2} color={COLORS.hamiltonian} size="1.5rem" />
+                <TickingDebt baseValue={hamiltonianDebt} prefix="$" suffix="T" decimals={2} color={COLORS.hamiltonian} size="1.5rem" tickRate={DEBT_INCREASE_PER_SECOND * HAMILTONIAN_SHARE} />
                 <div style={{ ...styles.splitPercent, color: COLORS.hamiltonian }}>{(HAMILTONIAN_SHARE * 100).toFixed(0)}%</div>
               </div>
               
               <div style={{ ...styles.debtSplitBox, borderColor: COLORS.other }}>
                 <div style={styles.splitLabel}>ALREADY SPENT</div>
-                <TickingNumber value={OTHER_DEBT} prefix="$" suffix="T" decimals={2} color={COLORS.other} size="1.5rem" />
+                <TickingDebt baseValue={otherDebt} prefix="$" suffix="T" decimals={2} color={COLORS.other} size="1.5rem" tickRate={DEBT_INCREASE_PER_SECOND * (1 - HAMILTONIAN_SHARE)} />
                 <div style={{ ...styles.splitPercent, color: COLORS.other }}>{((1 - HAMILTONIAN_SHARE) * 100).toFixed(0)}%</div>
               </div>
             </div>
             
             <div style={styles.perCitizen}>
-              Your share: <strong>${Math.round(DEBT_PER_CITIZEN).toLocaleString()}</strong> — 
-              but only <span style={{ color: COLORS.hamiltonian }}>${Math.round(DEBT_PER_CITIZEN * HAMILTONIAN_SHARE).toLocaleString()}</span> is invested in assets
+              Your share: <strong>${Math.round(debtPerCitizen).toLocaleString()}</strong> — 
+              but only <span style={{ color: COLORS.hamiltonian }}>${Math.round(hamiltonianPerCitizen).toLocaleString()}</span> is invested in assets
             </div>
           </div>
         </header>
@@ -770,6 +860,26 @@ const styles: { [key: string]: React.CSSProperties } = {
     textTransform: 'uppercase',
     letterSpacing: '1px',
     marginBottom: '0.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+  },
+  liveIndicator: {
+    color: COLORS.textMuted,
+    animation: 'spin 1s linear infinite',
+  },
+  liveIndicatorLive: {
+    color: COLORS.hamiltonian,
+    fontSize: '0.6rem',
+    fontWeight: 600,
+  },
+  dataSource: {
+    fontSize: '0.6rem',
+    color: COLORS.textDim,
+    marginTop: '0.5rem',
+    textTransform: 'none',
+    letterSpacing: '0',
   },
   debtSplit: {
     display: 'grid',
