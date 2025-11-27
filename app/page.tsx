@@ -1006,21 +1006,22 @@ export default function Home() {
                     { rate: 2, label: '2%', sublabel: 'Now' },
                     { rate: 3, label: '3%', sublabel: 'Genesis' },
                     { rate: 4, label: '4%', sublabel: 'Ambitious' },
-                    { rate: 5, label: '5%', sublabel: 'Mobilization' },
+                    { rate: 5, label: '5%', sublabel: 'Full System' },
                   ].map(({ rate, label, sublabel }) => (
                     <button
                       key={rate}
                       onClick={() => setBuildScenario(rate)}
                       style={{
                         ...styles.scenarioBtn,
-                        backgroundColor: buildScenario === rate ? COLORS.hamiltonian : 'transparent',
+                        backgroundColor: buildScenario === rate 
+                          ? (rate === 2 ? COLORS.other : COLORS.hamiltonian) 
+                          : 'transparent',
                         color: buildScenario === rate ? COLORS.bg : COLORS.text,
-                        flexDirection: 'column',
-                        gap: '2px',
+                        borderColor: rate === 2 ? COLORS.other : COLORS.border,
                       }}
                     >
-                      <span style={{ fontWeight: 700 }}>{label}</span>
-                      <span style={{ fontSize: '0.6rem', opacity: 0.8 }}>{sublabel}</span>
+                      <span style={{ fontWeight: 700, fontSize: '1rem' }}>{label}</span>
+                      <span style={{ fontSize: '0.55rem', opacity: 0.85, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{sublabel}</span>
                     </button>
                   ))}
                 </div>
@@ -1034,43 +1035,68 @@ export default function Home() {
             </div>
             
             <div style={styles.stakeResults}>
-              <h3 style={styles.stakeResultsTitle}>
-                If We Build at {buildScenario}% of GDP:
+              <h3 style={{ 
+                ...styles.stakeResultsTitle, 
+                color: buildScenario === 2 ? COLORS.other : COLORS.hamiltonian 
+              }}>
+                {buildScenario === 2 
+                  ? "Status Quo (2%) — What You're Missing:" 
+                  : `If We Build at ${buildScenario}% of GDP:`}
               </h3>
               
               <div style={styles.benefitsGrid}>
                 <div style={styles.benefitCard}>
-                  <div style={styles.benefitIcon}>💵</div>
-                  <div style={styles.benefitLabel}>Your Energy Savings</div>
-                  <div style={styles.benefitValue}>
-                    ${Math.round(stateInfo.energySavings * (buildScenario - 1.5) / 2.5 * householdSize / 2).toLocaleString()}/year
+                  <div style={styles.benefitIcon}>{buildScenario === 2 ? '📉' : '💵'}</div>
+                  <div style={styles.benefitLabel}>{buildScenario === 2 ? 'Potential Savings Lost' : 'Your Energy Savings'}</div>
+                  <div style={{ 
+                    ...styles.benefitValue, 
+                    color: buildScenario === 2 ? COLORS.other : COLORS.hamiltonian 
+                  }}>
+                    {buildScenario === 2 
+                      ? `−$${Math.round(stateInfo.energySavings * householdSize / 2).toLocaleString()}/yr`
+                      : `$${Math.round(stateInfo.energySavings * (buildScenario - 2) / 3 * householdSize / 2).toLocaleString()}/year`}
                   </div>
-                  <div style={styles.benefitNote}>Cheaper electricity from new capacity</div>
+                  <div style={styles.benefitNote}>{buildScenario === 2 ? 'vs 5% build rate' : 'Cheaper electricity from new capacity'}</div>
                 </div>
                 
                 <div style={styles.benefitCard}>
-                  <div style={styles.benefitIcon}>👷</div>
-                  <div style={styles.benefitLabel}>Jobs Coming to {selectedState}</div>
-                  <div style={styles.benefitValue}>
-                    +{Math.round(stateInfo.jobsCreated * (buildScenario - 1.5) / 2.5 / 1000).toLocaleString()}K
+                  <div style={styles.benefitIcon}>{buildScenario === 2 ? '🚫' : '👷'}</div>
+                  <div style={styles.benefitLabel}>{buildScenario === 2 ? 'Jobs Not Created' : `Jobs Coming to ${selectedState}`}</div>
+                  <div style={{ 
+                    ...styles.benefitValue, 
+                    color: buildScenario === 2 ? COLORS.other : COLORS.hamiltonian 
+                  }}>
+                    {buildScenario === 2 
+                      ? `−${Math.round(stateInfo.jobsCreated / 1000).toLocaleString()}K`
+                      : `+${Math.round(stateInfo.jobsCreated * (buildScenario - 2) / 3 / 1000).toLocaleString()}K`}
                   </div>
-                  <div style={styles.benefitNote}>Technical, union-scale positions</div>
+                  <div style={styles.benefitNote}>{buildScenario === 2 ? 'That could exist' : 'Technical, union-scale positions'}</div>
                 </div>
                 
                 <div style={styles.benefitCard}>
-                  <div style={styles.benefitIcon}>💰</div>
-                  <div style={styles.benefitLabel}>Investment Coming</div>
-                  <div style={styles.benefitValue}>
-                    ${Math.round(stateInfo.investmentComing * (buildScenario / 4)).toLocaleString()}B
+                  <div style={styles.benefitIcon}>{buildScenario === 2 ? '💸' : '💰'}</div>
+                  <div style={styles.benefitLabel}>{buildScenario === 2 ? 'Investment Going Elsewhere' : 'Investment Coming'}</div>
+                  <div style={{ 
+                    ...styles.benefitValue, 
+                    color: buildScenario === 2 ? COLORS.other : COLORS.hamiltonian 
+                  }}>
+                    {buildScenario === 2 
+                      ? `−$${Math.round(stateInfo.investmentComing * 0.75).toLocaleString()}B`
+                      : `$${Math.round(stateInfo.investmentComing * ((buildScenario - 2) / 3 + 0.25)).toLocaleString()}B`}
                   </div>
-                  <div style={styles.benefitNote}>Federal + private capital</div>
+                  <div style={styles.benefitNote}>{buildScenario === 2 ? 'To other countries' : 'Federal + private capital'}</div>
                 </div>
                 
                 <div style={styles.benefitCard}>
-                  <div style={styles.benefitIcon}>📈</div>
-                  <div style={styles.benefitLabel}>GDP Multiplier</div>
-                  <div style={styles.benefitValue}>{multiplier}x</div>
-                  <div style={styles.benefitNote}>Every $1 invested → ${multiplier} GDP</div>
+                  <div style={styles.benefitIcon}>{buildScenario === 2 ? '⚠️' : '📈'}</div>
+                  <div style={styles.benefitLabel}>{buildScenario === 2 ? 'Growth Foregone' : 'GDP Multiplier'}</div>
+                  <div style={{ 
+                    ...styles.benefitValue, 
+                    color: buildScenario === 2 ? COLORS.other : COLORS.hamiltonian 
+                  }}>
+                    {buildScenario === 2 ? '1.0x' : `${multiplier}x`}
+                  </div>
+                  <div style={styles.benefitNote}>{buildScenario === 2 ? 'Treading water' : `Every $1 invested → $${multiplier} GDP`}</div>
                 </div>
               </div>
               
@@ -1083,13 +1109,28 @@ export default function Home() {
                 </div>
               </div>
               
-              <div style={styles.bottomLine}>
-                <strong>The Bottom Line:</strong> At {buildScenario}% build rate, your household gains approximately{' '}
-                <span style={{ color: COLORS.hamiltonian }}>
-                  ${Math.round((stateInfo.energySavings * (buildScenario - 1.5) / 2.5 * householdSize / 2) + 
-                    ((buildScenario - 2) * 2000 * householdSize)).toLocaleString()}/year
-                </span>{' '}
-                in savings and economic opportunity. Plus: job security, stable grid, funded benefits.
+              <div style={{ 
+                ...styles.bottomLine, 
+                borderColor: buildScenario === 2 ? COLORS.other : COLORS.hamiltonian 
+              }}>
+                {buildScenario === 2 ? (
+                  <>
+                    <strong>The Cost of Inaction:</strong> Every year at 2%, your household forgoes approximately{' '}
+                    <span style={{ color: COLORS.other }}>
+                      ${Math.round(stateInfo.energySavings * householdSize / 2 + 3 * 2000 * householdSize).toLocaleString()}/year
+                    </span>{' '}
+                    in potential savings and economic opportunity that a 5% build rate would create.
+                  </>
+                ) : (
+                  <>
+                    <strong>The Bottom Line:</strong> At {buildScenario}% build rate, your household gains approximately{' '}
+                    <span style={{ color: COLORS.hamiltonian }}>
+                      ${Math.round((stateInfo.energySavings * (buildScenario - 2) / 3 * householdSize / 2) + 
+                        ((buildScenario - 2) * 2000 * householdSize)).toLocaleString()}/year
+                    </span>{' '}
+                    in savings and economic opportunity. Plus: job security, stable grid, funded benefits.
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -1882,14 +1923,19 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   scenarioBtn: {
     flex: 1,
-    padding: '0.75rem',
+    padding: '0.5rem 0.25rem',
     border: `1px solid ${COLORS.border}`,
     borderRadius: '6px',
     fontFamily: 'inherit',
-    fontSize: '0.9rem',
+    fontSize: '0.85rem',
     fontWeight: 600,
     cursor: 'pointer',
     transition: 'all 0.2s',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    gap: '2px',
+    minWidth: '70px',
   },
   scenarioLabels: {
     display: 'flex',
