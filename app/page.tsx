@@ -1215,6 +1215,176 @@ export default function Home() {
         </section>
 
         {/* ================================================================ */}
+        {/* GROWTH INITIATIVES - Moon, Defense, AI, Energy */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>
+            <span style={{ color: COLORS.gold }}>GROWTH INITIATIVES</span> — The Next Frontiers
+          </h2>
+          <p style={styles.sectionSubtitle}>
+            Major programs that will define American capacity for the next decade. Short-term wins and long-term moonshots.
+          </p>
+          
+          <div style={styles.initiativesGrid}>
+            {/* Short-Term (2025-2028) */}
+            <div style={styles.initiativeColumn}>
+              <div style={styles.initiativeHeader}>
+                <span style={styles.initiativeTimeframe}>⚡ SHORT-TERM</span>
+                <span style={styles.initiativeYears}>2025-2028</span>
+              </div>
+              
+              <div style={styles.initiativeCard}>
+                <div style={styles.initIcon}>🛢️</div>
+                <div style={styles.initContent}>
+                  <div style={styles.initTitle}>Willow Project (Alaska)</div>
+                  <div style={styles.initStats}>
+                    <span>$8B investment</span>
+                    <span>180K bbl/day</span>
+                    <span>2,500+ jobs</span>
+                  </div>
+                  <div style={styles.initDesc}>ConocoPhillips. First oil ~2029. Energy dominance.</div>
+                </div>
+              </div>
+              
+              <div style={styles.initiativeCard}>
+                <div style={styles.initIcon}>⛽</div>
+                <div style={styles.initContent}>
+                  <div style={styles.initTitle}>LNG Export Expansion</div>
+                  <div style={styles.initStats}>
+                    <span>$40B+ investment</span>
+                    <span>TX, LA</span>
+                    <span>10K+ jobs</span>
+                  </div>
+                  <div style={styles.initDesc}>Golden Pass, Plaquemines. Europe/Asia demand.</div>
+                </div>
+              </div>
+              
+              <div style={styles.initiativeCard}>
+                <div style={styles.initIcon}>🔋</div>
+                <div style={styles.initContent}>
+                  <div style={styles.initTitle}>Battery Plants</div>
+                  <div style={styles.initStats}>
+                    <span>$20B+ investment</span>
+                    <span>MI, TN, GA</span>
+                    <span>15K+ jobs</span>
+                  </div>
+                  <div style={styles.initDesc}>Ford, GM, SK, LG. EV supply chain reshoring.</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Medium-Term (2028-2035) */}
+            <div style={styles.initiativeColumn}>
+              <div style={styles.initiativeHeader}>
+                <span style={styles.initiativeTimeframe}>🎯 MEDIUM-TERM</span>
+                <span style={styles.initiativeYears}>2028-2035</span>
+              </div>
+              
+              <div style={styles.initiativeCard}>
+                <div style={styles.initIcon}>🚀</div>
+                <div style={styles.initContent}>
+                  <div style={styles.initTitle}>Artemis / Moon Base</div>
+                  <div style={styles.initStats}>
+                    <span>$25B+/year</span>
+                    <span>Isaacman/NASA</span>
+                    <span>50K+ jobs</span>
+                  </div>
+                  <div style={styles.initDesc}>Moon landing 2026-27. Permanent base by 2030s. Mars prep.</div>
+                </div>
+              </div>
+              
+              <div style={styles.initiativeCard}>
+                <div style={styles.initIcon}>🛡️</div>
+                <div style={styles.initContent}>
+                  <div style={styles.initTitle}>Iron Dome for America</div>
+                  <div style={styles.initStats}>
+                    <span>$50-100B</span>
+                    <span>Nationwide</span>
+                    <span>100K+ jobs</span>
+                  </div>
+                  <div style={styles.initDesc}>Comprehensive missile defense. Interceptors, radar, C2. Domestic manufacturing.</div>
+                </div>
+              </div>
+              
+              <div style={styles.initiativeCard}>
+                <div style={styles.initIcon}>⚛️</div>
+                <div style={styles.initContent}>
+                  <div style={styles.initTitle}>SMR Nuclear Fleet</div>
+                  <div style={styles.initStats}>
+                    <span>$60B+</span>
+                    <span>20 reactors</span>
+                    <span>30K+ jobs</span>
+                  </div>
+                  <div style={styles.initDesc}>NuScale, TerraPower, X-energy. Factory-built, fast deploy.</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Long-Term (2030s+) */}
+            <div style={styles.initiativeColumn}>
+              <div style={styles.initiativeHeader}>
+                <span style={styles.initiativeTimeframe}>🌟 LONG-TERM</span>
+                <span style={styles.initiativeYears}>2030s+</span>
+              </div>
+              
+              <div style={styles.initiativeCard}>
+                <div style={styles.initIcon}>🤖</div>
+                <div style={styles.initContent}>
+                  <div style={styles.initTitle}>AI Manhattan Project</div>
+                  <div style={styles.initStats}>
+                    <span>$50-100B</span>
+                    <span>Defense + Industrial</span>
+                    <span>Tech leadership</span>
+                  </div>
+                  <div style={styles.initDesc}>Israel-style AI integration. Autonomous defense, industrial AI, cyber.</div>
+                </div>
+              </div>
+              
+              <div style={styles.initiativeCard}>
+                <div style={styles.initIcon}>🔴</div>
+                <div style={styles.initContent}>
+                  <div style={styles.initTitle}>Mars Colony Prep</div>
+                  <div style={styles.initStats}>
+                    <span>$100B+</span>
+                    <span>SpaceX + NASA</span>
+                    <span>2030s crewed</span>
+                  </div>
+                  <div style={styles.initDesc}>Starship development. Propellant depots. Life support R&D.</div>
+                </div>
+              </div>
+              
+              <div style={styles.initiativeCard}>
+                <div style={styles.initIcon}>⚡</div>
+                <div style={styles.initContent}>
+                  <div style={styles.initTitle}>Fusion Power</div>
+                  <div style={styles.initStats}>
+                    <span>$20B+ R&D</span>
+                    <span>Commonwealth, TAE</span>
+                    <span>2030s grid?</span>
+                  </div>
+                  <div style={styles.initDesc}>Private fusion race. Could be grid-ready by late 2030s.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div style={styles.initiativeSummary}>
+            <div style={styles.summaryItem}>
+              <span style={styles.summaryLabel}>Total Investment Pipeline</span>
+              <span style={styles.summaryValue}>$500B+</span>
+            </div>
+            <div style={styles.summaryItem}>
+              <span style={styles.summaryLabel}>Jobs Created</span>
+              <span style={styles.summaryValue}>500K+</span>
+            </div>
+            <div style={styles.summaryItem}>
+              <span style={styles.summaryLabel}>Impact States</span>
+              <span style={styles.summaryValue}>All 50</span>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
         {/* YOUR STAKE - Clear Personal Impact */}
         {/* ================================================================ */}
         <section style={styles.section}>
@@ -1383,6 +1553,47 @@ export default function Home() {
                   </>
                 )}
               </div>
+              
+              {/* Calculation Breakdown */}
+              {buildScenario > 2 && (
+                <div style={styles.calculationBreakdown}>
+                  <div style={styles.calcTitle}>📊 How This Is Calculated</div>
+                  <div style={styles.calcGrid}>
+                    <div style={styles.calcItem}>
+                      <span style={styles.calcLabel}>📉 Energy Savings</span>
+                      <span style={styles.calcValue}>
+                        ${Math.round(stateInfo.energySavings * (buildScenario - 2) / 3 * householdSize / 2).toLocaleString()}/yr
+                      </span>
+                      <span style={styles.calcExplain}>Lower utility bills from cheaper, abundant power</span>
+                    </div>
+                    <div style={styles.calcItem}>
+                      <span style={styles.calcLabel}>💼 Wage/Opportunity Premium</span>
+                      <span style={styles.calcValue}>
+                        ${Math.round((buildScenario - 2) * 1200 * householdSize).toLocaleString()}/yr
+                      </span>
+                      <span style={styles.calcExplain}>Tighter labor market = higher wages, more job options</span>
+                    </div>
+                    <div style={styles.calcItem}>
+                      <span style={styles.calcLabel}>🏠 Wealth Effect</span>
+                      <span style={styles.calcValue}>
+                        ${Math.round((buildScenario - 2) * 500 * householdSize).toLocaleString()}/yr
+                      </span>
+                      <span style={styles.calcExplain}>Property values, local economy growth, 401k gains</span>
+                    </div>
+                    <div style={styles.calcItem}>
+                      <span style={styles.calcLabel}>🏛️ Better Services</span>
+                      <span style={styles.calcValue}>
+                        ${Math.round((buildScenario - 2) * 300 * householdSize).toLocaleString()}/yr
+                      </span>
+                      <span style={styles.calcExplain}>More tax revenue = better schools, roads, services</span>
+                    </div>
+                  </div>
+                  <div style={styles.calcNote}>
+                    Estimates based on economic multiplier effects from increased capital investment. 
+                    Actual impact varies by location, industry, and individual circumstances.
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -2295,6 +2506,97 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexShrink: 0,
   },
   
+  // Growth Initiatives
+  initiativesGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '1.5rem',
+    marginBottom: '1.5rem',
+  },
+  initiativeColumn: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.75rem',
+  },
+  initiativeHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: '0.5rem',
+    borderBottom: `2px solid ${COLORS.border}`,
+    marginBottom: '0.5rem',
+  },
+  initiativeTimeframe: {
+    fontSize: '0.75rem',
+    fontWeight: 700,
+    color: COLORS.gold,
+    textTransform: 'uppercase' as const,
+  },
+  initiativeYears: {
+    fontSize: '0.65rem',
+    color: COLORS.textDim,
+  },
+  initiativeCard: {
+    display: 'flex',
+    gap: '0.75rem',
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '0.75rem',
+  },
+  initIcon: {
+    fontSize: '1.5rem',
+    flexShrink: 0,
+  },
+  initContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+  initTitle: {
+    fontSize: '0.85rem',
+    fontWeight: 700,
+    color: COLORS.text,
+    marginBottom: '0.35rem',
+  },
+  initStats: {
+    display: 'flex',
+    gap: '0.75rem',
+    fontSize: '0.65rem',
+    color: COLORS.hamiltonian,
+    marginBottom: '0.35rem',
+    flexWrap: 'wrap' as const,
+  },
+  initDesc: {
+    fontSize: '0.65rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.4,
+  },
+  initiativeSummary: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '3rem',
+    padding: '1rem',
+    backgroundColor: COLORS.bgCardAlt,
+    borderRadius: '8px',
+    border: `1px solid ${COLORS.gold}44`,
+  },
+  summaryItem: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    gap: '0.25rem',
+  },
+  summaryLabel: {
+    fontSize: '0.65rem',
+    color: COLORS.textMuted,
+    textTransform: 'uppercase' as const,
+  },
+  summaryValue: {
+    fontSize: '1.25rem',
+    fontWeight: 700,
+    color: COLORS.gold,
+  },
+  
   // Leapfrog
   leapfrogGrid: {
     display: 'grid',
@@ -2458,6 +2760,56 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '0.9rem',
     lineHeight: 1.5,
     border: `1px solid ${COLORS.hamiltonian}33`,
+  },
+  
+  // Calculation Breakdown
+  calculationBreakdown: {
+    marginTop: '1rem',
+    padding: '1rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '8px',
+    border: `1px solid ${COLORS.border}`,
+  },
+  calcTitle: {
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    color: COLORS.textMuted,
+    marginBottom: '0.75rem',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+  },
+  calcGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '1rem',
+    marginBottom: '0.75rem',
+  },
+  calcItem: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.25rem',
+  },
+  calcLabel: {
+    fontSize: '0.65rem',
+    color: COLORS.textMuted,
+  },
+  calcValue: {
+    fontSize: '1rem',
+    fontWeight: 700,
+    color: COLORS.hamiltonian,
+  },
+  calcExplain: {
+    fontSize: '0.6rem',
+    color: COLORS.textDim,
+    lineHeight: 1.3,
+  },
+  calcNote: {
+    fontSize: '0.6rem',
+    color: COLORS.textDim,
+    fontStyle: 'italic',
+    textAlign: 'center' as const,
+    paddingTop: '0.5rem',
+    borderTop: `1px solid ${COLORS.border}`,
   },
   
   // Win section
