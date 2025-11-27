@@ -902,6 +902,106 @@ export default function Home() {
         </section>
 
         {/* ================================================================ */}
+        {/* THE WORKFORCE - Build With Americans */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>
+            <span style={{ color: COLORS.warning }}>THE WORKFORCE</span> — Build With Americans
+          </h2>
+          <p style={styles.sectionSubtitle}>
+            You can't build America without American workers. A tight labor market means rising wages and investment in training.
+          </p>
+          
+          <div style={styles.workforceGrid}>
+            <div style={styles.workforceCard}>
+              <div style={styles.wfHeader}>
+                <span style={styles.wfIcon}>📊</span>
+                <span style={styles.wfLabel}>LABOR FORCE PARTICIPATION</span>
+              </div>
+              <div style={styles.wfMetric}>
+                <span style={styles.wfValue}>62.5%</span>
+                <span style={styles.wfTarget}>Target: 67%+</span>
+              </div>
+              <div style={styles.wfNote}>Millions of Americans sidelined from workforce</div>
+            </div>
+            
+            <div style={{ ...styles.workforceCard, borderColor: COLORS.other }}>
+              <div style={styles.wfHeader}>
+                <span style={styles.wfIcon}>🚨</span>
+                <span style={styles.wfLabel}>RECENT ILLEGAL ARRIVALS</span>
+              </div>
+              <div style={styles.wfMetric}>
+                <span style={{ ...styles.wfValue, color: COLORS.other }}>6-8M</span>
+                <span style={styles.wfTarget}>2021-2024</span>
+              </div>
+              <div style={styles.wfNote}>≈ 2 Chicagos of labor supply added</div>
+            </div>
+            
+            <div style={styles.workforceCard}>
+              <div style={styles.wfHeader}>
+                <span style={styles.wfIcon}>🔨</span>
+                <span style={styles.wfLabel}>CONSTRUCTION WAGES</span>
+              </div>
+              <div style={styles.wfMetric}>
+                <span style={{ ...styles.wfValue, color: COLORS.warning }}>+2.1%/yr</span>
+                <span style={styles.wfTarget}>Target: 4%+/yr</span>
+              </div>
+              <div style={styles.wfNote}>Wage growth stagnant due to labor surplus</div>
+            </div>
+            
+            <div style={styles.workforceCard}>
+              <div style={styles.wfHeader}>
+                <span style={styles.wfIcon}>🎓</span>
+                <span style={styles.wfLabel}>APPRENTICESHIPS/YEAR</span>
+              </div>
+              <div style={styles.wfMetric}>
+                <span style={{ ...styles.wfValue, color: COLORS.warning }}>~500K</span>
+                <span style={styles.wfTarget}>Target: 1M+</span>
+              </div>
+              <div style={styles.wfNote}>Need to double training investment</div>
+            </div>
+          </div>
+          
+          <div style={styles.workforcePolicy}>
+            <div style={styles.wfPolicyTitle}>American System Workforce Policy</div>
+            <div style={styles.wfPolicyGrid}>
+              <div style={styles.wfPolicyItem}>
+                <span style={styles.wfPolicyIcon}>🛡️</span>
+                <div>
+                  <strong>Secure Border</strong>
+                  <p>Control inflows → tight labor market → rising wages</p>
+                </div>
+              </div>
+              <div style={styles.wfPolicyItem}>
+                <span style={styles.wfPolicyIcon}>⚖️</span>
+                <div>
+                  <strong>Enforce Laws</strong>
+                  <p>E-Verify mandatory, employer penalties, deportations</p>
+                </div>
+              </div>
+              <div style={styles.wfPolicyItem}>
+                <span style={styles.wfPolicyIcon}>📚</span>
+                <div>
+                  <strong>Train Americans</strong>
+                  <p>Apprenticeships, trade schools, veteran programs</p>
+                </div>
+              </div>
+              <div style={styles.wfPolicyItem}>
+                <span style={styles.wfPolicyIcon}>💪</span>
+                <div>
+                  <strong>Raise Wages</strong>
+                  <p>Tight labor + training = American workers win</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div style={styles.workforceQuote}>
+            "Build with American hands, trained in American schools, paid American wages."
+          </div>
+        </section>
+
+        {/* ================================================================ */}
         {/* CAPACITY GAPS - What We Need to Build */}
         {/* ================================================================ */}
         <section style={styles.section}>
@@ -1853,6 +1953,96 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   gapJobs: {
     color: COLORS.hamiltonian,
+  },
+  
+  // Workforce Section
+  workforceGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '1rem',
+    marginBottom: '1.5rem',
+  },
+  workforceCard: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1rem',
+  },
+  wfHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    marginBottom: '0.75rem',
+  },
+  wfIcon: {
+    fontSize: '1.25rem',
+  },
+  wfLabel: {
+    fontSize: '0.65rem',
+    fontWeight: 600,
+    color: COLORS.textMuted,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+  },
+  wfMetric: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '0.5rem',
+    marginBottom: '0.5rem',
+  },
+  wfValue: {
+    fontSize: '1.5rem',
+    fontWeight: 700,
+    color: COLORS.hamiltonian,
+  },
+  wfTarget: {
+    fontSize: '0.7rem',
+    color: COLORS.textDim,
+  },
+  wfNote: {
+    fontSize: '0.7rem',
+    color: COLORS.textMuted,
+  },
+  workforcePolicy: {
+    backgroundColor: COLORS.bgCardAlt,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1.25rem',
+    marginBottom: '1rem',
+  },
+  wfPolicyTitle: {
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    color: COLORS.text,
+    marginBottom: '1rem',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '1px',
+  },
+  wfPolicyGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '1rem',
+  },
+  wfPolicyItem: {
+    display: 'flex',
+    gap: '0.75rem',
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.4,
+  },
+  wfPolicyIcon: {
+    fontSize: '1.25rem',
+    flexShrink: 0,
+  },
+  workforceQuote: {
+    textAlign: 'center' as const,
+    fontSize: '0.9rem',
+    fontStyle: 'italic',
+    color: COLORS.hamiltonian,
+    padding: '1rem',
+    borderLeft: `3px solid ${COLORS.hamiltonian}`,
+    backgroundColor: COLORS.bgCard,
+    borderRadius: '0 8px 8px 0',
   },
   
   // Leapfrog
