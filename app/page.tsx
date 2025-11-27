@@ -10,11 +10,34 @@ import {
 // API & DATA FETCHING
 // ============================================================================
 
-// Treasury Fiscal Data API - Real federal debt data
+// Treasury Fiscal Data API - Real federal debt data (no auth required)
 const TREASURY_API = 'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny?sort=-record_date&page[size]=1'
+
+// FRED API - Federal Reserve Economic Data (free API key required)
+// Get your free key at: https://fred.stlouisfed.org/docs/api/api_key.html
+const FRED_API_KEY = process.env.NEXT_PUBLIC_FRED_API_KEY || ''
+const FRED_BASE_URL = 'https://api.stlouisfed.org/fred/series/observations'
+
+// FRED Series IDs
+const FRED_SERIES = {
+  GDP: 'GDP',                    // Gross Domestic Product (Billions, Quarterly)
+  DEBT_TO_GDP: 'GFDEGDQ188S',   // Federal Debt as % of GDP (Quarterly)
+  GROSS_INVESTMENT: 'GPDI',      // Gross Private Domestic Investment
+  GOV_INVESTMENT: 'W170RC1Q027SBEA', // Government gross investment
+}
 
 interface DebtData {
   totalDebt: number           // in trillions
+  lastUpdated: string
+  isLoading: boolean
+  error: string | null
+}
+
+interface EconomicData {
+  gdp: number                 // in trillions
+  debtToGdp: number          // percentage
+  grossInvestment: number    // in billions
+  govInvestment: number      // in billions
   lastUpdated: string
   isLoading: boolean
   error: string | null
@@ -333,6 +356,17 @@ export default function Home() {
     error: null
   })
 
+  // Economic data from FRED API
+  const [econData, setEconData] = useState<EconomicData>({
+    gdp: 28.3,              // fallback: ~$28.3T GDP
+    debtToGdp: 123,         // fallback: ~123%
+    grossInvestment: 450,   // fallback: ~$450B public infrastructure/year
+    govInvestment: 120,     // fallback: ~$120B federal capital investment
+    lastUpdated: '',
+    isLoading: true,
+    error: null
+  })
+
   // Fetch real debt data from Treasury
   const fetchDebtData = useCallback(async () => {
     try {
@@ -360,12 +394,71 @@ export default function Home() {
     }
   }, [])
 
+  // Fetch economic data from FRED API
+  const fetchFredData = useCallback(async (seriesId: string): Promise<number | null> => {
+    if (!FRED_API_KEY) return null
+    
+    try {
+      const url = `${FRED_BASE_URL}?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=1`
+      const response = await fetch(url)
+      const data = await response.json()
+      
+      if (data.observations && data.observations.length > 0) {
+        return parseFloat(data.observations[0].value)
+      }
+    } catch (err) {
+      console.error(`Failed to fetch FRED series ${seriesId}:`, err)
+    }
+    return null
+  }, [])
+
+  const fetchEconomicData = useCallback(async () => {
+    if (!FRED_API_KEY) {
+      setEconData(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'FRED API key not configured. Using estimates.'
+      }))
+      return
+    }
+
+    try {
+      const [gdp, debtToGdp, grossInvestment, govInvestment] = await Promise.all([
+        fetchFredData(FRED_SERIES.GDP),
+        fetchFredData(FRED_SERIES.DEBT_TO_GDP),
+        fetchFredData(FRED_SERIES.GROSS_INVESTMENT),
+        fetchFredData(FRED_SERIES.GOV_INVESTMENT),
+      ])
+
+      setEconData({
+        gdp: gdp ? gdp / 1000 : 28.3,  // Convert billions to trillions
+        debtToGdp: debtToGdp || 123,
+        grossInvestment: grossInvestment || 4800,
+        govInvestment: govInvestment || 850,
+        lastUpdated: new Date().toISOString().split('T')[0],
+        isLoading: false,
+        error: null
+      })
+    } catch (err) {
+      console.error('Failed to fetch economic data:', err)
+      setEconData(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'Failed to fetch FRED data. Using estimates.'
+      }))
+    }
+  }, [fetchFredData])
+
   useEffect(() => {
     fetchDebtData()
+    fetchEconomicData()
     // Refresh every 5 minutes
-    const interval = setInterval(fetchDebtData, 5 * 60 * 1000)
+    const interval = setInterval(() => {
+      fetchDebtData()
+      fetchEconomicData()
+    }, 5 * 60 * 1000)
     return () => clearInterval(interval)
-  }, [fetchDebtData])
+  }, [fetchDebtData, fetchEconomicData])
 
   // Calculated values based on real debt
   const totalDebt = debtData.totalDebt
@@ -373,6 +466,18 @@ export default function Home() {
   const otherDebt = totalDebt * (1 - HAMILTONIAN_SHARE)
   const debtPerCitizen = (totalDebt * 1_000_000_000_000) / US_POPULATION
   const hamiltonianPerCitizen = debtPerCitizen * HAMILTONIAN_SHARE
+  
+  // Calculate build rate (public infrastructure investment as % of GDP)
+  // This is public infrastructure + federal capital, not total private investment
+  const buildRate = econData.gdp > 0 
+    ? ((econData.grossInvestment + econData.govInvestment) / (econData.gdp * 1000)) * 100 
+    : 2.0
+  
+  // Cap at realistic range (currently ~2% of GDP goes to public infrastructure)
+  const displayBuildRate = Math.min(buildRate, 25)
+  
+  // Calculate actual debt-to-GDP
+  const actualDebtToGdp = econData.debtToGdp || (totalDebt / econData.gdp * 100)
   
   const stateInfo = stateData[selectedState]
   const multiplier = buildScenario >= 4 ? 2.2 : buildScenario >= 3 ? 1.8 : 1.4
@@ -433,6 +538,61 @@ export default function Home() {
             </div>
           </div>
         </header>
+
+        {/* ================================================================ */}
+        {/* KEY METRICS - Economic Dashboard */}
+        {/* ================================================================ */}
+        <section style={styles.kpiSection}>
+          <div style={styles.kpiGrid}>
+            <div style={styles.kpiCard}>
+              <div style={styles.kpiLabel}>
+                U.S. GDP
+                {econData.isLoading && <span style={styles.liveIndicator}> ⟳</span>}
+                {!econData.isLoading && !econData.error && FRED_API_KEY && <span style={styles.liveIndicatorLive}> ● FRED</span>}
+              </div>
+              <div style={styles.kpiValue}>${econData.gdp.toFixed(1)}T</div>
+              <div style={styles.kpiSubtext}>Gross Domestic Product</div>
+            </div>
+            
+            <div style={styles.kpiCard}>
+              <div style={styles.kpiLabel}>DEBT-TO-GDP</div>
+              <div style={{ ...styles.kpiValue, color: actualDebtToGdp > 100 ? COLORS.warning : COLORS.text }}>
+                {actualDebtToGdp.toFixed(1)}%
+              </div>
+              <div style={styles.kpiSubtext}>
+                {actualDebtToGdp > 120 ? '⚠️ Above sustainable' : actualDebtToGdp > 100 ? '⚠️ Elevated' : '✓ Manageable'}
+              </div>
+            </div>
+            
+            <div style={styles.kpiCard}>
+              <div style={styles.kpiLabel}>BUILD RATE</div>
+              <div style={{ ...styles.kpiValue, color: displayBuildRate >= 3 ? COLORS.hamiltonian : COLORS.warning }}>
+                {displayBuildRate.toFixed(1)}%
+              </div>
+              <div style={styles.kpiSubtext}>
+                Public investment as % of GDP {displayBuildRate < 3 && '(Target: 3-4%)'}
+              </div>
+            </div>
+            
+            <div style={styles.kpiCard}>
+              <div style={styles.kpiLabel}>HAMILTONIAN SHARE</div>
+              <div style={{ ...styles.kpiValue, color: COLORS.hamiltonian }}>
+                {(HAMILTONIAN_SHARE * 100).toFixed(0)}%
+              </div>
+              <div style={styles.kpiSubtext}>
+                Target: 30%+ (was 35% in 1960)
+              </div>
+            </div>
+          </div>
+          
+          {econData.error && (
+            <div style={styles.apiNote}>
+              {econData.error} {!FRED_API_KEY && (
+                <span>Get a free key at <a href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.accent }}>fred.stlouisfed.org</a></span>
+              )}
+            </div>
+          )}
+        </section>
 
         {/* ================================================================ */}
         {/* WHY WE BUILD - First Principles */}
@@ -880,6 +1040,48 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginTop: '0.5rem',
     textTransform: 'none',
     letterSpacing: '0',
+  },
+  kpiSection: {
+    marginBottom: '2rem',
+  },
+  kpiGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '1rem',
+  },
+  kpiCard: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1rem',
+    textAlign: 'center' as const,
+  },
+  kpiLabel: {
+    fontSize: '0.65rem',
+    color: COLORS.textMuted,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '1px',
+    marginBottom: '0.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.25rem',
+  },
+  kpiValue: {
+    fontSize: '1.5rem',
+    fontWeight: 700,
+    fontFamily: "'JetBrains Mono', monospace",
+    marginBottom: '0.25rem',
+  },
+  kpiSubtext: {
+    fontSize: '0.65rem',
+    color: COLORS.textDim,
+  },
+  apiNote: {
+    marginTop: '0.75rem',
+    fontSize: '0.65rem',
+    color: COLORS.textDim,
+    textAlign: 'center' as const,
   },
   debtSplit: {
     display: 'grid',
