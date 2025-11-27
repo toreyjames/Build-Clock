@@ -1,0 +1,1291 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { 
+  PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, 
+  Tooltip, ResponsiveContainer, BarChart, Bar
+} from 'recharts'
+
+// ============================================================================
+// CONSTANTS & DATA
+// ============================================================================
+
+const TOTAL_DEBT = 36.1
+const HAMILTONIAN_SHARE = 0.18
+const HAMILTONIAN_DEBT = TOTAL_DEBT * HAMILTONIAN_SHARE
+const OTHER_DEBT = TOTAL_DEBT * (1 - HAMILTONIAN_SHARE)
+const US_POPULATION = 336
+const DEBT_PER_CITIZEN = (TOTAL_DEBT * 1_000_000_000_000) / (US_POPULATION * 1_000_000)
+
+// American Advantages with REAL data
+const americanAdvantages = [
+  { 
+    area: 'Frontier AI', 
+    usPosition: '8 of top 10 models',
+    evidence: 'GPT-4, Claude, Gemini, Llama — all American. China\'s best 12-18 months behind.',
+    metric: '80%',
+    metricLabel: 'of frontier AI',
+    icon: '🧠',
+    status: 'dominant'
+  },
+  { 
+    area: 'Cloud Infrastructure', 
+    usPosition: '65% global market',
+    evidence: 'AWS (32%) + Azure (23%) + GCP (10%). Alibaba Cloud = 4%.',
+    metric: '65%',
+    metricLabel: 'market share',
+    icon: '☁️',
+    status: 'dominant'
+  },
+  { 
+    area: 'Nuclear Technology', 
+    usPosition: '90% of SMR IP',
+    evidence: 'NuScale (NRC approved), TerraPower, X-energy. China: 0 approved SMR designs.',
+    metric: '90%',
+    metricLabel: 'of SMR patents',
+    icon: '⚛️',
+    status: 'dominant'
+  },
+  { 
+    area: 'Commercial Space', 
+    usPosition: '70%+ of launches',
+    evidence: 'SpaceX: 96 launches in 2024. All of China: ~67. Reusable rockets = US only.',
+    metric: '96',
+    metricLabel: 'SpaceX launches/yr',
+    icon: '🚀',
+    status: 'dominant'
+  },
+  { 
+    area: 'Biotech & Pharma', 
+    usPosition: '60% of new drugs',
+    evidence: '$150B US pharma R&D vs $30B China. mRNA vaccines, CRISPR, CAR-T = American.',
+    metric: '$150B',
+    metricLabel: 'R&D spending',
+    icon: '🧬',
+    status: 'dominant'
+  },
+  { 
+    area: 'Venture Capital', 
+    usPosition: '50%+ of global VC',
+    evidence: '$170B US VC in 2024 vs $45B China. Startup ecosystem unmatched.',
+    metric: '$170B',
+    metricLabel: 'annual VC',
+    icon: '💰',
+    status: 'leading'
+  },
+  { 
+    area: 'Research Universities', 
+    usPosition: '17 of top 20',
+    evidence: 'MIT, Stanford, Harvard, Caltech, Berkeley. China has 2 in top 50.',
+    metric: '17',
+    metricLabel: 'of top 20',
+    icon: '🎓',
+    status: 'dominant'
+  },
+  { 
+    area: 'Energy Resources', 
+    usPosition: '#1 gas producer',
+    evidence: 'Largest natural gas producer globally. Vast uranium, shale, coal reserves.',
+    metric: '#1',
+    metricLabel: 'nat gas producer',
+    icon: '⛽',
+    status: 'leading'
+  },
+]
+
+// Capacity gaps - what we need to build
+const capacityGaps = [
+  { area: 'Grid/HVDC', current: 25, target: 150, unit: 'GW', investment: 150, jobs: 500, timeline: '2030' },
+  { area: 'Nuclear', current: 95, target: 300, unit: 'GW', investment: 200, jobs: 300, timeline: '2035' },
+  { area: 'Chip Fabs', current: 12, target: 35, unit: '% global', investment: 150, jobs: 200, timeline: '2030' },
+  { area: 'Rare Earths', current: 0, target: 30, unit: '% refining', investment: 25, jobs: 50, timeline: '2030' },
+  { area: 'Shipbuilding', current: 5, target: 100, unit: 'ships/yr', investment: 80, jobs: 200, timeline: '2035' },
+  { area: 'Water Storage', current: 480, target: 800, unit: 'MAF', investment: 120, jobs: 400, timeline: '2040' },
+]
+
+// Policy sequence - the strategy
+const policySequence = [
+  {
+    step: 1,
+    name: 'TARIFFS',
+    action: 'Protect the Market',
+    description: 'Raise import prices so American production can compete. Creates price parity.',
+    examples: ['Steel/Aluminum: 25%', 'Solar panels: 50%', 'EVs from China: 100%', 'Chips: Export controls'],
+    icon: '🛡️',
+    status: 'active',
+    revenue: '$80B/year'
+  },
+  {
+    step: 2,
+    name: 'INCENTIVES',
+    action: 'Subsidize Investment',
+    description: 'Tax credits and grants to make building here profitable. De-risk private investment.',
+    examples: ['CHIPS Act: $52B', 'IRA clean energy: $370B', 'DOE Genesis: $8B', 'Tax credits: 30%'],
+    icon: '💰',
+    status: 'active',
+    revenue: '$430B committed'
+  },
+  {
+    step: 3,
+    name: 'INFRASTRUCTURE',
+    action: 'Enable Production',
+    description: 'Cheap, reliable power. Water. Grid capacity. Permitting reform. Without this, factories can\'t run.',
+    examples: ['Grid hardening', 'HVDC corridors', 'Water systems', 'Permitting: 2yr→6mo'],
+    icon: '⚡',
+    status: 'building',
+    revenue: '$300B needed'
+  },
+  {
+    step: 4,
+    name: 'WORKFORCE',
+    action: 'Train the Workers',
+    description: 'Apprenticeships, technical schools, skills programs. The jobs are coming — workers must be ready.',
+    examples: ['500K apprentices/yr', 'Trade school funding', 'Veteran transition', 'STEM pipeline'],
+    icon: '👷',
+    status: 'planned',
+    revenue: '$50B needed'
+  },
+  {
+    step: 5,
+    name: 'CAPACITY',
+    action: 'Factories Come Home',
+    description: 'The result: Domestic manufacturing for critical goods. Supply chain security. Jobs.',
+    examples: ['Intel fabs: OH, AZ', 'TSMC: Arizona', 'Battery plants: MI, TN', 'Steel: revival'],
+    icon: '🏭',
+    status: 'building',
+    revenue: '3M+ jobs'
+  },
+]
+
+// Leapfrog strategy
+const leapfrogData = [
+  { area: 'Transport', chinaHas: 'High-speed rail', weSkipTo: 'Hyperloop / Vacuum trains', icon: '🚄' },
+  { area: 'Nuclear', chinaHas: 'Gen III reactors', weSkipTo: 'SMRs + Fusion', icon: '⚛️' },
+  { area: 'Solar', chinaHas: 'Cheap silicon panels', weSkipTo: 'Perovskite + Tandem (40% eff)', icon: '☀️' },
+  { area: 'Batteries', chinaHas: 'Lithium-ion', weSkipTo: 'Solid-state + Sodium-ion', icon: '🔋' },
+  { area: 'Steel', chinaHas: 'Blast furnaces', weSkipTo: 'Green hydrogen steel', icon: '🏗️' },
+  { area: 'Ships', chinaHas: 'Manual shipyards', weSkipTo: 'Modular + Automated', icon: '🚢' },
+]
+
+// Your Stake - state data with clear benefits
+const stateData: Record<string, {
+  projects: number
+  jobsCreated: number
+  energySavings: number
+  investmentComing: number
+  keyProjects: string[]
+}> = {
+  'Texas': { 
+    projects: 12, 
+    jobsCreated: 185000, 
+    energySavings: 1400, 
+    investmentComing: 45,
+    keyProjects: ['Samsung fab expansion', 'Texas Instruments plants', 'LNG export terminals', 'Grid hardening']
+  },
+  'Ohio': { 
+    projects: 8, 
+    jobsCreated: 95000, 
+    energySavings: 1100, 
+    investmentComing: 32,
+    keyProjects: ['Intel mega-fab ($20B)', 'Honda EV plant', 'Steel mill revival', 'Nuclear restart']
+  },
+  'Arizona': { 
+    projects: 7, 
+    jobsCreated: 78000, 
+    energySavings: 1600, 
+    investmentComing: 40,
+    keyProjects: ['TSMC fabs (3 plants)', 'Intel expansion', 'Battery manufacturing', 'Solar manufacturing']
+  },
+  'Michigan': { 
+    projects: 9, 
+    jobsCreated: 110000, 
+    energySavings: 1000, 
+    investmentComing: 28,
+    keyProjects: ['GM/Ford EV transition', 'Battery gigafactories', 'Semiconductor plants', 'Robotics hub']
+  },
+  'Pennsylvania': { 
+    projects: 6, 
+    jobsCreated: 65000, 
+    energySavings: 950, 
+    investmentComing: 18,
+    keyProjects: ['Steel plant modernization', 'Nuclear plant restart', 'Pittsburgh AI corridor', 'Shale infrastructure']
+  },
+  'Tennessee': { 
+    projects: 5, 
+    jobsCreated: 55000, 
+    energySavings: 900, 
+    investmentComing: 15,
+    keyProjects: ['Ford BlueOval City', 'Oak Ridge expansion', 'Volkswagen EV', 'SMR development']
+  },
+  'Georgia': { 
+    projects: 6, 
+    jobsCreated: 72000, 
+    energySavings: 1100, 
+    investmentComing: 22,
+    keyProjects: ['Hyundai EV plant', 'Rivian expansion', 'SK Battery', 'Savannah port expansion']
+  },
+  'New York': { 
+    projects: 7, 
+    jobsCreated: 85000, 
+    energySavings: 1200, 
+    investmentComing: 25,
+    keyProjects: ['Micron fab ($100B)', 'Offshore wind manufacturing', 'Albany nanotechnology', 'Grid modernization']
+  },
+}
+
+// Historical data
+const historicalData = [
+  { year: 1960, hamiltonianShare: 35, label: 'Interstates + Apollo' },
+  { year: 1970, hamiltonianShare: 33, label: 'Nuclear fleet built' },
+  { year: 1980, hamiltonianShare: 28, label: 'Last major builds' },
+  { year: 1990, hamiltonianShare: 24, label: 'NAFTA begins' },
+  { year: 2000, hamiltonianShare: 22, label: 'Offshoring accelerates' },
+  { year: 2010, hamiltonianShare: 19, label: 'Financial crisis' },
+  { year: 2020, hamiltonianShare: 17, label: 'COVID + awareness' },
+  { year: 2024, hamiltonianShare: 18, label: 'Genesis + CHIPS' },
+]
+
+// Colors
+const COLORS = {
+  hamiltonian: '#00ff88',
+  other: '#ff4455',
+  accent: '#00aaff',
+  gold: '#ffd700',
+  warning: '#ffaa00',
+  bg: '#05050a',
+  bgCard: '#0a0a12',
+  bgCardAlt: '#0f0f18',
+  border: '#1a1a25',
+  text: '#e8e8e8',
+  textMuted: '#888899',
+  textDim: '#555566',
+}
+
+// ============================================================================
+// COMPONENTS
+// ============================================================================
+
+function TickingNumber({ value, prefix = '', suffix = '', decimals = 0, color = COLORS.text, size = '2rem' }: { 
+  value: number; prefix?: string; suffix?: string; decimals?: number; color?: string; size?: string 
+}) {
+  const [displayValue, setDisplayValue] = useState(value)
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDisplayValue(prev => prev + (Math.random() * 0.00001))
+    }, 100)
+    return () => clearInterval(interval)
+  }, [])
+  
+  return (
+    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: size, fontWeight: 700, color, textShadow: `0 0 20px ${color}44` }}>
+      {prefix}{displayValue.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}
+    </span>
+  )
+}
+
+// ============================================================================
+// MAIN PAGE
+// ============================================================================
+
+export default function Home() {
+  const [selectedState, setSelectedState] = useState('Texas')
+  const [householdSize, setHouseholdSize] = useState(3)
+  const [buildScenario, setBuildScenario] = useState(4)
+  
+  const stateInfo = stateData[selectedState]
+  const multiplier = buildScenario >= 4 ? 2.2 : buildScenario >= 3 ? 1.8 : 1.4
+
+  return (
+    <main style={styles.main}>
+      <div style={styles.container}>
+        
+        {/* ================================================================ */}
+        {/* HERO - The Debt Problem */}
+        {/* ================================================================ */}
+        <header style={styles.hero}>
+          <div style={styles.heroLeft}>
+            <div style={styles.trustBadge}>IN GOD WE TRUST</div>
+            <h1 style={styles.heroTitle}>
+              <span style={{ color: COLORS.hamiltonian }}>HAMILTONIAN</span>
+              <br />BUILD CLOCK
+            </h1>
+            <p style={styles.heroTagline}>The American System Dashboard</p>
+            <p style={styles.heroSubtitle}>
+              Not just how much we owe —<br />
+              <strong style={{ color: COLORS.hamiltonian }}>how much of it is building America</strong>
+            </p>
+          </div>
+          
+          <div style={styles.heroRight}>
+            <div style={styles.debtBox}>
+              <div style={styles.debtLabel}>TOTAL FEDERAL DEBT</div>
+              <TickingNumber value={TOTAL_DEBT} prefix="$" suffix=" TRILLION" decimals={4} size="2.2rem" />
+            </div>
+            
+            <div style={styles.debtSplit}>
+              <div style={{ ...styles.debtSplitBox, borderColor: COLORS.hamiltonian }}>
+                <div style={styles.splitLabel}>BUILDING AMERICA</div>
+                <TickingNumber value={HAMILTONIAN_DEBT} prefix="$" suffix="T" decimals={2} color={COLORS.hamiltonian} size="1.5rem" />
+                <div style={{ ...styles.splitPercent, color: COLORS.hamiltonian }}>{(HAMILTONIAN_SHARE * 100).toFixed(0)}%</div>
+              </div>
+              
+              <div style={{ ...styles.debtSplitBox, borderColor: COLORS.other }}>
+                <div style={styles.splitLabel}>ALREADY SPENT</div>
+                <TickingNumber value={OTHER_DEBT} prefix="$" suffix="T" decimals={2} color={COLORS.other} size="1.5rem" />
+                <div style={{ ...styles.splitPercent, color: COLORS.other }}>{((1 - HAMILTONIAN_SHARE) * 100).toFixed(0)}%</div>
+              </div>
+            </div>
+            
+            <div style={styles.perCitizen}>
+              Your share: <strong>${Math.round(DEBT_PER_CITIZEN).toLocaleString()}</strong> — 
+              but only <span style={{ color: COLORS.hamiltonian }}>${Math.round(DEBT_PER_CITIZEN * HAMILTONIAN_SHARE).toLocaleString()}</span> is invested in assets
+            </div>
+          </div>
+        </header>
+
+        {/* ================================================================ */}
+        {/* WHY WE BUILD - First Principles */}
+        {/* ================================================================ */}
+        <section style={styles.philosophySection}>
+          <h2 style={styles.philosophyTitle}>WHY WE BUILD</h2>
+          <div style={styles.philosophyGrid}>
+            <div style={styles.philosophyCard}>
+              <div style={styles.philIcon}>🎯</div>
+              <p><strong>Create, Don't Copy</strong><br />
+              America invents. Others mass-produce. We create the next breakthrough — that's who we are.</p>
+            </div>
+            <div style={styles.philosophyCard}>
+              <div style={styles.philIcon}>🏛️</div>
+              <p><strong>First Principles</strong><br />
+              Hamilton knew: productive debt builds nations. We forgot. Time to remember.</p>
+            </div>
+            <div style={styles.philosophyCard}>
+              <div style={styles.philIcon}>🦅</div>
+              <p><strong>America First</strong><br />
+              Build for us, not against anyone. Self-sufficiency is the goal. Independence is victory.</p>
+            </div>
+            <div style={styles.philosophyCard}>
+              <div style={styles.philIcon}>⚒️</div>
+              <p><strong>Work is Dignity</strong><br />
+              AI is our tool, not our replacement. We are makers, not just consumers. Built to build.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* THE STAKES - Why It Matters */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>
+            <span style={{ color: COLORS.warning }}>THE STAKES</span> — Why This Matters
+          </h2>
+          
+          <div style={styles.stakesGrid}>
+            <div style={styles.stakeCard}>
+              <div style={styles.stakeIcon}>🏥</div>
+              <h3>Benefits at Risk</h3>
+              <p>Social Security and Medicare depend on GDP growth. Without productive investment, we can't fund benefits — we just borrow more.</p>
+              <div style={styles.stakeEquation}>
+                No building → No growth → Benefits cut or debt spiral
+              </div>
+            </div>
+            <div style={styles.stakeCard}>
+              <div style={styles.stakeIcon}>🔗</div>
+              <h3>Supply Chain Vulnerability</h3>
+              <p>90% of advanced chips from Taiwan. 90% of rare earths from China. If trade stops, can we feed ourselves? Power ourselves? Arm ourselves?</p>
+              <div style={styles.stakeEquation}>
+                Dependency = Vulnerability
+              </div>
+            </div>
+            <div style={styles.stakeCard}>
+              <div style={styles.stakeIcon}>📉</div>
+              <h3>The Decline</h3>
+              <p>1960: 35% Hamiltonian. 2024: 18%. Debt grew 100x while building share fell. We borrowed to consume, not invest.</p>
+              <div style={styles.stakeEquation}>
+                We forgot how to build
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* WHERE WE LEAD - American Advantages with REAL DATA */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>
+            <span style={{ color: COLORS.hamiltonian }}>WHERE WE LEAD</span> — American Advantages
+          </h2>
+          <p style={styles.sectionSubtitle}>
+            We lead in <em>innovation and brains</em>. We're behind in <em>production</em>. The strategy: convert innovation into capacity.
+          </p>
+          
+          <div style={styles.advantagesGrid}>
+            {americanAdvantages.map((adv, i) => (
+              <div key={i} style={styles.advantageCard}>
+                <div style={styles.advHeader}>
+                  <span style={styles.advIcon}>{adv.icon}</span>
+                  <span style={styles.advArea}>{adv.area}</span>
+                  <span style={styles.dominantBadge}>{adv.status.toUpperCase()}</span>
+                </div>
+                <div style={styles.advMetric}>
+                  <span style={styles.advMetricValue}>{adv.metric}</span>
+                  <span style={styles.advMetricLabel}>{adv.metricLabel}</span>
+                </div>
+                <p style={styles.advEvidence}>{adv.evidence}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* THE STRATEGY - Policy Sequence */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>
+            <span style={{ color: COLORS.accent }}>THE STRATEGY</span> — How We Win
+          </h2>
+          <p style={styles.sectionSubtitle}>
+            A clear policy sequence: each step enables the next
+          </p>
+          
+          <div style={styles.strategyFlow}>
+            {policySequence.map((step, i) => (
+              <div key={i} style={styles.strategyStep}>
+                <div style={styles.stepNumber}>{step.step}</div>
+                <div style={styles.stepContent}>
+                  <div style={styles.stepHeader}>
+                    <span style={styles.stepIcon}>{step.icon}</span>
+                    <span style={styles.stepName}>{step.name}</span>
+                    <span style={{
+                      ...styles.stepStatus,
+                      backgroundColor: step.status === 'active' ? '#00ff8822' : step.status === 'building' ? '#00aaff22' : '#ffaa0022',
+                      color: step.status === 'active' ? COLORS.hamiltonian : step.status === 'building' ? COLORS.accent : COLORS.warning,
+                    }}>{step.status}</span>
+                  </div>
+                  <div style={styles.stepAction}>{step.action}</div>
+                  <p style={styles.stepDesc}>{step.description}</p>
+                  <div style={styles.stepExamples}>
+                    {step.examples.map((ex, j) => (
+                      <span key={j} style={styles.exampleTag}>{ex}</span>
+                    ))}
+                  </div>
+                  <div style={styles.stepRevenue}>{step.revenue}</div>
+                </div>
+                {i < policySequence.length - 1 && <div style={styles.stepArrow}>→</div>}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* CAPACITY GAPS - What We Need to Build */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>
+            <span style={{ color: COLORS.warning }}>CAPACITY GAPS</span> — What We Need to Build
+          </h2>
+          <p style={styles.sectionSubtitle}>
+            Current capacity vs target. Investment needed. Jobs created.
+          </p>
+          
+          <div style={styles.gapsGrid}>
+            {capacityGaps.map((gap, i) => {
+              const pct = (gap.current / gap.target) * 100
+              return (
+                <div key={i} style={styles.gapCard}>
+                  <div style={styles.gapHeader}>
+                    <span style={styles.gapArea}>{gap.area}</span>
+                    <span style={styles.gapTimeline}>by {gap.timeline}</span>
+                  </div>
+                  <div style={styles.gapBar}>
+                    <div style={{ ...styles.gapFill, width: `${Math.min(100, pct)}%` }} />
+                  </div>
+                  <div style={styles.gapNumbers}>
+                    <span>{gap.current} {gap.unit}</span>
+                    <span style={{ color: COLORS.hamiltonian }}>{gap.target} {gap.unit}</span>
+                  </div>
+                  <div style={styles.gapFooter}>
+                    <span style={styles.gapInvestment}>${gap.investment}B needed</span>
+                    <span style={styles.gapJobs}>{gap.jobs}K jobs</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* LEAPFROG - Skip to Next-Gen */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>
+            <span style={{ color: COLORS.accent }}>LEAPFROG</span> — Don't Catch Up, Skip Ahead
+          </h2>
+          
+          <div style={styles.leapfrogGrid}>
+            {leapfrogData.map((item, i) => (
+              <div key={i} style={styles.leapfrogCard}>
+                <div style={styles.leapfrogIcon}>{item.icon}</div>
+                <div style={styles.leapfrogArea}>{item.area}</div>
+                <div style={styles.leapfrogRow}>
+                  <span style={{ color: COLORS.textMuted }}>🇨🇳 {item.chinaHas}</span>
+                </div>
+                <div style={styles.leapfrogArrow}>↓</div>
+                <div style={styles.leapfrogRow}>
+                  <span style={{ color: COLORS.hamiltonian }}>🇺🇸 {item.weSkipTo}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* YOUR STAKE - Clear Personal Impact */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>
+            <span style={{ color: COLORS.gold }}>YOUR STAKE</span> — What This Means for You
+          </h2>
+          
+          <div style={styles.stakeCalculator}>
+            <div style={styles.stakeInputs}>
+              <div style={styles.inputGroup}>
+                <label>Your State</label>
+                <select 
+                  value={selectedState}
+                  onChange={(e) => setSelectedState(e.target.value)}
+                  style={styles.select}
+                >
+                  {Object.keys(stateData).map(state => (
+                    <option key={state} value={state}>{state}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div style={styles.inputGroup}>
+                <label>Household Size</label>
+                <select 
+                  value={householdSize}
+                  onChange={(e) => setHouseholdSize(parseInt(e.target.value))}
+                  style={styles.select}
+                >
+                  {[1, 2, 3, 4, 5].map(n => (
+                    <option key={n} value={n}>{n} {n === 1 ? 'person' : 'people'}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={styles.inputGroup}>
+                <label>Build Rate Scenario</label>
+                <div style={styles.scenarioButtons}>
+                  {[2, 3, 4, 5].map(rate => (
+                    <button
+                      key={rate}
+                      onClick={() => setBuildScenario(rate)}
+                      style={{
+                        ...styles.scenarioBtn,
+                        backgroundColor: buildScenario === rate ? COLORS.hamiltonian : 'transparent',
+                        color: buildScenario === rate ? COLORS.bg : COLORS.text,
+                      }}
+                    >
+                      {rate}%
+                    </button>
+                  ))}
+                </div>
+                <div style={styles.scenarioLabels}>
+                  <span>Now</span>
+                  <span>Target</span>
+                  <span>Mobilization</span>
+                </div>
+              </div>
+            </div>
+            
+            <div style={styles.stakeResults}>
+              <h3 style={styles.stakeResultsTitle}>
+                If We Build at {buildScenario}% of GDP:
+              </h3>
+              
+              <div style={styles.benefitsGrid}>
+                <div style={styles.benefitCard}>
+                  <div style={styles.benefitIcon}>💵</div>
+                  <div style={styles.benefitLabel}>Your Energy Savings</div>
+                  <div style={styles.benefitValue}>
+                    ${Math.round(stateInfo.energySavings * (buildScenario - 1.5) / 2.5 * householdSize / 2).toLocaleString()}/year
+                  </div>
+                  <div style={styles.benefitNote}>Cheaper electricity from new capacity</div>
+                </div>
+                
+                <div style={styles.benefitCard}>
+                  <div style={styles.benefitIcon}>👷</div>
+                  <div style={styles.benefitLabel}>Jobs Coming to {selectedState}</div>
+                  <div style={styles.benefitValue}>
+                    +{Math.round(stateInfo.jobsCreated * (buildScenario - 1.5) / 2.5 / 1000).toLocaleString()}K
+                  </div>
+                  <div style={styles.benefitNote}>Technical, union-scale positions</div>
+                </div>
+                
+                <div style={styles.benefitCard}>
+                  <div style={styles.benefitIcon}>💰</div>
+                  <div style={styles.benefitLabel}>Investment Coming</div>
+                  <div style={styles.benefitValue}>
+                    ${Math.round(stateInfo.investmentComing * (buildScenario / 4)).toLocaleString()}B
+                  </div>
+                  <div style={styles.benefitNote}>Federal + private capital</div>
+                </div>
+                
+                <div style={styles.benefitCard}>
+                  <div style={styles.benefitIcon}>📈</div>
+                  <div style={styles.benefitLabel}>GDP Multiplier</div>
+                  <div style={styles.benefitValue}>{multiplier}x</div>
+                  <div style={styles.benefitNote}>Every $1 invested → ${multiplier} GDP</div>
+                </div>
+              </div>
+              
+              <div style={styles.stateProjects}>
+                <h4>Key Projects in {selectedState}:</h4>
+                <div style={styles.projectsList}>
+                  {stateInfo.keyProjects.map((project, i) => (
+                    <span key={i} style={styles.projectTag}>{project}</span>
+                  ))}
+                </div>
+              </div>
+              
+              <div style={styles.bottomLine}>
+                <strong>The Bottom Line:</strong> At {buildScenario}% build rate, your household gains approximately{' '}
+                <span style={{ color: COLORS.hamiltonian }}>
+                  ${Math.round((stateInfo.energySavings * (buildScenario - 1.5) / 2.5 * householdSize / 2) + 
+                    ((buildScenario - 2) * 2000 * householdSize)).toLocaleString()}/year
+                </span>{' '}
+                in savings and economic opportunity. Plus: job security, stable grid, funded benefits.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* WIN CONDITION */}
+        {/* ================================================================ */}
+        <section style={styles.winSection}>
+          <h2 style={styles.winTitle}>THE WIN CONDITION</h2>
+          <p style={styles.winSubtitle}>Self-sufficiency in critical capabilities. If trade stops tomorrow, can we survive and thrive?</p>
+          
+          <div style={styles.winGrid}>
+            <div style={styles.winItem}>⚡ Energy independent</div>
+            <div style={styles.winItem}>🔲 Chip sovereign</div>
+            <div style={styles.winItem}>🏭 Manufacturing capable</div>
+            <div style={styles.winItem}>💧 Water secure</div>
+            <div style={styles.winItem}>👷 Workforce ready</div>
+            <div style={styles.winItem}>🚀 Innovation leading</div>
+          </div>
+          
+          <div style={styles.winQuote}>
+            "A national debt, if it is not excessive, will be to us a national blessing."
+            <span style={styles.quoteAuthor}>— Alexander Hamilton, 1781</span>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* FOOTER */}
+        {/* ================================================================ */}
+        <footer style={styles.footer}>
+          <p>The question isn't "how much do we owe?" — it's "what did we build?"</p>
+          <p style={styles.footerMeta}>American System Dashboard v1.0 • Aligned with DOE Genesis Mission</p>
+        </footer>
+      </div>
+    </main>
+  )
+}
+
+// ============================================================================
+// STYLES
+// ============================================================================
+
+const styles: { [key: string]: React.CSSProperties } = {
+  main: {
+    minHeight: '100vh',
+    backgroundColor: COLORS.bg,
+    color: COLORS.text,
+    fontFamily: "'JetBrains Mono', 'SF Mono', monospace",
+  },
+  container: {
+    maxWidth: '1400px',
+    margin: '0 auto',
+    padding: '2rem',
+  },
+  
+  // Hero
+  hero: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1.4fr',
+    gap: '3rem',
+    alignItems: 'center',
+    marginBottom: '2rem',
+    paddingBottom: '2rem',
+    borderBottom: `1px solid ${COLORS.border}`,
+  },
+  heroLeft: {},
+  heroRight: {},
+  trustBadge: {
+    display: 'inline-block',
+    fontSize: '0.65rem',
+    padding: '4px 10px',
+    borderRadius: '4px',
+    backgroundColor: '#ffd70022',
+    color: '#ffd700',
+    fontWeight: 700,
+    letterSpacing: '2px',
+    marginBottom: '0.75rem',
+    border: '1px solid #ffd70044',
+  },
+  heroTitle: {
+    fontSize: '2.5rem',
+    fontWeight: 800,
+    lineHeight: 1.1,
+    marginBottom: '0.5rem',
+  },
+  heroTagline: {
+    fontSize: '0.85rem',
+    color: COLORS.accent,
+    textTransform: 'uppercase',
+    letterSpacing: '2px',
+    marginBottom: '0.75rem',
+  },
+  heroSubtitle: {
+    fontSize: '1rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.5,
+  },
+  debtBox: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1.25rem',
+    textAlign: 'center',
+    marginBottom: '1rem',
+  },
+  debtLabel: {
+    fontSize: '0.7rem',
+    color: COLORS.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
+    marginBottom: '0.5rem',
+  },
+  debtSplit: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '1rem',
+    marginBottom: '1rem',
+  },
+  debtSplitBox: {
+    backgroundColor: COLORS.bgCard,
+    border: '2px solid',
+    borderRadius: '8px',
+    padding: '1rem',
+    textAlign: 'center',
+  },
+  splitLabel: {
+    fontSize: '0.65rem',
+    color: COLORS.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    marginBottom: '0.5rem',
+  },
+  splitPercent: {
+    fontSize: '0.9rem',
+    fontWeight: 700,
+    marginTop: '0.25rem',
+  },
+  perCitizen: {
+    fontSize: '0.85rem',
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    padding: '0.75rem',
+    backgroundColor: COLORS.bgCardAlt,
+    borderRadius: '6px',
+  },
+  
+  // Philosophy section
+  philosophySection: {
+    marginBottom: '2.5rem',
+    padding: '1.5rem',
+    backgroundColor: COLORS.bgCardAlt,
+    borderRadius: '12px',
+    border: `1px solid ${COLORS.border}`,
+  },
+  philosophyTitle: {
+    textAlign: 'center',
+    fontSize: '1.2rem',
+    fontWeight: 700,
+    marginBottom: '1.25rem',
+    letterSpacing: '1px',
+  },
+  philosophyGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '1rem',
+  },
+  philosophyCard: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1rem',
+    fontSize: '0.8rem',
+    lineHeight: 1.5,
+  },
+  philIcon: {
+    fontSize: '1.25rem',
+    marginBottom: '0.5rem',
+  },
+  
+  // Sections
+  section: {
+    marginBottom: '2.5rem',
+  },
+  sectionTitle: {
+    fontSize: '1.3rem',
+    fontWeight: 700,
+    marginBottom: '0.5rem',
+  },
+  sectionSubtitle: {
+    fontSize: '0.9rem',
+    color: COLORS.textMuted,
+    marginBottom: '1.25rem',
+  },
+  
+  // Stakes
+  stakesGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '1rem',
+  },
+  stakeCard: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1.25rem',
+  },
+  stakeIcon: {
+    fontSize: '1.5rem',
+    marginBottom: '0.75rem',
+  },
+  stakeEquation: {
+    marginTop: '0.75rem',
+    padding: '0.5rem',
+    backgroundColor: COLORS.bgCardAlt,
+    borderRadius: '4px',
+    fontSize: '0.8rem',
+    color: COLORS.warning,
+    textAlign: 'center',
+  },
+  
+  // Advantages
+  advantagesGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '1rem',
+  },
+  advantageCard: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1rem',
+  },
+  advHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    marginBottom: '0.75rem',
+  },
+  advIcon: {
+    fontSize: '1.2rem',
+  },
+  advArea: {
+    fontWeight: 600,
+    fontSize: '0.85rem',
+    flex: 1,
+  },
+  dominantBadge: {
+    fontSize: '0.55rem',
+    padding: '2px 6px',
+    borderRadius: '3px',
+    backgroundColor: '#00ff8822',
+    color: COLORS.hamiltonian,
+    fontWeight: 700,
+  },
+  advMetric: {
+    marginBottom: '0.5rem',
+  },
+  advMetricValue: {
+    fontSize: '1.3rem',
+    fontWeight: 700,
+    color: COLORS.hamiltonian,
+  },
+  advMetricLabel: {
+    fontSize: '0.7rem',
+    color: COLORS.textMuted,
+    marginLeft: '0.25rem',
+  },
+  advEvidence: {
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.4,
+  },
+  
+  // Strategy flow
+  strategyFlow: {
+    display: 'flex',
+    gap: '0.5rem',
+    overflowX: 'auto',
+    paddingBottom: '1rem',
+  },
+  strategyStep: {
+    flex: '1',
+    minWidth: '200px',
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
+  },
+  stepNumber: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    backgroundColor: COLORS.accent,
+    color: COLORS.bg,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 700,
+    fontSize: '0.85rem',
+    marginBottom: '0.75rem',
+  },
+  stepContent: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1rem',
+    flex: 1,
+  },
+  stepHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    marginBottom: '0.5rem',
+  },
+  stepIcon: {
+    fontSize: '1rem',
+  },
+  stepName: {
+    fontWeight: 700,
+    fontSize: '0.85rem',
+  },
+  stepStatus: {
+    fontSize: '0.55rem',
+    padding: '2px 6px',
+    borderRadius: '3px',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+  },
+  stepAction: {
+    fontSize: '0.9rem',
+    color: COLORS.hamiltonian,
+    fontWeight: 600,
+    marginBottom: '0.5rem',
+  },
+  stepDesc: {
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.4,
+    marginBottom: '0.75rem',
+  },
+  stepExamples: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '0.25rem',
+    marginBottom: '0.5rem',
+  },
+  exampleTag: {
+    fontSize: '0.65rem',
+    padding: '2px 6px',
+    backgroundColor: COLORS.bgCardAlt,
+    borderRadius: '3px',
+    color: COLORS.textMuted,
+  },
+  stepRevenue: {
+    fontSize: '0.75rem',
+    color: COLORS.gold,
+    fontWeight: 600,
+  },
+  stepArrow: {
+    position: 'absolute',
+    right: '-12px',
+    top: '50%',
+    fontSize: '1.2rem',
+    color: COLORS.accent,
+  },
+  
+  // Gaps
+  gapsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(6, 1fr)',
+    gap: '1rem',
+  },
+  gapCard: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1rem',
+  },
+  gapHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: '0.5rem',
+  },
+  gapArea: {
+    fontWeight: 600,
+    fontSize: '0.85rem',
+  },
+  gapTimeline: {
+    fontSize: '0.65rem',
+    color: COLORS.textMuted,
+  },
+  gapBar: {
+    height: '8px',
+    backgroundColor: COLORS.bgCardAlt,
+    borderRadius: '4px',
+    overflow: 'hidden',
+    marginBottom: '0.5rem',
+  },
+  gapFill: {
+    height: '100%',
+    backgroundColor: COLORS.warning,
+    borderRadius: '4px',
+  },
+  gapNumbers: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '0.75rem',
+    marginBottom: '0.5rem',
+  },
+  gapFooter: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '0.7rem',
+  },
+  gapInvestment: {
+    color: COLORS.warning,
+  },
+  gapJobs: {
+    color: COLORS.hamiltonian,
+  },
+  
+  // Leapfrog
+  leapfrogGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(6, 1fr)',
+    gap: '1rem',
+  },
+  leapfrogCard: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1rem',
+    textAlign: 'center',
+  },
+  leapfrogIcon: {
+    fontSize: '1.5rem',
+    marginBottom: '0.5rem',
+  },
+  leapfrogArea: {
+    fontWeight: 700,
+    fontSize: '0.85rem',
+    marginBottom: '0.75rem',
+  },
+  leapfrogRow: {
+    fontSize: '0.75rem',
+    marginBottom: '0.25rem',
+  },
+  leapfrogArrow: {
+    color: COLORS.hamiltonian,
+    fontSize: '1rem',
+    margin: '0.25rem 0',
+  },
+  
+  // Your Stake Calculator
+  stakeCalculator: {
+    display: 'grid',
+    gridTemplateColumns: '280px 1fr',
+    gap: '2rem',
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '12px',
+    padding: '1.5rem',
+  },
+  stakeInputs: {
+    borderRight: `1px solid ${COLORS.border}`,
+    paddingRight: '2rem',
+  },
+  inputGroup: {
+    marginBottom: '1.5rem',
+  },
+  select: {
+    width: '100%',
+    padding: '0.75rem',
+    backgroundColor: COLORS.bg,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '6px',
+    color: COLORS.text,
+    fontSize: '0.9rem',
+    fontFamily: 'inherit',
+    cursor: 'pointer',
+    marginTop: '0.5rem',
+  },
+  scenarioButtons: {
+    display: 'flex',
+    gap: '0.5rem',
+    marginTop: '0.5rem',
+  },
+  scenarioBtn: {
+    flex: 1,
+    padding: '0.75rem',
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '6px',
+    fontFamily: 'inherit',
+    fontSize: '0.9rem',
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  scenarioLabels: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '0.65rem',
+    color: COLORS.textDim,
+    marginTop: '0.5rem',
+    paddingLeft: '0.5rem',
+  },
+  stakeResults: {},
+  stakeResultsTitle: {
+    fontSize: '1.1rem',
+    marginBottom: '1.25rem',
+    color: COLORS.hamiltonian,
+  },
+  benefitsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '1rem',
+    marginBottom: '1.5rem',
+  },
+  benefitCard: {
+    backgroundColor: COLORS.bg,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1rem',
+    textAlign: 'center',
+  },
+  benefitIcon: {
+    fontSize: '1.5rem',
+    marginBottom: '0.5rem',
+  },
+  benefitLabel: {
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+    marginBottom: '0.25rem',
+  },
+  benefitValue: {
+    fontSize: '1.3rem',
+    fontWeight: 700,
+    color: COLORS.hamiltonian,
+    marginBottom: '0.25rem',
+  },
+  benefitNote: {
+    fontSize: '0.65rem',
+    color: COLORS.textDim,
+  },
+  stateProjects: {
+    marginBottom: '1.25rem',
+  },
+  projectsList: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '0.5rem',
+    marginTop: '0.5rem',
+  },
+  projectTag: {
+    fontSize: '0.75rem',
+    padding: '0.25rem 0.75rem',
+    backgroundColor: COLORS.bgCardAlt,
+    borderRadius: '4px',
+    color: COLORS.text,
+  },
+  bottomLine: {
+    padding: '1rem',
+    backgroundColor: COLORS.bgCardAlt,
+    borderRadius: '8px',
+    fontSize: '0.9rem',
+    lineHeight: 1.5,
+    border: `1px solid ${COLORS.hamiltonian}33`,
+  },
+  
+  // Win section
+  winSection: {
+    textAlign: 'center',
+    padding: '2rem',
+    backgroundColor: COLORS.bgCardAlt,
+    borderRadius: '12px',
+    marginBottom: '2rem',
+  },
+  winTitle: {
+    fontSize: '1.3rem',
+    fontWeight: 700,
+    marginBottom: '0.5rem',
+    color: COLORS.hamiltonian,
+    letterSpacing: '2px',
+  },
+  winSubtitle: {
+    fontSize: '0.9rem',
+    color: COLORS.textMuted,
+    marginBottom: '1.5rem',
+  },
+  winGrid: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: '0.75rem',
+    marginBottom: '1.5rem',
+  },
+  winItem: {
+    padding: '0.75rem 1.25rem',
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '6px',
+    fontSize: '0.9rem',
+  },
+  winQuote: {
+    fontSize: '1rem',
+    fontStyle: 'italic',
+    color: COLORS.text,
+    marginTop: '1.5rem',
+  },
+  quoteAuthor: {
+    display: 'block',
+    fontSize: '0.85rem',
+    color: COLORS.hamiltonian,
+    fontStyle: 'normal',
+    marginTop: '0.5rem',
+  },
+  
+  // Footer
+  footer: {
+    textAlign: 'center',
+    padding: '1.5rem',
+    borderTop: `1px solid ${COLORS.border}`,
+    fontSize: '0.9rem',
+    color: COLORS.textMuted,
+  },
+  footerMeta: {
+    fontSize: '0.75rem',
+    color: COLORS.textDim,
+    marginTop: '0.5rem',
+  },
+}
