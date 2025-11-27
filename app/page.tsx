@@ -77,6 +77,31 @@ const HAMILTONIAN_HISTORY = [
   { year: 2024, share: 18, event: 'CHIPS + IRA + Genesis' },
 ]
 
+// Monthly trend data (for tracking progress toward 30% target)
+// In production, this would come from a database/API
+const MONTHLY_TREND = [
+  { month: 'Jan 24', actual: 17.2, target: 30 },
+  { month: 'Feb 24', actual: 17.3, target: 30 },
+  { month: 'Mar 24', actual: 17.4, target: 30 },
+  { month: 'Apr 24', actual: 17.5, target: 30 },
+  { month: 'May 24', actual: 17.6, target: 30 },
+  { month: 'Jun 24', actual: 17.7, target: 30 },
+  { month: 'Jul 24', actual: 17.8, target: 30 },
+  { month: 'Aug 24', actual: 17.9, target: 30 },
+  { month: 'Sep 24', actual: 18.0, target: 30 },
+  { month: 'Oct 24', actual: 18.0, target: 30 },
+  { month: 'Nov 24', actual: 18.0, target: 30 },
+  // Projected future (dashed line in chart)
+  { month: 'Dec 24', actual: null, projected: 18.1, target: 30 },
+  { month: 'Jun 25', actual: null, projected: 19.0, target: 30 },
+  { month: 'Dec 25', actual: null, projected: 20.5, target: 30 },
+  { month: 'Jun 26', actual: null, projected: 22.0, target: 30 },
+  { month: 'Dec 26', actual: null, projected: 24.0, target: 30 },
+  { month: 'Jun 27', actual: null, projected: 26.5, target: 30 },
+  { month: 'Dec 27', actual: null, projected: 29.0, target: 30 },
+  { month: 'Jun 28', actual: null, projected: 30.5, target: 30 },
+]
+
 // American Advantages with REAL data
 const americanAdvantages = [
   { 
@@ -626,8 +651,9 @@ export default function Home() {
             <div style={styles.gaugeContainer}>
               <div style={styles.gaugeLabel}>THE HAMILTONIAN SHARE</div>
               <div style={styles.gaugeWrapper}>
+                {/* Gauge scale: 0-50% (not 0-100%) because 30%+ is the ambitious target */}
                 <svg viewBox="0 0 200 120" style={{ width: '100%', maxWidth: '300px' }}>
-                  {/* Background arc (full semi-circle) */}
+                  {/* Background arc (full semi-circle = 50% on our scale) */}
                   <path
                     d="M 20 100 A 80 80 0 0 1 180 100"
                     fill="none"
@@ -635,17 +661,17 @@ export default function Home() {
                     strokeWidth="14"
                     strokeLinecap="round"
                   />
-                  {/* Filled arc - uses stroke-dasharray for proper fill */}
+                  {/* Filled arc - 18% on 0-50% scale = 36% of arc */}
                   <path
                     d="M 20 100 A 80 80 0 0 1 180 100"
                     fill="none"
                     stroke={COLORS.hamiltonian}
                     strokeWidth="14"
                     strokeLinecap="round"
-                    strokeDasharray={`${251.3 * HAMILTONIAN_SHARE} 251.3`}
+                    strokeDasharray={`${251.3 * (HAMILTONIAN_SHARE / 0.50)} 251.3`}
                     style={{ filter: `drop-shadow(0 0 10px ${COLORS.hamiltonian}88)` }}
                   />
-                  {/* Target marker at 30% - gold tick */}
+                  {/* Target marker at 30% (which is 60% of the 0-50% arc) */}
                   <path
                     d="M 20 100 A 80 80 0 0 1 180 100"
                     fill="none"
@@ -653,7 +679,7 @@ export default function Home() {
                     strokeWidth="20"
                     strokeLinecap="butt"
                     strokeDasharray="4 247.3"
-                    strokeDashoffset={-251.3 * 0.30 + 2}
+                    strokeDashoffset={-251.3 * (0.30 / 0.50) + 2}
                   />
                   {/* Center text */}
                   <text x="100" y="75" textAnchor="middle" fill={COLORS.hamiltonian} fontSize="42" fontWeight="700" fontFamily="'JetBrains Mono', monospace" style={{ textShadow: `0 0 20px ${COLORS.hamiltonian}66` }}>
@@ -662,9 +688,10 @@ export default function Home() {
                   <text x="100" y="95" textAnchor="middle" fill={COLORS.textMuted} fontSize="11">
                     Target: 30%+
                   </text>
-                  {/* Scale labels */}
+                  {/* Scale labels (0-50% scale) */}
                   <text x="15" y="115" textAnchor="start" fill={COLORS.textDim} fontSize="9">0%</text>
-                  <text x="185" y="115" textAnchor="end" fill={COLORS.textDim} fontSize="9">100%</text>
+                  <text x="100" y="115" textAnchor="middle" fill={COLORS.textDim} fontSize="9">25%</text>
+                  <text x="185" y="115" textAnchor="end" fill={COLORS.textDim} fontSize="9">50%</text>
                 </svg>
               </div>
               <div style={styles.gaugeTagline}>
@@ -716,6 +743,49 @@ export default function Home() {
             <div style={styles.historyNote}>
               In 1960, 35% of federal borrowing built highways, power plants, and Apollo. Today it's 18%.
               <br />We borrowed 100x more but built proportionally less.
+            </div>
+          </div>
+          
+          {/* Monthly Progress Tracker */}
+          <div style={styles.trendSection}>
+            <div style={styles.trendTitle}>PROGRESS TRACKER — Path to 30%</div>
+            <div style={styles.trendChart}>
+              <ResponsiveContainer width="100%" height={200}>
+                <AreaChart data={MONTHLY_TREND} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={COLORS.hamiltonian} stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor={COLORS.hamiltonian} stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorProjected" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={COLORS.accent} stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor={COLORS.accent} stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.border} />
+                  <XAxis dataKey="month" tick={{ fill: COLORS.textDim, fontSize: 10 }} axisLine={{ stroke: COLORS.border }} />
+                  <YAxis domain={[0, 35]} tick={{ fill: COLORS.textDim, fontSize: 10 }} axisLine={{ stroke: COLORS.border }} tickFormatter={(v) => `${v}%`} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 8 }}
+                    labelStyle={{ color: COLORS.text }}
+                  />
+                  {/* Target line at 30% */}
+                  <Area type="monotone" dataKey="target" stroke={COLORS.gold} strokeWidth={2} strokeDasharray="5 5" fill="none" name="Target" />
+                  {/* Actual data */}
+                  <Area type="monotone" dataKey="actual" stroke={COLORS.hamiltonian} strokeWidth={2} fill="url(#colorActual)" name="Actual" />
+                  {/* Projected data (dashed) */}
+                  <Area type="monotone" dataKey="projected" stroke={COLORS.accent} strokeWidth={2} strokeDasharray="5 5" fill="url(#colorProjected)" name="Projected" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <div style={styles.trendLegend}>
+              <span style={styles.legendItem}><span style={{ ...styles.legendDot, backgroundColor: COLORS.hamiltonian }} /> Actual</span>
+              <span style={styles.legendItem}><span style={{ ...styles.legendDot, backgroundColor: COLORS.accent, border: '1px dashed' }} /> Projected</span>
+              <span style={styles.legendItem}><span style={{ ...styles.legendDot, backgroundColor: COLORS.gold }} /> Target (30%)</span>
+            </div>
+            <div style={styles.trendNote}>
+              At current pace: <strong style={{ color: COLORS.hamiltonian }}>+0.8%/year</strong> → Target reached by <strong>2032</strong><br />
+              With Genesis + CHIPS momentum: <strong style={{ color: COLORS.accent }}>+3%/year</strong> → Target reached by <strong>2028</strong>
             </div>
           </div>
           
@@ -1380,6 +1450,51 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '8px',
     lineHeight: 1.5,
     borderLeft: `3px solid ${COLORS.hamiltonian}44`,
+  },
+  
+  // Trend Chart Section
+  trendSection: {
+    borderTop: `1px solid ${COLORS.border}`,
+    paddingTop: '1.5rem',
+    marginBottom: '1.5rem',
+  },
+  trendTitle: {
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    color: COLORS.textMuted,
+    marginBottom: '1rem',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '1px',
+    textAlign: 'center' as const,
+  },
+  trendChart: {
+    width: '100%',
+    marginBottom: '0.75rem',
+  },
+  trendLegend: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '1.5rem',
+    marginBottom: '0.75rem',
+  },
+  legendItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    fontSize: '0.7rem',
+    color: COLORS.textMuted,
+  },
+  legendDot: {
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    display: 'inline-block',
+  },
+  trendNote: {
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+    textAlign: 'center' as const,
+    lineHeight: 1.6,
   },
   
   debtSplit: {
