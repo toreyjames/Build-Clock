@@ -1002,11 +1002,162 @@ export default function Home() {
         </section>
 
         {/* ================================================================ */}
-        {/* CAPACITY GAPS - What We Need to Build */}
+        {/* NATIONAL CAPACITY - Hamiltonian System View */}
         {/* ================================================================ */}
         <section style={styles.section}>
           <h2 style={styles.sectionTitle}>
-            <span style={{ color: COLORS.warning }}>CAPACITY GAPS</span> — What We Need to Build
+            <span style={{ color: COLORS.accent }}>NATIONAL CAPACITY</span> — Build Where It's Best
+          </h2>
+          <p style={styles.sectionSubtitle}>
+            Hamilton's approach: Build where natural advantages exist and politics allow. Route around obstacles. Serve national aims.
+          </p>
+          
+          <div style={styles.nationalCapacityGrid}>
+            {[
+              {
+                category: '⚛️ Nuclear',
+                need: '300 GW',
+                current: '95 GW',
+                bestFit: 'TX, TN, WY, OH, PA',
+                whyThere: 'Water, land, friendly politics, grid access',
+                building: 'Vogtle (GA), SMRs (TN, WY)',
+                blocked: 'CA, NY (political)',
+                status: 'building'
+              },
+              {
+                category: '🔲 Chip Fabs',
+                need: '35% global',
+                current: '12%',
+                bestFit: 'AZ, OH, TX, NY',
+                whyThere: 'Water, power, talent pipelines, incentives',
+                building: 'TSMC (AZ), Intel (OH), Samsung (TX)',
+                blocked: 'Permitting delays',
+                status: 'building'
+              },
+              {
+                category: '⚡ Grid/HVDC',
+                need: '150 GW',
+                current: '25 GW',
+                bestFit: 'Plains corridor, Southeast',
+                whyThere: 'Connect wind/solar to demand centers',
+                building: 'SunZia (NM-AZ), Grain Belt (KS-IN)',
+                blocked: 'State permitting, NIMBYism',
+                status: 'planned'
+              },
+              {
+                category: '🛢️ Oil & Gas',
+                need: 'Energy dominance',
+                current: '#1 producer',
+                bestFit: 'TX, AK, NM, ND, PA',
+                whyThere: 'Reserves, infrastructure, friendly politics',
+                building: 'Willow (AK), Permian expansion',
+                blocked: 'Federal lands (some), pipelines',
+                status: 'active'
+              },
+              {
+                category: '🚢 Shipbuilding',
+                need: '100 ships/yr',
+                current: '5 ships/yr',
+                bestFit: 'VA, MS, ME, WI',
+                whyThere: 'Existing yards, workforce, Navy contracts',
+                building: 'Submarine expansion (CT, VA)',
+                blocked: 'Workforce, funding',
+                status: 'critical'
+              },
+              {
+                category: '⛏️ Critical Minerals',
+                need: '30% domestic',
+                current: '< 5%',
+                bestFit: 'NV, AZ, WY, MN, AK',
+                whyThere: 'Known deposits (lithium, copper, rare earths)',
+                building: 'Thacker Pass (NV), Resolution (AZ)',
+                blocked: 'Permitting (10+ years avg)',
+                status: 'blocked'
+              },
+            ].map((item, i) => (
+              <div key={i} style={{
+                ...styles.capacityCard,
+                borderColor: item.status === 'active' ? COLORS.hamiltonian :
+                  item.status === 'building' ? COLORS.accent :
+                  item.status === 'planned' ? COLORS.warning :
+                  item.status === 'critical' ? COLORS.other :
+                  COLORS.other
+              }}>
+                <div style={styles.capHeader}>
+                  <span style={styles.capCategory}>{item.category}</span>
+                  <span style={{
+                    ...styles.capStatus,
+                    backgroundColor: item.status === 'active' ? COLORS.hamiltonian + '33' :
+                      item.status === 'building' ? COLORS.accent + '33' :
+                      item.status === 'planned' ? COLORS.warning + '33' :
+                      COLORS.other + '33',
+                    color: item.status === 'active' ? COLORS.hamiltonian :
+                      item.status === 'building' ? COLORS.accent :
+                      item.status === 'planned' ? COLORS.warning :
+                      COLORS.other
+                  }}>{item.status}</span>
+                </div>
+                <div style={styles.capMetrics}>
+                  <div style={styles.capMetric}>
+                    <span style={styles.capLabel}>Need</span>
+                    <span style={styles.capValue}>{item.need}</span>
+                  </div>
+                  <div style={styles.capMetric}>
+                    <span style={styles.capLabel}>Now</span>
+                    <span style={styles.capValue}>{item.current}</span>
+                  </div>
+                </div>
+                <div style={styles.capDetail}>
+                  <div style={styles.capRow}>
+                    <span style={styles.capRowLabel}>🎯 Best fit:</span>
+                    <span>{item.bestFit}</span>
+                  </div>
+                  <div style={styles.capRow}>
+                    <span style={styles.capRowLabel}>💡 Why:</span>
+                    <span>{item.whyThere}</span>
+                  </div>
+                  <div style={styles.capRow}>
+                    <span style={styles.capRowLabel}>🔨 Building:</span>
+                    <span style={{ color: COLORS.hamiltonian }}>{item.building}</span>
+                  </div>
+                  <div style={styles.capRow}>
+                    <span style={styles.capRowLabel}>🚫 Blocked:</span>
+                    <span style={{ color: COLORS.other }}>{item.blocked}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div style={styles.hamiltonianPrinciple}>
+            <div style={styles.hpTitle}>THE HAMILTONIAN PRINCIPLE</div>
+            <div style={styles.hpContent}>
+              <div style={styles.hpItem}>
+                <span style={styles.hpIcon}>✅</span>
+                <span><strong>Build where you can.</strong> Don't wait for every state to agree.</span>
+              </div>
+              <div style={styles.hpItem}>
+                <span style={styles.hpIcon}>🔄</span>
+                <span><strong>Route around obstacles.</strong> CA won't build nuclear? TX will. Build HVDC to export.</span>
+              </div>
+              <div style={styles.hpItem}>
+                <span style={styles.hpIcon}>🎯</span>
+                <span><strong>Optimize for the nation.</strong> States serve the system, not the reverse.</span>
+              </div>
+              <div style={styles.hpItem}>
+                <span style={styles.hpIcon}>⏳</span>
+                <span><strong>Political change follows success.</strong> When TX thrives on nuclear, others will follow.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* CAPACITY GAPS - Detailed Targets */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>
+            <span style={{ color: COLORS.warning }}>CAPACITY TARGETS</span> — The Numbers
           </h2>
           <p style={styles.sectionSubtitle}>
             Current capacity vs target. Investment needed. Jobs created.
@@ -2043,6 +2194,105 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderLeft: `3px solid ${COLORS.hamiltonian}`,
     backgroundColor: COLORS.bgCard,
     borderRadius: '0 8px 8px 0',
+  },
+  
+  // National Capacity Section
+  nationalCapacityGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '1rem',
+    marginBottom: '1.5rem',
+  },
+  capacityCard: {
+    backgroundColor: COLORS.bgCard,
+    border: `2px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1rem',
+  },
+  capHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '0.75rem',
+  },
+  capCategory: {
+    fontSize: '1rem',
+    fontWeight: 700,
+  },
+  capStatus: {
+    fontSize: '0.6rem',
+    fontWeight: 600,
+    padding: '0.25rem 0.5rem',
+    borderRadius: '4px',
+    textTransform: 'uppercase' as const,
+  },
+  capMetrics: {
+    display: 'flex',
+    gap: '1rem',
+    marginBottom: '0.75rem',
+    paddingBottom: '0.75rem',
+    borderBottom: `1px solid ${COLORS.border}`,
+  },
+  capMetric: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.25rem',
+  },
+  capLabel: {
+    fontSize: '0.6rem',
+    color: COLORS.textDim,
+    textTransform: 'uppercase' as const,
+  },
+  capValue: {
+    fontSize: '1rem',
+    fontWeight: 700,
+    color: COLORS.text,
+  },
+  capDetail: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.4rem',
+  },
+  capRow: {
+    display: 'flex',
+    gap: '0.5rem',
+    fontSize: '0.7rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.4,
+  },
+  capRowLabel: {
+    flexShrink: 0,
+    width: '70px',
+  },
+  hamiltonianPrinciple: {
+    backgroundColor: COLORS.bgCardAlt,
+    border: `1px solid ${COLORS.accent}44`,
+    borderRadius: '8px',
+    padding: '1.25rem',
+  },
+  hpTitle: {
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    color: COLORS.accent,
+    marginBottom: '1rem',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '1px',
+  },
+  hpContent: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '1rem',
+  },
+  hpItem: {
+    display: 'flex',
+    gap: '0.75rem',
+    fontSize: '0.8rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.5,
+  },
+  hpIcon: {
+    fontSize: '1rem',
+    flexShrink: 0,
   },
   
   // Leapfrog
