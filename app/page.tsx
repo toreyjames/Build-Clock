@@ -409,8 +409,8 @@ export default function Home() {
   const [econData, setEconData] = useState<EconomicData>({
     gdp: 28.3,              // fallback: ~$28.3T GDP
     debtToGdp: 123,         // fallback: ~123%
-    grossInvestment: 450,   // fallback: ~$450B public infrastructure/year
-    govInvestment: 120,     // fallback: ~$120B federal capital investment
+    grossInvestment: 4800,  // fallback: ~$4.8T gross private domestic investment (not used for Build Rate)
+    govInvestment: 570,     // fallback: ~$570B government capital investment (~2% of GDP)
     lastUpdated: '',
     isLoading: true,
     error: null
@@ -483,7 +483,7 @@ export default function Home() {
         gdp: gdp ? gdp / 1000 : 28.3,  // Convert billions to trillions
         debtToGdp: debtToGdp || 123,
         grossInvestment: grossInvestment || 4800,
-        govInvestment: govInvestment || 850,
+        govInvestment: govInvestment || 570,  // ~$570B = ~2% of GDP
         lastUpdated: new Date().toISOString().split('T')[0],
         isLoading: false,
         error: null
@@ -516,10 +516,10 @@ export default function Home() {
   const debtPerCitizen = (totalDebt * 1_000_000_000_000) / US_POPULATION
   const hamiltonianPerCitizen = debtPerCitizen * HAMILTONIAN_SHARE
   
-  // Calculate build rate (public infrastructure investment as % of GDP)
-  // This is public infrastructure + federal capital, not total private investment
+  // Calculate build rate (government investment as % of GDP)
+  // Only government investment, NOT gross private domestic investment
   const buildRate = econData.gdp > 0 
-    ? ((econData.grossInvestment + econData.govInvestment) / (econData.gdp * 1000)) * 100 
+    ? (econData.govInvestment / (econData.gdp * 1000)) * 100 
     : 2.0
   
   // Cap at realistic range (currently ~2% of GDP goes to public infrastructure)
