@@ -576,6 +576,8 @@ interface StateHamiltonianAnalysis {
   energyProfile: string
   workforceReadiness: 'high' | 'medium' | 'low'
   assessment: string // honest assessment
+  corruptionEvidence?: string // proven fraud/corruption cases
+  pathToVictory?: string[] // how to unblock
 }
 
 // ALL 50 STATES - Honest Hamiltonian Analysis
@@ -800,7 +802,16 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     nationalRole: 'Potential mining hub, but blocked by state politics',
     energyProfile: 'Wind + imports. Anti-mining politics limit potential.',
     workforceReadiness: 'high',
-    assessment: 'BLOCKED. Has Iron Range potential, rare earth deposits, but state politics hostile to mining.'
+    assessment: 'BLOCKED + CORRUPT. $250M+ Feeding Our Families fraud (largest COVID fraud in US). $1B+ total fraud exposure. Low build rate + high non-physical spending = predictable corruption.',
+    corruptionEvidence: 'Feeding Our Families: $250M+ stolen (70+ indicted). Largest pandemic fraud case in US history. Additional COVID relief fraud under investigation. Total exposure: $1B+. AG Ellison under federal scrutiny.',
+    pathToVictory: [
+      '2025: Federal fraud prosecutions continue, political damage accumulates',
+      '2025-26: DOJ investigation of state oversight, Walz/DFL credibility collapses',
+      '2026: Midterm elections — possible legislative flip',
+      '2026-27: New AG, permitting reform possible',
+      '2027: Twin Metals leases reinstated (federal action)',
+      '2028: Mining development begins, 10,000+ jobs'
+    ]
   },
   
   // === TIER 3: STAGNANT/DECLINING (Not Building) ===
@@ -2955,13 +2966,17 @@ export default function Home() {
                     🔍 Accountability Index
                   </h3>
                   
-                  {/* Risk calculation based on build rate and hamiltonian share */}
+                  {/* Risk calculation based on build rate, hamiltonian share, and proven corruption */}
                   {(() => {
                     const nonHamiltonian = 100 - analysis.hamiltonianShare
-                    const riskLevel = analysis.buildRate < 0.5 ? 'HIGH' : 
+                    // If there's proven corruption, automatically HIGH risk
+                    const hasProvenCorruption = !!analysis.corruptionEvidence
+                    const riskLevel = hasProvenCorruption ? 'PROVEN' :
+                      analysis.buildRate < 0.5 ? 'HIGH' : 
                       analysis.buildRate < 0.8 ? 'ELEVATED' : 
                       analysis.buildRate < 1.0 ? 'MODERATE' : 'LOW'
-                    const riskColor = riskLevel === 'HIGH' ? COLORS.other :
+                    const riskColor = riskLevel === 'PROVEN' ? '#ff0000' :
+                      riskLevel === 'HIGH' ? COLORS.other :
                       riskLevel === 'ELEVATED' ? COLORS.warning :
                       riskLevel === 'MODERATE' ? '#f0ad4e' : COLORS.hamiltonian
                     
@@ -3048,8 +3063,8 @@ export default function Home() {
                               alignItems: 'center',
                               gap: '0.5rem'
                             }}>
-                              {riskLevel === 'HIGH' ? '🚨' : riskLevel === 'ELEVATED' ? '⚠️' : riskLevel === 'MODERATE' ? '📊' : '✅'}
-                              {riskLevel}
+                              {riskLevel === 'PROVEN' ? '🔴' : riskLevel === 'HIGH' ? '🚨' : riskLevel === 'ELEVATED' ? '⚠️' : riskLevel === 'MODERATE' ? '📊' : '✅'}
+                              {riskLevel === 'PROVEN' ? 'PROVEN FRAUD' : riskLevel}
                             </span>
                           </div>
                         </div>
@@ -3078,6 +3093,80 @@ export default function Home() {
                             )}
                           </p>
                         </div>
+                        
+                        {/* Corruption Evidence - if exists */}
+                        {analysis.corruptionEvidence && (
+                          <div style={{
+                            marginTop: '1rem',
+                            padding: '1rem',
+                            backgroundColor: COLORS.other + '22',
+                            borderRadius: '8px',
+                            border: `2px solid ${COLORS.other}`,
+                          }}>
+                            <div style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '0.5rem',
+                              marginBottom: '0.5rem'
+                            }}>
+                              <span style={{ fontSize: '1.2rem' }}>🚨</span>
+                              <strong style={{ color: COLORS.other, fontSize: '0.9rem' }}>
+                                PROVEN CORRUPTION
+                              </strong>
+                            </div>
+                            <p style={{ 
+                              fontSize: '0.85rem', 
+                              color: COLORS.text, 
+                              margin: 0,
+                              lineHeight: 1.5
+                            }}>
+                              {analysis.corruptionEvidence}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Path to Victory - if exists */}
+                        {analysis.pathToVictory && analysis.pathToVictory.length > 0 && (
+                          <div style={{
+                            marginTop: '1rem',
+                            padding: '1rem',
+                            backgroundColor: COLORS.hamiltonian + '15',
+                            borderRadius: '8px',
+                            border: `1px solid ${COLORS.hamiltonian}44`,
+                          }}>
+                            <div style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '0.5rem',
+                              marginBottom: '0.75rem'
+                            }}>
+                              <span style={{ fontSize: '1.2rem' }}>🎯</span>
+                              <strong style={{ color: COLORS.hamiltonian, fontSize: '0.9rem' }}>
+                                PATH TO VICTORY (Accelerated)
+                              </strong>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                              {analysis.pathToVictory.map((step, idx) => (
+                                <div key={idx} style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'flex-start', 
+                                  gap: '0.75rem',
+                                  fontSize: '0.8rem',
+                                  color: COLORS.text,
+                                }}>
+                                  <span style={{ 
+                                    color: COLORS.hamiltonian, 
+                                    fontWeight: 700,
+                                    minWidth: '20px'
+                                  }}>
+                                    {idx + 1}.
+                                  </span>
+                                  <span>{step}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </>
                     )
                   })()}
