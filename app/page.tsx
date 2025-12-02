@@ -788,29 +788,44 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     hamiltonianShare: 18,
     buildRate: 0.6,
     trend: 'flat',
-    naturalAdvantages: ['Freshwater', 'Iron Range minerals', 'Wind potential', 'Educated workforce'],
+    naturalAdvantages: [
+      'Freshwater (11,842 lakes, Mississippi headwaters)',
+      'Iron Range minerals (copper, nickel, cobalt, rare earths)',
+      'Top 5 agricultural state (#1 turkeys, sugar beets)',
+      'Medical device powerhouse (Medtronic, Mayo Clinic)',
+      'Great Lakes port access (Duluth-Superior)',
+      'Strong universities (U of M, Mayo)',
+      'Educated workforce',
+      'Wind potential'
+    ],
     currentProjects: [
       { name: 'Cleveland-Cliffs rare earth exploration', category: 'Mining', status: 'Exploration', investment: 0.3 },
       { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 1.2 },
-      { name: 'No major manufacturing projects', category: 'Manufacturing', status: 'None', investment: 0 }
+      { name: 'Medical device manufacturing', category: 'Manufacturing', status: 'Active', investment: 2 },
+      { name: 'Ag processing (Cargill, General Mills)', category: 'Agriculture', status: 'Active', investment: 1.5 },
+      { name: 'Twin Metals copper-nickel', category: 'Mining', status: 'Blocked', investment: 0 },
+      { name: 'PolyMet/NewRange', category: 'Mining', status: 'Blocked (20+ years)', investment: 0 }
     ],
     capacityGaps: [
-      { category: 'Nuclear', need: 'SMR deployment', current: '0 GW' },
-      { category: 'Mining', need: 'Rare earth development', current: 'Blocked by politics' }
+      { category: 'Nuclear', need: 'SMR deployment for baseload', current: '0 GW' },
+      { category: 'Mining', need: '$10B+ copper-nickel-rare earth', current: 'Blocked by politics' },
+      { category: 'Defense minerals', need: 'Domestic rare earth supply', current: '90% from China' },
+      { category: 'Water infrastructure', need: 'Leverage surplus for industry', current: 'Underutilized' }
     ],
     politicalFeasibility: 'low',
-    nationalRole: 'Potential mining hub, but blocked by state politics',
-    energyProfile: 'Wind + imports. Anti-mining politics limit potential.',
+    nationalRole: 'SHOULD BE: Critical minerals hub, ag powerhouse, medical devices, water-rich industry magnet. ACTUALLY: Blocked by state politics, fraud-ridden, declining.',
+    energyProfile: 'Wind + imports. Anti-nuclear politics. Could be energy EXPORTER with SMRs but blocks all development.',
     workforceReadiness: 'high',
-    assessment: 'BLOCKED + CORRUPT. $250M+ Feeding Our Families fraud (largest COVID fraud in US). $1B+ total fraud exposure. Low build rate + high non-physical spending = predictable corruption.',
-    corruptionEvidence: 'Feeding Our Families: $250M+ stolen (70+ indicted). Largest pandemic fraud case in US history. Additional COVID relief fraud under investigation. Total exposure: $1B+. AG Ellison under federal scrutiny.',
+    assessment: 'BLOCKED + CORRUPT. $250M+ Feeding Our Families fraud (largest COVID fraud in US). $1B+ total fraud exposure. Has EVERYTHING (water, minerals, workforce, infrastructure) but politics blocks development. Walz running for 3rd term in 2026.',
+    corruptionEvidence: 'Feeding Our Families: $250M+ stolen (70+ indicted). Largest pandemic fraud case in US history. Additional COVID relief fraud under investigation. Total exposure: $1B+. AG Ellison under federal scrutiny. Low build rate (0.6%) + high non-physical spending (82%) = predictable corruption.',
     pathToVictory: [
-      '2025: Federal fraud prosecutions continue, political damage accumulates',
-      '2025-26: DOJ investigation of state oversight, Walz/DFL credibility collapses',
-      '2026: Midterm elections — possible legislative flip',
-      '2026-27: New AG, permitting reform possible',
-      '2027: Twin Metals leases reinstated (federal action)',
-      '2028: Mining development begins, 10,000+ jobs'
+      '2025: Federal fraud prosecutions continue, political damage to Walz accumulates',
+      '2025-26: DOJ investigation expands, Walz 3rd term campaign under pressure',
+      '2026: GOP candidate runs on "Build Minnesota" — mining jobs, accountability, anti-fraud',
+      '2026: Walz vulnerable (fraud, VP loss, 8 years of stagnation) — 35-40% chance of defeat',
+      '2027: New governor + legislature = permitting reform, Twin Metals reinstated',
+      '2028-30: Mining development begins — 25,000+ jobs, $5B+ annual output',
+      '2035: Minnesota transformed — energy exporter, critical minerals hub, Iron Range reborn'
     ]
   },
   
