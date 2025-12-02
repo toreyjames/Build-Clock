@@ -1,10 +1,62 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { 
   PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, BarChart, Bar
 } from 'recharts'
+
+// ============================================================================
+// SCROLL REVEAL COMPONENT
+// ============================================================================
+
+function ScrollReveal({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) {
+  const [isVisible, setIsVisible] = useState(false)
+  const [hasAnimated, setHasAnimated] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (hasAnimated) return
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !hasAnimated) {
+            setTimeout(() => {
+              setIsVisible(true)
+              setHasAnimated(true)
+            }, delay)
+          }
+        })
+      },
+      { threshold: 0.05, rootMargin: '50px 0px -20px 0px' }
+    )
+
+    const currentRef = ref.current
+    if (currentRef) {
+      observer.observe(currentRef)
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef)
+      }
+    }
+  }, [delay, hasAnimated])
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'translateY(0)' : 'translateY(40px)',
+        transition: `opacity 0.8s ease-out ${delay}ms, transform 0.8s ease-out ${delay}ms`,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
 
 // ============================================================================
 // API & DATA FETCHING
@@ -316,6 +368,1063 @@ const stateData: Record<string, {
     investmentComing: 25,
     keyProjects: ['Micron fab ($100B)', 'Offshore wind manufacturing', 'Albany nanotechnology', 'Grid modernization']
   },
+  'California': { 
+    projects: 3, 
+    jobsCreated: 25000, 
+    energySavings: -200, // Negative - energy costs rising
+    investmentComing: 8,
+    keyProjects: ['Grid upgrades (reactive)', 'Solar manufacturing (small)', 'Water systems (blocked)']
+  },
+  'Nevada': { 
+    projects: 4, 
+    jobsCreated: 45000, 
+    energySavings: 1100, 
+    investmentComing: 12,
+    keyProjects: ['Thacker Pass lithium', 'Tesla Gigafactory expansion', 'Data centers', 'Solar expansion']
+  },
+  'Wyoming': { 
+    projects: 3, 
+    jobsCreated: 8000, 
+    energySavings: 1500, 
+    investmentComing: 8,
+    keyProjects: ['TerraPower Natrium SMR', 'Wind expansion', 'Rare earth exploration']
+  },
+  'Alaska': { 
+    projects: 4, 
+    jobsCreated: 15000, 
+    energySavings: 800, 
+    investmentComing: 25,
+    keyProjects: ['Willow Project', 'Alaska LNG', 'Port expansion', 'Critical minerals']
+  },
+  'Minnesota': { 
+    projects: 2, 
+    jobsCreated: 12000, 
+    energySavings: 600, 
+    investmentComing: 5,
+    keyProjects: ['Cleveland-Cliffs rare earth', 'Wind expansion']
+  },
+  'Illinois': { 
+    projects: 1, 
+    jobsCreated: 8000, 
+    energySavings: 400, 
+    investmentComing: 3,
+    keyProjects: ['Nuclear preservation (subsidized)']
+  },
+  'New Jersey': { 
+    projects: 2, 
+    jobsCreated: 5000, 
+    energySavings: -100, 
+    investmentComing: 2,
+    keyProjects: ['Offshore wind (troubled)', 'Port expansion']
+  },
+  'Massachusetts': { 
+    projects: 1, 
+    jobsCreated: 15000, 
+    energySavings: 200, 
+    investmentComing: 3,
+    keyProjects: ['Life sciences R&D']
+  },
+  'North Dakota': { 
+    projects: 3, 
+    jobsCreated: 8000, 
+    energySavings: 900, 
+    investmentComing: 5,
+    keyProjects: ['Bakken production', 'Wind expansion', 'Data centers']
+  },
+  'New Mexico': { 
+    projects: 4, 
+    jobsCreated: 20000, 
+    energySavings: 1000, 
+    investmentComing: 10,
+    keyProjects: ['Permian oil/gas', 'Los Alamos/Sandia', 'Solar expansion']
+  },
+  'Florida': { 
+    projects: 4, 
+    jobsCreated: 35000, 
+    energySavings: 700, 
+    investmentComing: 8,
+    keyProjects: ['SpaceX/Blue Origin expansion', 'Port expansion']
+  },
+  'Indiana': { 
+    projects: 5, 
+    jobsCreated: 40000, 
+    energySavings: 800, 
+    investmentComing: 10,
+    keyProjects: ['EV battery plants', 'Steel modernization', 'Logistics expansion']
+  },
+  'South Carolina': { 
+    projects: 4, 
+    jobsCreated: 35000, 
+    energySavings: 850, 
+    investmentComing: 8,
+    keyProjects: ['BMW expansion', 'Scout Motors EV', 'Port Charleston expansion']
+  },
+  'Kentucky': { 
+    projects: 4, 
+    jobsCreated: 45000, 
+    energySavings: 750, 
+    investmentComing: 12,
+    keyProjects: ['Ford battery plants', 'Toyota EV investment', 'Envision AESC battery']
+  },
+  'Louisiana': { 
+    projects: 5, 
+    jobsCreated: 35000, 
+    energySavings: 900, 
+    investmentComing: 28,
+    keyProjects: ['LNG export terminals', 'Petrochemical expansion', 'Port upgrades']
+  },
+  'Virginia': { 
+    projects: 4, 
+    jobsCreated: 50000, 
+    energySavings: 650, 
+    investmentComing: 28,
+    keyProjects: ['Data centers (Northern VA)', 'Newport News shipyard', 'Offshore wind']
+  },
+  'Washington': { 
+    projects: 3, 
+    jobsCreated: 25000, 
+    energySavings: 500, 
+    investmentComing: 6,
+    keyProjects: ['Boeing production', 'Data centers']
+  },
+  'Colorado': { 
+    projects: 2, 
+    jobsCreated: 18000, 
+    energySavings: 550, 
+    investmentComing: 4,
+    keyProjects: ['Aerospace R&D', 'Solar expansion']
+  },
+  'Wisconsin': { 
+    projects: 3, 
+    jobsCreated: 15000, 
+    energySavings: 600, 
+    investmentComing: 5,
+    keyProjects: ['Shipyard revival (Marinette)', 'Microsoft data center']
+  },
+  'Utah': { 
+    projects: 3, 
+    jobsCreated: 22000, 
+    energySavings: 700, 
+    investmentComing: 5,
+    keyProjects: ['Data centers', 'Tech expansion', 'Mining']
+  },
+  'West Virginia': { 
+    projects: 2, 
+    jobsCreated: 8000, 
+    energySavings: 500, 
+    investmentComing: 3,
+    keyProjects: ['Gas development', 'Data centers (proposed)']
+  },
+  'Missouri': { 
+    projects: 1, 
+    jobsCreated: 5000, 
+    energySavings: 400, 
+    investmentComing: 2,
+    keyProjects: ['No major projects']
+  },
+  'Alabama': { 
+    projects: 4, 
+    jobsCreated: 25000, 
+    energySavings: 800, 
+    investmentComing: 5,
+    keyProjects: ['Hyundai EV expansion', 'Airbus expansion', 'Browns Ferry nuclear']
+  },
+  'Mississippi': { 
+    projects: 2, 
+    jobsCreated: 20000, 
+    energySavings: 600, 
+    investmentComing: 4,
+    keyProjects: ['Ingalls Shipbuilding', 'Nissan (declining)']
+  },
+  'Maine': { 
+    projects: 2, 
+    jobsCreated: 8000, 
+    energySavings: 450, 
+    investmentComing: 2,
+    keyProjects: ['Bath Iron Works', 'Offshore wind (proposed)']
+  },
+  'Connecticut': { 
+    projects: 3, 
+    jobsCreated: 25000, 
+    energySavings: 500, 
+    investmentComing: 5,
+    keyProjects: ['Electric Boat submarines', 'Pratt & Whitney engines']
+  },
+  'Iowa': { 
+    projects: 4, 
+    jobsCreated: 20000, 
+    energySavings: 900, 
+    investmentComing: 5,
+    keyProjects: ['Wind expansion', 'Data centers', 'Ethanol/biofuels']
+  },
+}
+
+// Comprehensive State-Level Hamiltonian Analysis
+interface StateHamiltonianAnalysis {
+  state: string
+  stateGDP: number // billions
+  stateDebt: number // billions
+  stateCapitalInvestment: number // billions
+  hamiltonianShare: number // % of state spending on capital
+  buildRate: number // % of GDP
+  trend: 'rising' | 'flat' | 'declining' // is it getting better or worse?
+  naturalAdvantages: string[]
+  currentProjects: { name: string, category: string, status: string, investment: number }[]
+  capacityGaps: { category: string, need: string, current: string }[]
+  politicalFeasibility: 'high' | 'medium' | 'low'
+  nationalRole: string
+  energyProfile: string
+  workforceReadiness: 'high' | 'medium' | 'low'
+  assessment: string // honest assessment
+}
+
+// ALL 50 STATES - Honest Hamiltonian Analysis
+const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
+  // === TIER 1: BUILDING STATES (High Hamiltonian Activity) ===
+  'Texas': {
+    state: 'Texas',
+    stateGDP: 2400,
+    stateDebt: 45,
+    stateCapitalInvestment: 12,
+    hamiltonianShare: 22,
+    buildRate: 0.5,
+    trend: 'rising',
+    naturalAdvantages: ['Oil/gas reserves', 'Wind/solar potential', 'Port access', 'Land availability', 'Business-friendly'],
+    currentProjects: [
+      { name: 'Samsung fab expansion', category: 'Chip Fabs', status: 'Building', investment: 17 },
+      { name: 'LNG export terminals', category: 'Energy', status: 'Active', investment: 25 },
+      { name: 'Grid hardening', category: 'Infrastructure', status: 'Planned', investment: 8 },
+      { name: 'Nuclear SMRs', category: 'Energy', status: 'Proposed', investment: 12 }
+    ],
+    capacityGaps: [
+      { category: 'Nuclear', need: '50 GW', current: '5 GW' },
+      { category: 'Grid/HVDC', need: '25 GW', current: '8 GW' },
+      { category: 'Water', need: 'Desalination', current: 'Groundwater depleting' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Energy dominance, chip manufacturing, export hub',
+    energyProfile: 'Largest producer (oil, gas, wind). Needs nuclear for grid stability.',
+    workforceReadiness: 'high',
+    assessment: 'LEADING. Aggressive on energy and manufacturing. Grid remains vulnerable.'
+  },
+  'Ohio': {
+    state: 'Ohio',
+    stateGDP: 750,
+    stateDebt: 18,
+    stateCapitalInvestment: 5.2,
+    hamiltonianShare: 24,
+    buildRate: 0.7,
+    trend: 'rising',
+    naturalAdvantages: ['Freshwater', 'Central location', 'Existing manufacturing', 'Workforce'],
+    currentProjects: [
+      { name: 'Intel mega-fab ($20B)', category: 'Chip Fabs', status: 'Building', investment: 20 },
+      { name: 'Honda EV plant', category: 'Manufacturing', status: 'Active', investment: 3.5 },
+      { name: 'Nuclear restart', category: 'Energy', status: 'Proposed', investment: 2 }
+    ],
+    capacityGaps: [
+      { category: 'Nuclear', need: '15 GW', current: '3 GW' },
+      { category: 'Grid', need: 'HVDC to East Coast', current: 'Regional' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Chip manufacturing hub, Midwest manufacturing anchor',
+    energyProfile: 'Coal legacy, transitioning to nuclear + renewables.',
+    workforceReadiness: 'high',
+    assessment: 'RESURGENT. Intel fab is transformative. Need to rebuild energy base.'
+  },
+  'Arizona': {
+    state: 'Arizona',
+    stateGDP: 450,
+    stateDebt: 12,
+    stateCapitalInvestment: 4.5,
+    hamiltonianShare: 28,
+    buildRate: 1.0,
+    trend: 'rising',
+    naturalAdvantages: ['Solar potential', 'Land', 'Tech talent from CA exodus'],
+    currentProjects: [
+      { name: 'TSMC fabs (3 plants)', category: 'Chip Fabs', status: 'Building', investment: 40 },
+      { name: 'Intel expansion', category: 'Chip Fabs', status: 'Building', investment: 20 },
+      { name: 'Battery manufacturing', category: 'Manufacturing', status: 'Planned', investment: 2.5 }
+    ],
+    capacityGaps: [
+      { category: 'Water', need: 'Desalination/recycling', current: 'Colorado River (crisis)' },
+      { category: 'Energy', need: 'Nuclear baseload', current: 'Solar + gas' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Chip manufacturing capital of America',
+    energyProfile: 'Solar leader. Water crisis is existential threat to growth.',
+    workforceReadiness: 'medium',
+    assessment: 'BOOMING but fragile. $60B+ in fabs, but water crisis could derail everything.'
+  },
+  'Tennessee': {
+    state: 'Tennessee',
+    stateGDP: 450,
+    stateDebt: 8,
+    stateCapitalInvestment: 3.2,
+    hamiltonianShare: 32,
+    buildRate: 0.7,
+    trend: 'rising',
+    naturalAdvantages: ['Freshwater', 'Low cost', 'Business-friendly', 'TVA power'],
+    currentProjects: [
+      { name: 'Ford BlueOval City', category: 'Manufacturing', status: 'Building', investment: 5.6 },
+      { name: 'SMR development (Oak Ridge)', category: 'Energy', status: 'Active', investment: 4 },
+      { name: 'Battery plants', category: 'Manufacturing', status: 'Building', investment: 3 }
+    ],
+    capacityGaps: [
+      { category: 'Nuclear', need: 'SMR fleet', current: '3 GW' },
+      { category: 'Workforce', need: '50K skilled workers', current: 'Training gap' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'EV manufacturing, nuclear R&D, low-cost production',
+    energyProfile: 'Nuclear + hydro via TVA. Best energy position in Southeast.',
+    workforceReadiness: 'high',
+    assessment: 'MODEL STATE. Low debt, high investment, pro-build politics. Watch this one.'
+  },
+  'Georgia': {
+    state: 'Georgia',
+    stateGDP: 700,
+    stateDebt: 15,
+    stateCapitalInvestment: 4.5,
+    hamiltonianShare: 25,
+    buildRate: 0.6,
+    trend: 'rising',
+    naturalAdvantages: ['Savannah port', 'Land', 'Business-friendly', 'Southeast hub'],
+    currentProjects: [
+      { name: 'Hyundai EV plant (Metaplant)', category: 'Manufacturing', status: 'Building', investment: 7.6 },
+      { name: 'Savannah port expansion', category: 'Infrastructure', status: 'Active', investment: 1.8 },
+      { name: 'SK/Hyundai Battery', category: 'Manufacturing', status: 'Active', investment: 5 },
+      { name: 'Vogtle nuclear (Units 3&4)', category: 'Energy', status: 'Complete', investment: 35 }
+    ],
+    capacityGaps: [
+      { category: 'Grid', need: 'Southeast interconnection', current: 'Regional' },
+      { category: 'Water', need: 'Reservoir expansion', current: 'Adequate' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Port logistics, EV manufacturing, nuclear (Vogtle)',
+    energyProfile: 'Just completed Vogtle nuclear. Only new nuclear in 30 years.',
+    workforceReadiness: 'high',
+    assessment: 'STRONG. Vogtle proves nuclear can be built. EV cluster forming.'
+  },
+  
+  // === TIER 2: MIXED POTENTIAL (Could Go Either Way) ===
+  'Michigan': {
+    state: 'Michigan',
+    stateGDP: 600,
+    stateDebt: 22,
+    stateCapitalInvestment: 4.8,
+    hamiltonianShare: 20,
+    buildRate: 0.8,
+    trend: 'flat',
+    naturalAdvantages: ['Freshwater (Great Lakes)', 'Manufacturing legacy', 'Auto supply chain'],
+    currentProjects: [
+      { name: 'GM/Ford EV transition', category: 'Manufacturing', status: 'Active', investment: 15 },
+      { name: 'Battery gigafactories', category: 'Manufacturing', status: 'Building', investment: 8 },
+      { name: 'Gotion battery (blocked?)', category: 'Manufacturing', status: 'Controversial', investment: 2.4 }
+    ],
+    capacityGaps: [
+      { category: 'Energy', need: 'Nuclear/gas', current: 'Coal phase-out, no replacement' },
+      { category: 'Grid', need: 'Hardening', current: 'Aging, frequent outages' }
+    ],
+    politicalFeasibility: 'medium',
+    nationalRole: 'Auto manufacturing transition to EV',
+    energyProfile: 'Closing coal with no clear replacement. Grid reliability declining.',
+    workforceReadiness: 'high',
+    assessment: 'AT RISK. Great workforce, but energy policy is incoherent. Grid failing.'
+  },
+  'Pennsylvania': {
+    state: 'Pennsylvania',
+    stateGDP: 900,
+    stateDebt: 35,
+    stateCapitalInvestment: 6.5,
+    hamiltonianShare: 18,
+    buildRate: 0.7,
+    trend: 'flat',
+    naturalAdvantages: ['Shale gas (Marcellus)', 'Existing nuclear', 'Ports', 'Manufacturing history'],
+    currentProjects: [
+      { name: 'Steel plant modernization', category: 'Manufacturing', status: 'Active', investment: 1.2 },
+      { name: 'Data centers (nuclear-powered)', category: 'Infrastructure', status: 'Proposed', investment: 8 },
+      { name: 'Shale infrastructure', category: 'Energy', status: 'Active', investment: 2.5 }
+    ],
+    capacityGaps: [
+      { category: 'Nuclear', need: 'Preserve/expand', current: '9 GW (threatened)' },
+      { category: 'Manufacturing', need: 'Steel revival', current: 'Declining' }
+    ],
+    politicalFeasibility: 'medium',
+    nationalRole: 'Energy production (gas + nuclear), steel',
+    energyProfile: 'Major gas producer, significant nuclear. Political gridlock on energy.',
+    workforceReadiness: 'high',
+    assessment: 'UNDERPERFORMING. Has resources but politics block development. Could be energy powerhouse.'
+  },
+  'Nevada': {
+    state: 'Nevada',
+    stateGDP: 200,
+    stateDebt: 3.5,
+    stateCapitalInvestment: 1.8,
+    hamiltonianShare: 35,
+    buildRate: 0.9,
+    trend: 'rising',
+    naturalAdvantages: ['Lithium deposits', 'Solar', 'Geothermal', 'Land'],
+    currentProjects: [
+      { name: 'Thacker Pass lithium', category: 'Mining', status: 'Construction', investment: 2.3 },
+      { name: 'Tesla Gigafactory expansion', category: 'Manufacturing', status: 'Active', investment: 3.6 },
+      { name: 'Data centers', category: 'Infrastructure', status: 'Building', investment: 5 }
+    ],
+    capacityGaps: [
+      { category: 'Water', need: 'Desalination', current: 'Colorado River (crisis)' },
+      { category: 'Energy', need: 'Nuclear', current: 'Solar + gas' }
+    ],
+    politicalFeasibility: 'medium',
+    nationalRole: 'Critical minerals (lithium), data centers, battery manufacturing',
+    energyProfile: 'Solar + geothermal. Water is the constraint.',
+    workforceReadiness: 'medium',
+    assessment: 'STRATEGIC. Lithium is critical. Water crisis shared with Arizona.'
+  },
+  'Minnesota': {
+    state: 'Minnesota',
+    stateGDP: 420,
+    stateDebt: 12,
+    stateCapitalInvestment: 2.5,
+    hamiltonianShare: 18,
+    buildRate: 0.6,
+    trend: 'flat',
+    naturalAdvantages: ['Freshwater', 'Iron Range minerals', 'Wind potential', 'Educated workforce'],
+    currentProjects: [
+      { name: 'Cleveland-Cliffs rare earth exploration', category: 'Mining', status: 'Exploration', investment: 0.3 },
+      { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 1.2 },
+      { name: 'No major manufacturing projects', category: 'Manufacturing', status: 'None', investment: 0 }
+    ],
+    capacityGaps: [
+      { category: 'Nuclear', need: 'SMR deployment', current: '0 GW' },
+      { category: 'Mining', need: 'Rare earth development', current: 'Blocked by politics' }
+    ],
+    politicalFeasibility: 'low',
+    nationalRole: 'Potential mining hub, but blocked by state politics',
+    energyProfile: 'Wind + imports. Anti-mining politics limit potential.',
+    workforceReadiness: 'high',
+    assessment: 'BLOCKED. Has Iron Range potential, rare earth deposits, but state politics hostile to mining.'
+  },
+  
+  // === TIER 3: STAGNANT/DECLINING (Not Building) ===
+  'California': {
+    state: 'California',
+    stateGDP: 3800,
+    stateDebt: 95,
+    stateCapitalInvestment: 12,
+    hamiltonianShare: 12,
+    buildRate: 0.3,
+    trend: 'declining',
+    naturalAdvantages: ['Tech talent', 'Ports', 'Solar/wind potential', 'Research universities'],
+    currentProjects: [
+      { name: 'No major manufacturing', category: 'Manufacturing', status: 'Exiting', investment: 0 },
+      { name: 'Grid upgrades (reactive)', category: 'Infrastructure', status: 'Planned', investment: 8 },
+      { name: 'Desalination (blocked)', category: 'Infrastructure', status: 'Blocked', investment: 0 }
+    ],
+    capacityGaps: [
+      { category: 'Nuclear', need: 'Baseload', current: 'Banned, closing Diablo Canyon' },
+      { category: 'Water', need: 'Desalination', current: 'Blocked, rationing' },
+      { category: 'Manufacturing', need: 'Any', current: 'Exiting to TX, AZ, NV' }
+    ],
+    politicalFeasibility: 'low',
+    nationalRole: 'Tech innovation only. Manufacturing and energy in decline.',
+    energyProfile: 'Grid unreliable. Rolling blackouts. Bans nuclear while closing last plant.',
+    workforceReadiness: 'high',
+    assessment: 'DECLINING. Massive economy but anti-build politics. Companies fleeing. Grid failing.'
+  },
+  'New York': {
+    state: 'New York',
+    stateGDP: 1900,
+    stateDebt: 55,
+    stateCapitalInvestment: 8.5,
+    hamiltonianShare: 15,
+    buildRate: 0.45,
+    trend: 'flat',
+    naturalAdvantages: ['Ports', 'Tech talent', 'Capital markets', 'Research'],
+    currentProjects: [
+      { name: 'Micron fab (Syracuse)', category: 'Chip Fabs', status: 'Building', investment: 100 },
+      { name: 'Offshore wind', category: 'Energy', status: 'Troubled', investment: 2 },
+      { name: 'Indian Point closure', category: 'Energy', status: 'Complete', investment: -6 }
+    ],
+    capacityGaps: [
+      { category: 'Nuclear', need: 'Replace Indian Point', current: 'Closed, gas imports' },
+      { category: 'Energy', need: 'Baseload', current: 'Importing from PA, Canada' }
+    ],
+    politicalFeasibility: 'low',
+    nationalRole: 'Finance hub. Micron fab is exception in otherwise hostile environment.',
+    energyProfile: 'Closed Indian Point nuclear. Now imports energy. Offshore wind failing.',
+    workforceReadiness: 'high',
+    assessment: 'MIXED. Micron is huge win, but closed nuclear, blocked pipelines. Self-sabotaging.'
+  },
+  'Illinois': {
+    state: 'Illinois',
+    stateGDP: 950,
+    stateDebt: 45,
+    stateCapitalInvestment: 4,
+    hamiltonianShare: 14,
+    buildRate: 0.4,
+    trend: 'declining',
+    naturalAdvantages: ['Freshwater', 'Rail hub', 'Nuclear fleet', 'Farmland'],
+    currentProjects: [
+      { name: 'No major new projects', category: 'Various', status: 'None', investment: 0 },
+      { name: 'Nuclear preservation', category: 'Energy', status: 'Subsidized', investment: 0 }
+    ],
+    capacityGaps: [
+      { category: 'Manufacturing', need: 'Any', current: 'Exiting' },
+      { category: 'Infrastructure', need: 'Road/bridge repair', current: 'Crumbling' }
+    ],
+    politicalFeasibility: 'low',
+    nationalRole: 'Agricultural, rail logistics. Declining industrial base.',
+    energyProfile: 'Largest nuclear fleet (11 GW) but no new investment.',
+    workforceReadiness: 'medium',
+    assessment: 'STAGNANT. High debt, high taxes, business exodus. Nuclear fleet aging with no replacement.'
+  },
+  'New Jersey': {
+    state: 'New Jersey',
+    stateGDP: 700,
+    stateDebt: 48,
+    stateCapitalInvestment: 2.5,
+    hamiltonianShare: 10,
+    buildRate: 0.35,
+    trend: 'declining',
+    naturalAdvantages: ['Ports', 'Pharma hub', 'Proximity to NYC'],
+    currentProjects: [
+      { name: 'Offshore wind (troubled)', category: 'Energy', status: 'Cancellations', investment: -5 },
+      { name: 'Port expansion', category: 'Infrastructure', status: 'Slow', investment: 1 }
+    ],
+    capacityGaps: [
+      { category: 'Energy', need: 'Reliable power', current: 'Nuclear aging, wind failing' },
+      { category: 'Manufacturing', need: 'Retention', current: 'Exiting' }
+    ],
+    politicalFeasibility: 'low',
+    nationalRole: 'Pharma, ports. Declining otherwise.',
+    energyProfile: 'Nuclear aging. Offshore wind projects collapsing. High costs.',
+    workforceReadiness: 'high',
+    assessment: 'STRUGGLING. High debt, high costs, business unfriendly. Offshore wind disasters.'
+  },
+  'Massachusetts': {
+    state: 'Massachusetts',
+    stateGDP: 650,
+    stateDebt: 35,
+    stateCapitalInvestment: 2,
+    hamiltonianShare: 12,
+    buildRate: 0.3,
+    trend: 'flat',
+    naturalAdvantages: ['Biotech hub', 'Universities', 'Tech talent'],
+    currentProjects: [
+      { name: 'No major infrastructure', category: 'Infrastructure', status: 'None', investment: 0 },
+      { name: 'Life sciences R&D', category: 'R&D', status: 'Active', investment: 3 }
+    ],
+    capacityGaps: [
+      { category: 'Energy', need: 'Any generation', current: 'Imports from NH, Canada' },
+      { category: 'Housing', need: 'Building', current: 'Blocked by zoning' }
+    ],
+    politicalFeasibility: 'low',
+    nationalRole: 'Biotech R&D. No physical capacity building.',
+    energyProfile: 'Energy importer. No generation. High costs.',
+    workforceReadiness: 'high',
+    assessment: 'R&D ONLY. Great for biotech research, zero physical capacity building.'
+  },
+  
+  // === TIER 4: ENERGY/RESOURCE STATES ===
+  'Wyoming': {
+    state: 'Wyoming',
+    stateGDP: 45,
+    stateDebt: 1.2,
+    stateCapitalInvestment: 0.8,
+    hamiltonianShare: 55,
+    buildRate: 1.8,
+    trend: 'rising',
+    naturalAdvantages: ['Coal', 'Uranium', 'Wind', 'Land', 'Water rights', 'Business-friendly'],
+    currentProjects: [
+      { name: 'TerraPower Natrium SMR', category: 'Energy', status: 'Building', investment: 4 },
+      { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 2 },
+      { name: 'Rare earth exploration', category: 'Mining', status: 'Active', investment: 0.5 }
+    ],
+    capacityGaps: [
+      { category: 'Grid', need: 'HVDC to West Coast', current: 'Regional only' },
+      { category: 'Workforce', need: 'Skilled workers', current: 'Small population' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Energy exporter, nuclear pioneer, mining',
+    energyProfile: 'Coal transitioning to nuclear + wind. First SMR deployment.',
+    workforceReadiness: 'medium',
+    assessment: 'PIONEER. Small but mighty. TerraPower SMR is nationally significant.'
+  },
+  'Alaska': {
+    state: 'Alaska',
+    stateGDP: 60,
+    stateDebt: 2.5,
+    stateCapitalInvestment: 1.2,
+    hamiltonianShare: 40,
+    buildRate: 2.0,
+    trend: 'rising',
+    naturalAdvantages: ['Oil/gas', 'Critical minerals', 'Ports', 'Strategic Pacific location'],
+    currentProjects: [
+      { name: 'Willow Project', category: 'Energy', status: 'Active', investment: 8 },
+      { name: 'Alaska LNG', category: 'Energy', status: 'Proposed', investment: 38 },
+      { name: 'Critical minerals mining', category: 'Mining', status: 'Permitting', investment: 2 }
+    ],
+    capacityGaps: [
+      { category: 'Infrastructure', need: 'Roads, ports', current: 'Extremely limited' },
+      { category: 'Grid', need: 'Connections', current: 'Isolated' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Energy dominance, Pacific defense, critical minerals',
+    energyProfile: 'Major oil/gas. LNG export potential. Strategically critical.',
+    workforceReadiness: 'medium',
+    assessment: 'STRATEGIC. Willow is major win. LNG could be transformative.'
+  },
+  'North Dakota': {
+    state: 'North Dakota',
+    stateGDP: 65,
+    stateDebt: 1.5,
+    stateCapitalInvestment: 1,
+    hamiltonianShare: 45,
+    buildRate: 1.5,
+    trend: 'flat',
+    naturalAdvantages: ['Bakken shale', 'Wind', 'Farmland', 'Low cost'],
+    currentProjects: [
+      { name: 'Bakken production', category: 'Energy', status: 'Active', investment: 3 },
+      { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 1 },
+      { name: 'Data centers', category: 'Infrastructure', status: 'Building', investment: 0.5 }
+    ],
+    capacityGaps: [
+      { category: 'Pipeline', need: 'Export capacity', current: 'Constrained' },
+      { category: 'Workforce', need: 'Retention', current: 'Boom/bust cycles' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Oil production, wind energy',
+    energyProfile: 'Major oil producer. Good wind. Pipeline constraints.',
+    workforceReadiness: 'medium',
+    assessment: 'STEADY. Producing energy. Need more pipeline capacity.'
+  },
+  'New Mexico': {
+    state: 'New Mexico',
+    stateGDP: 115,
+    stateDebt: 5,
+    stateCapitalInvestment: 1.2,
+    hamiltonianShare: 25,
+    buildRate: 1.0,
+    trend: 'flat',
+    naturalAdvantages: ['Permian Basin', 'Solar', 'Nuclear labs', 'Land'],
+    currentProjects: [
+      { name: 'Permian oil/gas', category: 'Energy', status: 'Active', investment: 5 },
+      { name: 'Los Alamos/Sandia', category: 'R&D', status: 'Active', investment: 4 },
+      { name: 'Solar expansion', category: 'Energy', status: 'Active', investment: 1 }
+    ],
+    capacityGaps: [
+      { category: 'Water', need: 'Conservation', current: 'Stressed' },
+      { category: 'Grid', need: 'HVDC export', current: 'Limited' }
+    ],
+    politicalFeasibility: 'medium',
+    nationalRole: 'Energy production, nuclear R&D',
+    energyProfile: 'Major oil/gas producer. Nuclear labs. Mixed political environment.',
+    workforceReadiness: 'medium',
+    assessment: 'PRODUCTIVE. Oil/gas strong. Nuclear labs critical. Politics unpredictable.'
+  },
+  
+  // === TIER 5: OTHER NOTABLE STATES ===
+  'Florida': {
+    state: 'Florida',
+    stateGDP: 1400,
+    stateDebt: 25,
+    stateCapitalInvestment: 5,
+    hamiltonianShare: 15,
+    buildRate: 0.35,
+    trend: 'flat',
+    naturalAdvantages: ['Ports', 'Space Coast', 'Population growth', 'Business-friendly'],
+    currentProjects: [
+      { name: 'SpaceX/Blue Origin expansion', category: 'Aerospace', status: 'Active', investment: 3 },
+      { name: 'Port expansion', category: 'Infrastructure', status: 'Active', investment: 2 },
+      { name: 'No major manufacturing', category: 'Manufacturing', status: 'None', investment: 0 }
+    ],
+    capacityGaps: [
+      { category: 'Energy', need: 'Nuclear expansion', current: '4 GW' },
+      { category: 'Manufacturing', need: 'Industrial base', current: 'Minimal' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Aerospace, ports, population magnet',
+    energyProfile: 'Gas + nuclear. Some solar. Hurricane vulnerability.',
+    workforceReadiness: 'medium',
+    assessment: 'SERVICES ECONOMY. Great for business HQs, weak on manufacturing.'
+  },
+  'Indiana': {
+    state: 'Indiana',
+    stateGDP: 425,
+    stateDebt: 8,
+    stateCapitalInvestment: 3,
+    hamiltonianShare: 22,
+    buildRate: 0.7,
+    trend: 'rising',
+    naturalAdvantages: ['Central location', 'Low cost', 'Manufacturing base', 'Workforce'],
+    currentProjects: [
+      { name: 'EV battery plants', category: 'Manufacturing', status: 'Building', investment: 4 },
+      { name: 'Steel modernization', category: 'Manufacturing', status: 'Active', investment: 1.5 },
+      { name: 'Logistics expansion', category: 'Infrastructure', status: 'Active', investment: 2 }
+    ],
+    capacityGaps: [
+      { category: 'Energy', need: 'Nuclear', current: 'Coal-heavy' },
+      { category: 'Grid', need: 'Modernization', current: 'Adequate' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Manufacturing, logistics hub',
+    energyProfile: 'Coal-heavy. Needs transition plan.',
+    workforceReadiness: 'high',
+    assessment: 'SOLID. Quiet performer. Manufacturing friendly. Energy transition needed.'
+  },
+  'South Carolina': {
+    state: 'South Carolina',
+    stateGDP: 280,
+    stateDebt: 8,
+    stateCapitalInvestment: 2.5,
+    hamiltonianShare: 28,
+    buildRate: 0.9,
+    trend: 'rising',
+    naturalAdvantages: ['Ports (Charleston)', 'Low cost', 'Business-friendly', 'BMW/Volvo cluster'],
+    currentProjects: [
+      { name: 'BMW expansion', category: 'Manufacturing', status: 'Active', investment: 2 },
+      { name: 'Scout Motors EV', category: 'Manufacturing', status: 'Building', investment: 2 },
+      { name: 'Port Charleston expansion', category: 'Infrastructure', status: 'Active', investment: 1 }
+    ],
+    capacityGaps: [
+      { category: 'Nuclear', need: 'Expansion', current: '7 GW (V.C. Summer abandoned)' },
+      { category: 'Workforce', need: 'Technical training', current: 'Growing' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Auto manufacturing (BMW, Volvo, Scout), ports',
+    energyProfile: 'Nuclear + gas. V.C. Summer failure was setback.',
+    workforceReadiness: 'high',
+    assessment: 'GROWING. Auto cluster strong. Need to recover from V.C. Summer nuclear failure.'
+  },
+  'Kentucky': {
+    state: 'Kentucky',
+    stateGDP: 230,
+    stateDebt: 12,
+    stateCapitalInvestment: 2,
+    hamiltonianShare: 22,
+    buildRate: 0.85,
+    trend: 'rising',
+    naturalAdvantages: ['Low cost', 'Central location', 'Coal reserves', 'Toyota cluster'],
+    currentProjects: [
+      { name: 'Ford battery plants', category: 'Manufacturing', status: 'Building', investment: 5.8 },
+      { name: 'Toyota EV investment', category: 'Manufacturing', status: 'Active', investment: 1.3 },
+      { name: 'Envision AESC battery', category: 'Manufacturing', status: 'Building', investment: 2 }
+    ],
+    capacityGaps: [
+      { category: 'Energy', need: 'Coal transition', current: 'Coal-dependent' },
+      { category: 'Grid', need: 'Modernization', current: 'Coal-based' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'EV battery production, auto manufacturing',
+    energyProfile: 'Coal-heavy. Energy transition is key challenge.',
+    workforceReadiness: 'medium',
+    assessment: 'TRANSITIONING. Major battery investments. Coal transition is the challenge.'
+  },
+  'Louisiana': {
+    state: 'Louisiana',
+    stateGDP: 280,
+    stateDebt: 10,
+    stateCapitalInvestment: 3,
+    hamiltonianShare: 30,
+    buildRate: 1.1,
+    trend: 'flat',
+    naturalAdvantages: ['Petrochemical hub', 'Ports', 'LNG export', 'Mississippi River'],
+    currentProjects: [
+      { name: 'LNG export terminals', category: 'Energy', status: 'Active', investment: 20 },
+      { name: 'Petrochemical expansion', category: 'Manufacturing', status: 'Active', investment: 5 },
+      { name: 'Port upgrades', category: 'Infrastructure', status: 'Active', investment: 2 }
+    ],
+    capacityGaps: [
+      { category: 'Infrastructure', need: 'Hurricane resilience', current: 'Vulnerable' },
+      { category: 'Grid', need: 'Hardening', current: 'Frequent outages' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'LNG export, petrochemicals, port logistics',
+    energyProfile: 'Energy hub. LNG is nationally critical.',
+    workforceReadiness: 'medium',
+    assessment: 'ENERGY HUB. LNG exports crucial. Hurricane vulnerability is major risk.'
+  },
+  'Virginia': {
+    state: 'Virginia',
+    stateGDP: 600,
+    stateDebt: 18,
+    stateCapitalInvestment: 3,
+    hamiltonianShare: 18,
+    buildRate: 0.5,
+    trend: 'flat',
+    naturalAdvantages: ['Data center hub (NoVA)', 'Ports (Hampton Roads)', 'Shipyards', 'Federal proximity'],
+    currentProjects: [
+      { name: 'Data centers (Northern VA)', category: 'Infrastructure', status: 'Building', investment: 15 },
+      { name: 'Newport News shipyard', category: 'Defense', status: 'Active', investment: 3 },
+      { name: 'Offshore wind', category: 'Energy', status: 'Building', investment: 9 }
+    ],
+    capacityGaps: [
+      { category: 'Energy', need: 'Baseload for data centers', current: 'Gas + nuclear' },
+      { category: 'Shipbuilding', need: 'Capacity expansion', current: 'At max' }
+    ],
+    politicalFeasibility: 'medium',
+    nationalRole: 'Data centers, naval shipbuilding, federal hub',
+    energyProfile: 'Data center demand outpacing supply. Nuclear needed.',
+    workforceReadiness: 'high',
+    assessment: 'MIXED. Data center boom, shipyards critical. Energy supply lagging demand.'
+  },
+  'Washington': {
+    state: 'Washington',
+    stateGDP: 700,
+    stateDebt: 22,
+    stateCapitalInvestment: 3.5,
+    hamiltonianShare: 16,
+    buildRate: 0.5,
+    trend: 'flat',
+    naturalAdvantages: ['Hydro power', 'Tech hub (Seattle)', 'Ports', 'Boeing'],
+    currentProjects: [
+      { name: 'Boeing production', category: 'Aerospace', status: 'Active', investment: 2 },
+      { name: 'Data centers', category: 'Infrastructure', status: 'Building', investment: 3 },
+      { name: 'No new energy', category: 'Energy', status: 'None', investment: 0 }
+    ],
+    capacityGaps: [
+      { category: 'Nuclear', need: 'Baseload backup', current: '1 GW (Columbia)' },
+      { category: 'Manufacturing', need: 'Diversification', current: 'Boeing-dependent' }
+    ],
+    politicalFeasibility: 'low',
+    nationalRole: 'Tech, aerospace (Boeing), ports',
+    energyProfile: 'Hydro-blessed. But anti-nuclear. Boeing troubles hurt.',
+    workforceReadiness: 'high',
+    assessment: 'COASTING. Hydro advantage but not building. Boeing problems are drag.'
+  },
+  'Colorado': {
+    state: 'Colorado',
+    stateGDP: 450,
+    stateDebt: 12,
+    stateCapitalInvestment: 2,
+    hamiltonianShare: 14,
+    buildRate: 0.45,
+    trend: 'flat',
+    naturalAdvantages: ['Tech hub', 'Aerospace', 'Solar/wind', 'NREL'],
+    currentProjects: [
+      { name: 'Aerospace R&D', category: 'R&D', status: 'Active', investment: 1.5 },
+      { name: 'Solar expansion', category: 'Energy', status: 'Active', investment: 1 },
+      { name: 'No major manufacturing', category: 'Manufacturing', status: 'None', investment: 0 }
+    ],
+    capacityGaps: [
+      { category: 'Nuclear', need: 'Any', current: '0 GW' },
+      { category: 'Manufacturing', need: 'Industrial base', current: 'Minimal' }
+    ],
+    politicalFeasibility: 'low',
+    nationalRole: 'Tech, aerospace, renewable R&D',
+    energyProfile: 'Closing coal with no nuclear. Wind/solar only.',
+    workforceReadiness: 'high',
+    assessment: 'R&D STATE. Good for tech/aerospace. Not building physical capacity.'
+  },
+  'Wisconsin': {
+    state: 'Wisconsin',
+    stateGDP: 370,
+    stateDebt: 15,
+    stateCapitalInvestment: 2,
+    hamiltonianShare: 16,
+    buildRate: 0.55,
+    trend: 'flat',
+    naturalAdvantages: ['Freshwater', 'Manufacturing base', 'Shipbuilding potential', 'Dairy'],
+    currentProjects: [
+      { name: 'Shipyard revival (Marinette)', category: 'Defense', status: 'Active', investment: 1 },
+      { name: 'Microsoft data center', category: 'Infrastructure', status: 'Building', investment: 3.3 },
+      { name: 'Foxconn (failed)', category: 'Manufacturing', status: 'Failed', investment: -10 }
+    ],
+    capacityGaps: [
+      { category: 'Energy', need: 'Nuclear', current: '0 GW (closed)' },
+      { category: 'Manufacturing', need: 'Revival', current: 'Declining' }
+    ],
+    politicalFeasibility: 'medium',
+    nationalRole: 'Potential shipbuilding, manufacturing',
+    energyProfile: 'Closed nuclear. Now dependent on imports.',
+    workforceReadiness: 'high',
+    assessment: 'RECOVERING. Foxconn failure hurt. Shipyards and data centers are bright spots.'
+  },
+  'Utah': {
+    state: 'Utah',
+    stateGDP: 240,
+    stateDebt: 5,
+    stateCapitalInvestment: 2,
+    hamiltonianShare: 25,
+    buildRate: 0.8,
+    trend: 'rising',
+    naturalAdvantages: ['Business-friendly', 'Tech hub', 'Minerals', 'Low cost'],
+    currentProjects: [
+      { name: 'Data centers', category: 'Infrastructure', status: 'Building', investment: 2 },
+      { name: 'Tech expansion', category: 'Infrastructure', status: 'Active', investment: 1.5 },
+      { name: 'Mining', category: 'Mining', status: 'Active', investment: 0.5 }
+    ],
+    capacityGaps: [
+      { category: 'Water', need: 'Great Salt Lake crisis', current: 'Crisis' },
+      { category: 'Energy', need: 'Nuclear', current: 'Coal transition' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Tech hub, potential mining',
+    energyProfile: 'Coal transitioning. Water crisis is serious.',
+    workforceReadiness: 'high',
+    assessment: 'GROWING but water crisis could limit. Business-friendly but resource-constrained.'
+  },
+  'West Virginia': {
+    state: 'West Virginia',
+    stateGDP: 85,
+    stateDebt: 6,
+    stateCapitalInvestment: 0.8,
+    hamiltonianShare: 20,
+    buildRate: 0.9,
+    trend: 'flat',
+    naturalAdvantages: ['Coal', 'Gas (Marcellus)', 'Cheap land', 'Water'],
+    currentProjects: [
+      { name: 'Gas development', category: 'Energy', status: 'Active', investment: 2 },
+      { name: 'Data centers (proposed)', category: 'Infrastructure', status: 'Proposed', investment: 1 },
+      { name: 'No major manufacturing', category: 'Manufacturing', status: 'None', investment: 0 }
+    ],
+    capacityGaps: [
+      { category: 'Diversification', need: 'Beyond coal', current: 'Coal-dependent' },
+      { category: 'Workforce', need: 'Retraining', current: 'Coal skills' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Energy production (coal, gas)',
+    energyProfile: 'Coal state trying to transition. Gas is the bridge.',
+    workforceReadiness: 'medium',
+    assessment: 'TRANSITIONING. Coal declining. Gas is lifeline. Needs diversification.'
+  },
+  'Missouri': {
+    state: 'Missouri',
+    stateGDP: 380,
+    stateDebt: 12,
+    stateCapitalInvestment: 2,
+    hamiltonianShare: 15,
+    buildRate: 0.5,
+    trend: 'flat',
+    naturalAdvantages: ['Central location', 'Low cost', 'Workforce'],
+    currentProjects: [
+      { name: 'No major projects', category: 'Various', status: 'None', investment: 0 }
+    ],
+    capacityGaps: [
+      { category: 'Manufacturing', need: 'Attraction', current: 'Stagnant' },
+      { category: 'Energy', need: 'Nuclear', current: '1 GW' }
+    ],
+    politicalFeasibility: 'medium',
+    nationalRole: 'Agricultural, logistics',
+    energyProfile: 'Mix of sources. Not leading in any.',
+    workforceReadiness: 'medium',
+    assessment: 'STAGNANT. Has potential but not attracting investment.'
+  },
+  'Alabama': {
+    state: 'Alabama',
+    stateGDP: 280,
+    stateDebt: 8,
+    stateCapitalInvestment: 2.5,
+    hamiltonianShare: 24,
+    buildRate: 0.9,
+    trend: 'rising',
+    naturalAdvantages: ['Low cost', 'Port (Mobile)', 'Auto cluster', 'Nuclear'],
+    currentProjects: [
+      { name: 'Hyundai EV expansion', category: 'Manufacturing', status: 'Active', investment: 1 },
+      { name: 'Airbus expansion', category: 'Aerospace', status: 'Active', investment: 1 },
+      { name: 'Browns Ferry nuclear', category: 'Energy', status: 'Operating', investment: 0.5 }
+    ],
+    capacityGaps: [
+      { category: 'Education', need: 'Workforce skills', current: 'Lagging' },
+      { category: 'Infrastructure', need: 'Modernization', current: 'Adequate' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Auto manufacturing, aerospace, nuclear',
+    energyProfile: 'Strong nuclear + hydro. Good energy position.',
+    workforceReadiness: 'medium',
+    assessment: 'QUIETLY BUILDING. Auto and aerospace clusters. Workforce skills gap.'
+  },
+  'Mississippi': {
+    state: 'Mississippi',
+    stateGDP: 130,
+    stateDebt: 5,
+    stateCapitalInvestment: 1,
+    hamiltonianShare: 20,
+    buildRate: 0.75,
+    trend: 'flat',
+    naturalAdvantages: ['Low cost', 'Shipbuilding (Ingalls)', 'Port (Gulfport)'],
+    currentProjects: [
+      { name: 'Ingalls Shipbuilding', category: 'Defense', status: 'Active', investment: 2 },
+      { name: 'Nissan (declining)', category: 'Manufacturing', status: 'Declining', investment: -0.5 }
+    ],
+    capacityGaps: [
+      { category: 'Diversification', need: 'Beyond shipbuilding', current: 'Limited' },
+      { category: 'Workforce', need: 'Skills training', current: 'Lagging' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Naval shipbuilding (critical)',
+    energyProfile: 'Gas + nuclear (Grand Gulf). Adequate.',
+    workforceReadiness: 'medium',
+    assessment: 'SHIPBUILDING STATE. Ingalls is nationally critical. Needs diversification.'
+  },
+  'Maine': {
+    state: 'Maine',
+    stateGDP: 85,
+    stateDebt: 4,
+    stateCapitalInvestment: 0.5,
+    hamiltonianShare: 18,
+    buildRate: 0.6,
+    trend: 'flat',
+    naturalAdvantages: ['Shipyard (Bath)', 'Forestry', 'Wind potential'],
+    currentProjects: [
+      { name: 'Bath Iron Works', category: 'Defense', status: 'Active', investment: 1 },
+      { name: 'Offshore wind (proposed)', category: 'Energy', status: 'Proposed', investment: 1 }
+    ],
+    capacityGaps: [
+      { category: 'Energy', need: 'Baseload', current: 'Imports' },
+      { category: 'Manufacturing', need: 'Any', current: 'Minimal' }
+    ],
+    politicalFeasibility: 'medium',
+    nationalRole: 'Naval shipbuilding (destroyers)',
+    energyProfile: 'Energy importer. Closed nuclear. Wind potential.',
+    workforceReadiness: 'high',
+    assessment: 'SHIPBUILDING. Bath Iron Works is critical. Rest of economy stagnant.'
+  },
+  'Connecticut': {
+    state: 'Connecticut',
+    stateGDP: 300,
+    stateDebt: 35,
+    stateCapitalInvestment: 1.5,
+    hamiltonianShare: 14,
+    buildRate: 0.5,
+    trend: 'declining',
+    naturalAdvantages: ['Submarine base (Groton)', 'Aerospace (P&W)', 'Educated workforce'],
+    currentProjects: [
+      { name: 'Electric Boat submarines', category: 'Defense', status: 'Active', investment: 3 },
+      { name: 'Pratt & Whitney engines', category: 'Aerospace', status: 'Active', investment: 1 }
+    ],
+    capacityGaps: [
+      { category: 'Workforce', need: 'Skilled trades', current: 'Aging' },
+      { category: 'Cost', need: 'Competitiveness', current: 'High cost state' }
+    ],
+    politicalFeasibility: 'medium',
+    nationalRole: 'Submarines (critical), jet engines',
+    energyProfile: 'Nuclear (Millstone) + gas. Adequate.',
+    workforceReadiness: 'high',
+    assessment: 'DEFENSE CRITICAL. Submarine production is irreplaceable. High costs are drag.'
+  },
+  'Iowa': {
+    state: 'Iowa',
+    stateGDP: 210,
+    stateDebt: 5,
+    stateCapitalInvestment: 1.5,
+    hamiltonianShare: 20,
+    buildRate: 0.7,
+    trend: 'flat',
+    naturalAdvantages: ['Wind', 'Farmland', 'Low cost', 'Workforce'],
+    currentProjects: [
+      { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 2 },
+      { name: 'Data centers', category: 'Infrastructure', status: 'Building', investment: 2 },
+      { name: 'Ethanol/biofuels', category: 'Energy', status: 'Active', investment: 0.5 }
+    ],
+    capacityGaps: [
+      { category: 'Manufacturing', need: 'Diversification', current: 'Ag-focused' },
+      { category: 'Nuclear', need: 'Baseload', current: '0 GW' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Wind energy, agriculture, data centers',
+    energyProfile: 'Wind leader. 60%+ renewable. Good example.',
+    workforceReadiness: 'high',
+    assessment: 'WIND MODEL. Shows renewable can work. Need diversification beyond ag.'
+  }
 }
 
 // Historical data
@@ -799,7 +1908,8 @@ export default function Home() {
         {/* ================================================================ */}
         {/* THE STAKES - Why It Matters */}
         {/* ================================================================ */}
-        <section style={styles.section}>
+        <ScrollReveal delay={0}>
+          <section style={styles.section}>
           <h2 style={styles.sectionTitle}>
             <span style={{ color: COLORS.warning }}>THE STAKES</span> — Why This Matters
           </h2>
@@ -830,12 +1940,14 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </section>
+          </section>
+        </ScrollReveal>
 
         {/* ================================================================ */}
         {/* WHERE WE LEAD - American Advantages with REAL DATA */}
         {/* ================================================================ */}
-        <section style={styles.section}>
+        <ScrollReveal delay={100}>
+          <section style={styles.section}>
           <h2 style={styles.sectionTitle}>
             <span style={{ color: COLORS.hamiltonian }}>WHERE WE LEAD</span> — American Advantages
           </h2>
@@ -859,12 +1971,14 @@ export default function Home() {
               </div>
             ))}
           </div>
-        </section>
+          </section>
+        </ScrollReveal>
 
         {/* ================================================================ */}
         {/* THE STRATEGY - Policy Sequence */}
         {/* ================================================================ */}
-        <section style={styles.section}>
+        <ScrollReveal delay={200}>
+          <section style={styles.section}>
           <h2 style={styles.sectionTitle}>
             <span style={{ color: COLORS.accent }}>THE STRATEGY</span> — How We Win
           </h2>
@@ -999,12 +2113,14 @@ export default function Home() {
           <div style={styles.workforceQuote}>
             "Build with American hands, trained in American schools, paid American wages."
           </div>
-        </section>
+          </section>
+        </ScrollReveal>
 
         {/* ================================================================ */}
         {/* NATIONAL CAPACITY - Hamiltonian System View */}
         {/* ================================================================ */}
-        <section style={styles.section}>
+        <ScrollReveal delay={300}>
+          <section style={styles.section}>
           <h2 style={styles.sectionTitle}>
             <span style={{ color: COLORS.accent }}>NATIONAL CAPACITY</span> — Build Where It's Best
           </h2>
@@ -1212,12 +2328,14 @@ export default function Home() {
               </div>
             ))}
           </div>
-        </section>
+          </section>
+        </ScrollReveal>
 
         {/* ================================================================ */}
         {/* GROWTH INITIATIVES - Moon, Defense, AI, Energy */}
         {/* ================================================================ */}
-        <section style={styles.section}>
+        <ScrollReveal delay={400}>
+          <section style={styles.section}>
           <h2 style={styles.sectionTitle}>
             <span style={{ color: COLORS.gold }}>GROWTH INITIATIVES</span> — The Next Frontiers
           </h2>
@@ -1382,12 +2500,14 @@ export default function Home() {
               <span style={styles.summaryValue}>All 50</span>
             </div>
           </div>
-        </section>
+          </section>
+        </ScrollReveal>
 
         {/* ================================================================ */}
         {/* YOUR STAKE - Clear Personal Impact */}
         {/* ================================================================ */}
-        <section style={styles.section}>
+        <ScrollReveal delay={500}>
+          <section style={styles.section}>
           <h2 style={styles.sectionTitle}>
             <span style={{ color: COLORS.gold }}>YOUR STAKE</span> — What This Means for You
           </h2>
@@ -1596,12 +2716,237 @@ export default function Home() {
               )}
             </div>
           </div>
-        </section>
+          </section>
+        </ScrollReveal>
+
+        {/* ================================================================ */}
+        {/* STATE REVIEW - Hamiltonian Analysis by State */}
+        {/* ================================================================ */}
+        <ScrollReveal delay={600}>
+          <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>
+            <span style={{ color: COLORS.gold }}>STATE REVIEW</span> — Hamiltonian Analysis
+          </h2>
+          <p style={styles.sectionSubtitle}>
+            Every state evaluated through the Hamiltonian lens: What are they building? What should they build? How do they serve national capacity?
+          </p>
+          
+          <div style={styles.stateReviewSelector}>
+            <label style={styles.stateReviewLabel}>Select State:</label>
+            <select 
+              value={selectedState}
+              onChange={(e) => setSelectedState(e.target.value)}
+              style={styles.stateReviewSelect}
+            >
+              {Object.keys(stateHamiltonianAnalysis).map(state => (
+                <option key={state} value={state}>{state}</option>
+              ))}
+            </select>
+          </div>
+          
+          {(() => {
+            const analysis = stateHamiltonianAnalysis[selectedState]
+            if (!analysis) return null
+            
+            return (
+              <div style={styles.stateReviewContent}>
+                {/* State Metrics */}
+                <div style={styles.stateMetricsGrid}>
+                  <div style={styles.stateMetricCard}>
+                    <div style={styles.stateMetricLabel}>STATE GDP</div>
+                    <div style={styles.stateMetricValue}>${analysis.stateGDP}B</div>
+                  </div>
+                  <div style={styles.stateMetricCard}>
+                    <div style={styles.stateMetricLabel}>STATE DEBT</div>
+                    <div style={styles.stateMetricValue}>${analysis.stateDebt}B</div>
+                  </div>
+                  <div style={styles.stateMetricCard}>
+                    <div style={styles.stateMetricLabel}>CAPITAL INVESTMENT</div>
+                    <div style={styles.stateMetricValue}>${analysis.stateCapitalInvestment}B</div>
+                  </div>
+                  <div style={styles.stateMetricCard}>
+                    <div style={styles.stateMetricLabel}>HAMILTONIAN SHARE</div>
+                    <div style={{ ...styles.stateMetricValue, color: analysis.hamiltonianShare >= 25 ? COLORS.hamiltonian : analysis.hamiltonianShare >= 18 ? COLORS.warning : COLORS.other }}>
+                      {analysis.hamiltonianShare}%
+                    </div>
+                    <div style={styles.stateMetricTarget}>Target: 25%+</div>
+                  </div>
+                  <div style={styles.stateMetricCard}>
+                    <div style={styles.stateMetricLabel}>BUILD RATE</div>
+                    <div style={{ ...styles.stateMetricValue, color: analysis.buildRate >= 1.0 ? COLORS.hamiltonian : analysis.buildRate >= 0.6 ? COLORS.warning : COLORS.other }}>
+                      {analysis.buildRate}%
+                    </div>
+                    <div style={styles.stateMetricTarget}>Target: 1%+ of GDP</div>
+                  </div>
+                  <div style={styles.stateMetricCard}>
+                    <div style={styles.stateMetricLabel}>POLITICAL FEASIBILITY</div>
+                    <div style={{
+                      ...styles.stateMetricValue,
+                      fontSize: '1rem',
+                      color: analysis.politicalFeasibility === 'high' ? COLORS.hamiltonian :
+                        analysis.politicalFeasibility === 'medium' ? COLORS.warning : COLORS.other
+                    }}>
+                      {analysis.politicalFeasibility.toUpperCase()}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Natural Advantages */}
+                <div style={styles.stateAdvantages}>
+                  <h3 style={styles.stateSubtitle}>🎯 Natural Advantages</h3>
+                  <div style={styles.advantagesList}>
+                    {analysis.naturalAdvantages.map((adv, i) => (
+                      <span key={i} style={styles.advantageTag}>{adv}</span>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Current Projects */}
+                <div style={styles.stateProjectsSection}>
+                  <h3 style={styles.stateSubtitle}>🔨 Current Projects</h3>
+                  <div style={styles.projectsTable}>
+                    {analysis.currentProjects.map((project, i) => (
+                      <div key={i} style={styles.projectRow}>
+                        <div style={styles.projectName}>{project.name}</div>
+                        <div style={styles.projectCategory}>{project.category}</div>
+                        <div style={{
+                          ...styles.projectStatus,
+                          color: project.status === 'Building' || project.status === 'Active' ? COLORS.hamiltonian :
+                            project.status === 'Planned' ? COLORS.warning : COLORS.textMuted
+                        }}>{project.status}</div>
+                        <div style={styles.projectInvestment}>${project.investment}B</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Capacity Gaps */}
+                <div style={styles.stateGaps}>
+                  <h3 style={styles.stateSubtitle}>⚠️ Capacity Gaps</h3>
+                  <div style={styles.gapsList}>
+                    {analysis.capacityGaps.map((gap, i) => (
+                      <div key={i} style={styles.gapItem}>
+                        <span style={styles.gapCategory}>{gap.category}:</span>
+                        <span style={styles.gapNeed}>Need {gap.need}</span>
+                        <span style={styles.gapCurrent}>Now {gap.current}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* National Role & Energy Profile */}
+                <div style={styles.stateInfoGrid}>
+                  <div style={styles.stateInfoCard}>
+                    <h4 style={styles.stateInfoTitle}>🇺🇸 National Role</h4>
+                    <p style={styles.stateInfoText}>{analysis.nationalRole}</p>
+                  </div>
+                  <div style={styles.stateInfoCard}>
+                    <h4 style={styles.stateInfoTitle}>⚡ Energy Profile</h4>
+                    <p style={styles.stateInfoText}>{analysis.energyProfile}</p>
+                  </div>
+                  <div style={styles.stateInfoCard}>
+                    <h4 style={styles.stateInfoTitle}>👷 Workforce Readiness</h4>
+                    <div style={{
+                      ...styles.workforceBadge,
+                      backgroundColor: analysis.workforceReadiness === 'high' ? COLORS.hamiltonian + '33' :
+                        analysis.workforceReadiness === 'medium' ? COLORS.warning + '33' : COLORS.other + '33',
+                      color: analysis.workforceReadiness === 'high' ? COLORS.hamiltonian :
+                        analysis.workforceReadiness === 'medium' ? COLORS.warning : COLORS.other
+                    }}>
+                      {analysis.workforceReadiness.toUpperCase()}
+                    </div>
+                    <p style={styles.stateInfoText}>
+                      {analysis.workforceReadiness === 'high' ? 'Strong technical workforce, training programs in place' :
+                        analysis.workforceReadiness === 'medium' ? 'Workforce available, needs training investment' :
+                        'Workforce gaps, significant training needed'}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Hamiltonian Assessment */}
+                <div style={styles.stateAssessment}>
+                  <h3 style={styles.stateSubtitle}>📊 Hamiltonian Assessment</h3>
+                  
+                  {/* Overall Assessment Banner */}
+                  <div style={{
+                    padding: '1rem',
+                    marginBottom: '1rem',
+                    backgroundColor: analysis.trend === 'rising' ? COLORS.hamiltonian + '22' :
+                      analysis.trend === 'flat' ? COLORS.warning + '22' : COLORS.other + '22',
+                    borderRadius: '8px',
+                    border: `2px solid ${analysis.trend === 'rising' ? COLORS.hamiltonian :
+                      analysis.trend === 'flat' ? COLORS.warning : COLORS.other}`,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                      <span style={{ fontSize: '1.5rem' }}>
+                        {analysis.trend === 'rising' ? '📈' : analysis.trend === 'flat' ? '➡️' : '📉'}
+                      </span>
+                      <span style={{
+                        fontSize: '1.1rem',
+                        fontWeight: 700,
+                        color: analysis.trend === 'rising' ? COLORS.hamiltonian :
+                          analysis.trend === 'flat' ? COLORS.warning : COLORS.other,
+                        textTransform: 'uppercase',
+                      }}>
+                        {analysis.trend === 'rising' ? 'Building' : analysis.trend === 'flat' ? 'Stagnant' : 'Declining'}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.9rem', color: COLORS.text, margin: 0, lineHeight: 1.5 }}>
+                      {analysis.assessment}
+                    </p>
+                  </div>
+                  
+                  <div style={styles.assessmentContent}>
+                    <div style={styles.assessmentItem}>
+                      <span style={styles.assessmentLabel}>Trend:</span>
+                      <span style={{
+                        color: analysis.trend === 'rising' ? COLORS.hamiltonian :
+                          analysis.trend === 'flat' ? COLORS.warning : COLORS.other
+                      }}>
+                        {analysis.trend === 'rising' ? '📈 Rising' : analysis.trend === 'flat' ? '➡️ Flat' : '📉 Declining'}
+                      </span>
+                    </div>
+                    <div style={styles.assessmentItem}>
+                      <span style={styles.assessmentLabel}>Hamiltonian Share:</span>
+                      <span style={{
+                        color: analysis.hamiltonianShare >= 25 ? COLORS.hamiltonian :
+                          analysis.hamiltonianShare >= 18 ? COLORS.warning : COLORS.other
+                      }}>
+                        {analysis.hamiltonianShare >= 25 ? '✅ Strong' : analysis.hamiltonianShare >= 18 ? '⚠️ Moderate' : '❌ Weak'} ({analysis.hamiltonianShare}%)
+                      </span>
+                    </div>
+                    <div style={styles.assessmentItem}>
+                      <span style={styles.assessmentLabel}>Build Rate:</span>
+                      <span style={{
+                        color: analysis.buildRate >= 1.0 ? COLORS.hamiltonian :
+                          analysis.buildRate >= 0.6 ? COLORS.warning : COLORS.other
+                      }}>
+                        {analysis.buildRate >= 1.0 ? '✅ Above Target' : analysis.buildRate >= 0.6 ? '⚠️ Near Target' : '❌ Below Target'} ({analysis.buildRate}%)
+                      </span>
+                    </div>
+                    <div style={styles.assessmentItem}>
+                      <span style={styles.assessmentLabel}>Political Feasibility:</span>
+                      <span style={{
+                        color: analysis.politicalFeasibility === 'high' ? COLORS.hamiltonian :
+                          analysis.politicalFeasibility === 'medium' ? COLORS.warning : COLORS.other
+                      }}>
+                        {analysis.politicalFeasibility === 'high' ? '✅ Can Build Now' : 
+                          analysis.politicalFeasibility === 'medium' ? '⚠️ Possible with Effort' : '❌ Blocked'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+          </section>
+        </ScrollReveal>
 
         {/* ================================================================ */}
         {/* WHY WE BUILD - First Principles (Philosophy as conclusion) */}
         {/* ================================================================ */}
-        <section style={styles.philosophySection}>
+        <ScrollReveal delay={700}>
+          <section style={styles.philosophySection}>
           <h2 style={styles.philosophyTitle}>WHY WE BUILD</h2>
           <div style={styles.philosophyGrid}>
             <div style={styles.philosophyCard}>
@@ -1625,12 +2970,14 @@ export default function Home() {
               AI is our tool, not our replacement. We are makers, not just consumers. Built to build.</p>
             </div>
           </div>
-        </section>
+          </section>
+        </ScrollReveal>
 
         {/* ================================================================ */}
         {/* WIN CONDITION */}
         {/* ================================================================ */}
-        <section style={styles.winSection}>
+        <ScrollReveal delay={800}>
+          <section style={styles.winSection}>
           <h2 style={styles.winTitle}>THE WIN CONDITION</h2>
           <p style={styles.winSubtitle}>Self-sufficiency in critical capabilities. If trade stops tomorrow, can we survive and thrive?</p>
           
@@ -1647,7 +2994,8 @@ export default function Home() {
             "A national debt, if it is not excessive, will be to us a national blessing."
             <span style={styles.quoteAuthor}>— Alexander Hamilton, 1781</span>
           </div>
-        </section>
+          </section>
+        </ScrollReveal>
 
         {/* ================================================================ */}
         {/* FOOTER */}
@@ -2810,6 +4158,213 @@ const styles: { [key: string]: React.CSSProperties } = {
     textAlign: 'center' as const,
     paddingTop: '0.5rem',
     borderTop: `1px solid ${COLORS.border}`,
+  },
+  
+  // State Review Section
+  stateReviewSelector: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    marginBottom: '2rem',
+    padding: '1rem',
+    backgroundColor: COLORS.bgCard,
+    borderRadius: '8px',
+    border: `1px solid ${COLORS.border}`,
+  },
+  stateReviewLabel: {
+    fontSize: '0.9rem',
+    fontWeight: 600,
+    color: COLORS.text,
+  },
+  stateReviewSelect: {
+    flex: 1,
+    padding: '0.5rem',
+    backgroundColor: COLORS.bg,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '4px',
+    color: COLORS.text,
+    fontSize: '0.9rem',
+    cursor: 'pointer',
+  },
+  stateReviewContent: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '1.5rem',
+  },
+  stateMetricsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '1rem',
+  },
+  stateMetricCard: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1rem',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.5rem',
+  },
+  stateMetricLabel: {
+    fontSize: '0.65rem',
+    color: COLORS.textDim,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+  },
+  stateMetricValue: {
+    fontSize: '1.5rem',
+    fontWeight: 700,
+    color: COLORS.text,
+  },
+  stateMetricTarget: {
+    fontSize: '0.65rem',
+    color: COLORS.textMuted,
+  },
+  stateAdvantages: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1rem',
+  },
+  stateSubtitle: {
+    fontSize: '1rem',
+    fontWeight: 700,
+    color: COLORS.text,
+    marginBottom: '0.75rem',
+  },
+  advantagesList: {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    gap: '0.5rem',
+  },
+  advantageTag: {
+    fontSize: '0.75rem',
+    padding: '0.4rem 0.75rem',
+    backgroundColor: COLORS.hamiltonian + '33',
+    color: COLORS.hamiltonian,
+    borderRadius: '4px',
+    border: `1px solid ${COLORS.hamiltonian}66`,
+  },
+  stateProjectsSection: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1rem',
+  },
+  projectsTable: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.5rem',
+  },
+  projectRow: {
+    display: 'grid',
+    gridTemplateColumns: '2fr 1fr 1fr 0.8fr',
+    gap: '1rem',
+    padding: '0.75rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '4px',
+    fontSize: '0.8rem',
+    alignItems: 'center',
+  },
+  projectName: {
+    fontWeight: 600,
+    color: COLORS.text,
+  },
+  projectCategory: {
+    color: COLORS.textMuted,
+    fontSize: '0.75rem',
+  },
+  projectStatus: {
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    textTransform: 'uppercase' as const,
+  },
+  projectInvestment: {
+    fontWeight: 700,
+    color: COLORS.hamiltonian,
+    textAlign: 'right' as const,
+  },
+  stateGaps: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.warning}44`,
+    borderRadius: '8px',
+    padding: '1rem',
+  },
+  gapsList: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.75rem',
+  },
+  gapItem: {
+    display: 'flex',
+    gap: '1rem',
+    fontSize: '0.85rem',
+    padding: '0.5rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '4px',
+  },
+  gapCategory: {
+    fontWeight: 600,
+    color: COLORS.warning,
+    minWidth: '100px',
+  },
+  gapNeed: {
+    color: COLORS.text,
+    flex: 1,
+  },
+  gapCurrent: {
+    color: COLORS.textMuted,
+  },
+  stateInfoGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '1rem',
+  },
+  stateInfoCard: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1rem',
+  },
+  stateInfoTitle: {
+    fontSize: '0.9rem',
+    fontWeight: 700,
+    color: COLORS.text,
+    marginBottom: '0.5rem',
+  },
+  stateInfoText: {
+    fontSize: '0.8rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.5,
+  },
+  workforceBadge: {
+    display: 'inline-block',
+    padding: '0.25rem 0.5rem',
+    borderRadius: '4px',
+    fontSize: '0.7rem',
+    fontWeight: 600,
+    marginBottom: '0.5rem',
+  },
+  stateAssessment: {
+    backgroundColor: COLORS.bgCardAlt,
+    border: `1px solid ${COLORS.accent}44`,
+    borderRadius: '8px',
+    padding: '1rem',
+  },
+  assessmentContent: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.75rem',
+  },
+  assessmentItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '0.5rem',
+    fontSize: '0.85rem',
+  },
+  assessmentLabel: {
+    color: COLORS.textMuted,
   },
   
   // Win section
