@@ -2936,6 +2936,152 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Accountability Index - Corruption Risk */}
+                <div style={{
+                  marginTop: '1.5rem',
+                  padding: '1.25rem',
+                  backgroundColor: COLORS.bgCard,
+                  borderRadius: '12px',
+                  border: `1px solid ${COLORS.border}`,
+                }}>
+                  <h3 style={{ 
+                    ...styles.stateSubtitle, 
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    🔍 Accountability Index
+                  </h3>
+                  
+                  {/* Risk calculation based on build rate and hamiltonian share */}
+                  {(() => {
+                    const nonHamiltonian = 100 - analysis.hamiltonianShare
+                    const riskLevel = analysis.buildRate < 0.5 ? 'HIGH' : 
+                      analysis.buildRate < 0.8 ? 'ELEVATED' : 
+                      analysis.buildRate < 1.0 ? 'MODERATE' : 'LOW'
+                    const riskColor = riskLevel === 'HIGH' ? COLORS.other :
+                      riskLevel === 'ELEVATED' ? COLORS.warning :
+                      riskLevel === 'MODERATE' ? '#f0ad4e' : COLORS.hamiltonian
+                    
+                    return (
+                      <>
+                        <div style={{ 
+                          display: 'grid', 
+                          gridTemplateColumns: 'repeat(3, 1fr)', 
+                          gap: '1rem',
+                          marginBottom: '1rem'
+                        }}>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.75rem', color: COLORS.textMuted, marginBottom: '0.25rem' }}>
+                              Build Rate
+                            </div>
+                            <div style={{ 
+                              fontSize: '1.1rem', 
+                              fontWeight: 700,
+                              color: analysis.buildRate >= 1.0 ? COLORS.hamiltonian : 
+                                analysis.buildRate >= 0.6 ? COLORS.warning : COLORS.other
+                            }}>
+                              {analysis.buildRate}%
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: COLORS.textMuted }}>
+                              {analysis.buildRate >= 1.0 ? 'Sustainable' : 'Below sustainable'}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.75rem', color: COLORS.textMuted, marginBottom: '0.25rem' }}>
+                              Non-Physical Spending
+                            </div>
+                            <div style={{ 
+                              fontSize: '1.1rem', 
+                              fontWeight: 700,
+                              color: nonHamiltonian > 80 ? COLORS.other : 
+                                nonHamiltonian > 70 ? COLORS.warning : COLORS.hamiltonian
+                            }}>
+                              {nonHamiltonian}%
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: COLORS.textMuted }}>
+                              No physical output
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.75rem', color: COLORS.textMuted, marginBottom: '0.25rem' }}>
+                              Audit Visibility
+                            </div>
+                            <div style={{ 
+                              fontSize: '1.1rem', 
+                              fontWeight: 700,
+                              color: analysis.hamiltonianShare >= 25 ? COLORS.hamiltonian : 
+                                analysis.hamiltonianShare >= 18 ? COLORS.warning : COLORS.other
+                            }}>
+                              {analysis.hamiltonianShare >= 25 ? 'HIGH' : 
+                                analysis.hamiltonianShare >= 18 ? 'MEDIUM' : 'LOW'}
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: COLORS.textMuted }}>
+                              Visible projects
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Risk Level Banner */}
+                        <div style={{
+                          padding: '0.75rem 1rem',
+                          backgroundColor: riskColor + '22',
+                          borderRadius: '8px',
+                          border: `1px solid ${riskColor}`,
+                          marginBottom: '1rem',
+                        }}>
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'space-between'
+                          }}>
+                            <span style={{ fontSize: '0.85rem', color: COLORS.textMuted }}>
+                              Corruption Risk Level:
+                            </span>
+                            <span style={{ 
+                              fontSize: '1rem', 
+                              fontWeight: 700, 
+                              color: riskColor,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem'
+                            }}>
+                              {riskLevel === 'HIGH' ? '🚨' : riskLevel === 'ELEVATED' ? '⚠️' : riskLevel === 'MODERATE' ? '📊' : '✅'}
+                              {riskLevel}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* The Principle */}
+                        <div style={{
+                          padding: '1rem',
+                          backgroundColor: COLORS.bg + '88',
+                          borderRadius: '8px',
+                          borderLeft: `3px solid ${COLORS.accent}`,
+                        }}>
+                          <p style={{ 
+                            fontSize: '0.85rem', 
+                            color: COLORS.text, 
+                            margin: 0,
+                            lineHeight: 1.6,
+                            fontStyle: 'italic'
+                          }}>
+                            <strong style={{ color: COLORS.accent }}>The Productivity-Corruption Law:</strong>{' '}
+                            Productive spending is self-auditing — a bridge either exists or it doesn't. 
+                            When {nonHamiltonian}% of spending has no physical output, accountability weakens. 
+                            {analysis.buildRate < 0.8 && (
+                              <span style={{ color: COLORS.warning }}>
+                                {' '}Low build rates create opportunity for waste and fraud.
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </>
+                    )
+                  })()}
+                </div>
               </div>
             )
           })()}
