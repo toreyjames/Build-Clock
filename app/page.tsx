@@ -801,7 +801,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
       'Strategic location (baseline state for national model)'
     ],
     currentProjects: [
-      { name: 'DOE National Lab (CRAML) - Critical Resources & Advanced Manufacturing', category: 'R&D', status: 'Proposed (post-Demuth, existing facilities 2027)', investment: 2.5, note: 'Real-world engineering lab: field testing in Minnesota\'s actual climate (harsh winters, extreme cold). Company partnerships: Twin Metals/PolyMet/Cleveland-Cliffs volunteer equipment for accelerated 6-9 month validation' },
+      { name: 'DOE National Lab (CRAML) - Critical Resources & Advanced Manufacturing', category: 'R&D', status: 'Proposed (post-Demuth, existing facilities 2027)', investment: 2.5 },
       { name: 'Robotics employment hub (Twin Cities)', category: 'Manufacturing', status: 'Planned', investment: 2.5 },
       { name: 'Iron Range mining control & expansion', category: 'Mining', status: 'Blocked (needs Demuth + 6-9mo accelerated research)', investment: 0 },
       { name: 'Nuclear SMR deployment (Demuth plan)', category: 'Energy', status: 'Planned (post-Walz)', investment: 4 },
@@ -1878,75 +1878,6 @@ export default function Home() {
         </section>
 
         {/* ================================================================ */}
-        {/* THE STAKES - Why It Matters */}
-        {/* ================================================================ */}
-        <ScrollReveal delay={0}>
-          <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>
-            <span style={{ color: COLORS.warning }}>THE STAKES</span> — Why This Matters
-          </h2>
-          
-          <div style={styles.stakesGrid}>
-            <div style={styles.stakeCard}>
-              <div style={styles.stakeIcon}>🏥</div>
-              <h3>Benefits at Risk</h3>
-              <p>Social Security and Medicare depend on GDP growth. Without productive investment, we can't fund benefits — we just borrow more.</p>
-              <div style={styles.stakeEquation}>
-                No building → No growth → Benefits cut or debt spiral
-              </div>
-            </div>
-            <div style={styles.stakeCard}>
-              <div style={styles.stakeIcon}>🔗</div>
-              <h3>Supply Chain Vulnerability</h3>
-              <p>90% of advanced chips from Taiwan. 90% of rare earths from China. If trade stops, can we feed ourselves? Power ourselves? Arm ourselves?</p>
-              <div style={styles.stakeEquation}>
-                Dependency = Vulnerability
-              </div>
-            </div>
-            <div style={styles.stakeCard}>
-              <div style={styles.stakeIcon}>📉</div>
-              <h3>The Decline</h3>
-              <p>1960: 35% Hamiltonian. 2024: 18%. Debt grew 100x while building share fell. We borrowed to consume, not invest.</p>
-              <div style={styles.stakeEquation}>
-                We forgot how to build
-              </div>
-            </div>
-          </div>
-          </section>
-        </ScrollReveal>
-
-        {/* ================================================================ */}
-        {/* WHERE WE LEAD - American Advantages with REAL DATA */}
-        {/* ================================================================ */}
-        <ScrollReveal delay={100}>
-          <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>
-            <span style={{ color: COLORS.hamiltonian }}>WHERE WE LEAD</span> — American Advantages
-          </h2>
-          <p style={styles.sectionSubtitle}>
-            We lead in <em>innovation and brains</em>. We're behind in <em>production</em>. The strategy: convert innovation into capacity.
-          </p>
-          
-          <div style={styles.advantagesGrid}>
-            {americanAdvantages.map((adv, i) => (
-              <div key={i} style={styles.advantageCard}>
-                <div style={styles.advHeader}>
-                  <span style={styles.advIcon}>{adv.icon}</span>
-                  <span style={styles.advArea}>{adv.area}</span>
-                  <span style={styles.dominantBadge}>{adv.status.toUpperCase()}</span>
-                </div>
-                <div style={styles.advMetric}>
-                  <span style={styles.advMetricValue}>{adv.metric}</span>
-                  <span style={styles.advMetricLabel}>{adv.metricLabel}</span>
-                </div>
-                <p style={styles.advEvidence}>{adv.evidence}</p>
-              </div>
-            ))}
-          </div>
-          </section>
-        </ScrollReveal>
-
-        {/* ================================================================ */}
         {/* STATE REVIEW - Hamiltonian Analysis by State */}
         {/* ================================================================ */}
         <section style={styles.section}>
@@ -2435,37 +2366,6 @@ export default function Home() {
               </div>
             )
           })()}
-          </section>
-        </ScrollReveal>
-
-        {/* ================================================================ */}
-        {/* WHY WE BUILD - First Principles (Philosophy as conclusion) */}
-        {/* ================================================================ */}
-        <ScrollReveal delay={700}>
-          <section style={styles.philosophySection}>
-          <h2 style={styles.philosophyTitle}>WHY WE BUILD</h2>
-          <div style={styles.philosophyGrid}>
-            <div style={styles.philosophyCard}>
-              <div style={styles.philIcon}>🎯</div>
-              <p><strong>Create, Don't Copy</strong><br />
-              America invents. Others mass-produce. We create the next breakthrough — that's who we are.</p>
-            </div>
-            <div style={styles.philosophyCard}>
-              <div style={styles.philIcon}>🏛️</div>
-              <p><strong>First Principles</strong><br />
-              Hamilton knew: productive debt builds nations. We forgot. Time to remember.</p>
-            </div>
-            <div style={styles.philosophyCard}>
-              <div style={styles.philIcon}>🦅</div>
-              <p><strong>America First</strong><br />
-              Build for us, not against anyone. Self-sufficiency is the goal. Independence is victory.</p>
-            </div>
-            <div style={styles.philosophyCard}>
-              <div style={styles.philIcon}>⚒️</div>
-              <p><strong>Work is Dignity</strong><br />
-              AI is our tool, not our replacement. We are makers, not just consumers. Built to build.</p>
-            </div>
-          </div>
           </section>
 
         {/* ================================================================ */}
