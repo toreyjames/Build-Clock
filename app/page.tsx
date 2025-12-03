@@ -397,11 +397,11 @@ const stateData: Record<string, {
     keyProjects: ['Willow Project', 'Alaska LNG', 'Port expansion', 'Critical minerals']
   },
   'Minnesota': { 
-    projects: 2, 
-    jobsCreated: 12000, 
-    energySavings: 600, 
-    investmentComing: 5,
-    keyProjects: ['Cleveland-Cliffs rare earth', 'Wind expansion']
+    projects: 5, 
+    jobsCreated: 38000, 
+    energySavings: 1200, 
+    investmentComing: 14.5,
+    keyProjects: ['DOE National Lab (CRAML)', 'Robotics hub (Twin Cities)', 'Iron Range mining control (post-6-9mo research)', 'Nuclear SMR deployment', 'Cleveland-Cliffs rare earth expansion']
   },
   'Illinois': { 
     projects: 1, 
@@ -790,42 +790,55 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     trend: 'flat',
     naturalAdvantages: [
       'Freshwater (11,842 lakes, Mississippi headwaters)',
-      'Iron Range minerals (copper, nickel, cobalt, rare earths)',
+      'Iron Range minerals (copper, nickel, cobalt, rare earths, taconite)',
       'Top 5 agricultural state (#1 turkeys, sugar beets)',
       'Medical device powerhouse (Medtronic, Mayo Clinic)',
+      'Robotics/automation cluster (Twin Cities)',
       'Great Lakes port access (Duluth-Superior)',
       'Strong universities (U of M, Mayo)',
       'Educated workforce',
-      'Wind potential'
+      'Wind potential',
+      'Strategic location (baseline state for national model)'
     ],
     currentProjects: [
-      { name: 'Cleveland-Cliffs rare earth exploration', category: 'Mining', status: 'Exploration', investment: 0.3 },
+      { name: 'DOE National Lab (CRAML) - Critical Resources & Advanced Manufacturing', category: 'R&D', status: 'Proposed (post-Demuth, existing facilities 2027)', investment: 2.5, note: 'Real-world engineering lab: field testing in Minnesota\'s actual climate (harsh winters, extreme cold). Company partnerships: Twin Metals/PolyMet/Cleveland-Cliffs volunteer equipment for accelerated 6-9 month validation' },
+      { name: 'Robotics employment hub (Twin Cities)', category: 'Manufacturing', status: 'Planned', investment: 2.5 },
+      { name: 'Iron Range mining control & expansion', category: 'Mining', status: 'Blocked (needs Demuth + 6-9mo accelerated research)', investment: 0 },
+      { name: 'Nuclear SMR deployment (Demuth plan)', category: 'Energy', status: 'Planned (post-Walz)', investment: 4 },
+      { name: 'Cleveland-Cliffs rare earth expansion', category: 'Mining', status: 'Exploration', investment: 0.3 },
       { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 1.2 },
       { name: 'Medical device manufacturing', category: 'Manufacturing', status: 'Active', investment: 2 },
       { name: 'Ag processing (Cargill, General Mills)', category: 'Agriculture', status: 'Active', investment: 1.5 },
-      { name: 'Twin Metals copper-nickel', category: 'Mining', status: 'Blocked', investment: 0 },
-      { name: 'PolyMet/NewRange', category: 'Mining', status: 'Blocked (20+ years)', investment: 0 }
+      { name: 'Twin Metals copper-nickel', category: 'Mining', status: 'Blocked (20+ years, needs 6-9mo accelerated research validation)', investment: 0 },
+      { name: 'PolyMet/NewRange', category: 'Mining', status: 'Blocked (20+ years, needs 6-9mo accelerated research validation)', investment: 0 }
     ],
     capacityGaps: [
-      { category: 'Nuclear', need: 'SMR deployment for baseload', current: '0 GW' },
-      { category: 'Mining', need: '$10B+ copper-nickel-rare earth', current: 'Blocked by politics' },
-      { category: 'Defense minerals', need: 'Domestic rare earth supply', current: '90% from China' },
+      { category: 'National Lab', need: 'DOE real-world engineering lab: critical minerals, SMR R&D, advanced manufacturing, cold climate testing (Duluth + Twin Cities). Field testing in actual Minnesota climate. Company partnerships: Twin Metals/PolyMet/Cleveland-Cliffs volunteer equipment/machinery for accelerated 6-9 month validation', current: 'No national lab despite world-class workforce. Research needed before mining approval. Must be engineering-driven, real-world validation. Can accelerate with public-private partnerships' },
+      { category: 'Robotics/Automation', need: 'Twin Cities hub controlling Iron Range operations', current: 'Fragmented, no coordination' },
+      { category: 'Nuclear', need: 'SMR deployment for baseload (Demuth plan)', current: '0 GW, blocked by Walz' },
+      { category: 'Mining', need: '$10B+ copper-nickel-rare earth, Iron Range control (after 6-9mo accelerated research validation with company partnerships)', current: 'Blocked by Walz politics, needs science-first approach' },
+      { category: 'Defense minerals', need: 'Domestic rare earth supply from Iron Range', current: '90% from China' },
       { category: 'Water infrastructure', need: 'Leverage surplus for industry', current: 'Underutilized' }
     ],
     politicalFeasibility: 'low',
-    nationalRole: 'SHOULD BE: Critical minerals hub, ag powerhouse, medical devices, water-rich industry magnet. ACTUALLY: Blocked by state politics, fraud-ridden, declining.',
-    energyProfile: 'Wind + imports. Anti-nuclear politics. Could be energy EXPORTER with SMRs but blocks all development.',
+    nationalRole: 'BASELINE STATE FOR NATIONAL MODEL. SHOULD BE: Critical minerals hub (Iron Range), robotics/automation center (Twin Cities controlling Range), ag powerhouse, medical devices, water-rich industry magnet, nuclear energy exporter, national lab (real-world engineering, field testing in actual Minnesota climate). ACTUALLY: Blocked by Walz, fraud-ridden, declining. Demuth plan: National lab FIRST (6-9 month accelerated research + deregulation with company partnerships), then mining. Companies volunteer equipment/machinery to lab for faster validation. Real-world engineering validation in harsh winters, extreme cold - not just theoretical research. Science provides peace of mind, then we mine responsibly.',
+    energyProfile: 'Wind + imports. Anti-nuclear politics under Walz. Demuth plan: SMR deployment + Iron Range energy. Could be energy EXPORTER with nuclear but Walz blocks all development.',
     workforceReadiness: 'high',
-    assessment: 'BLOCKED + CORRUPT. $250M+ Feeding Our Families fraud (largest COVID fraud in US). $1B+ total fraud exposure. Has EVERYTHING (water, minerals, workforce, infrastructure) but politics blocks development. Walz running for 3rd term in 2026.',
-    corruptionEvidence: 'Feeding Our Families: $250M+ stolen (70+ indicted). Largest pandemic fraud case in US history. Additional COVID relief fraud under investigation. Total exposure: $1B+. AG Ellison under federal scrutiny. Low build rate (0.6%) + high non-physical spending (82%) = predictable corruption.',
+    assessment: 'BLOCKED + CORRUPT. $250M+ Feeding Our Families fraud (largest COVID fraud in US). $1B+ total fraud exposure. Has EVERYTHING (water, minerals, workforce, infrastructure) but Walz blocks development. Lisa Demuth\'s plan: National lab FIRST (using existing facilities immediately), 6-9 month accelerated real-world engineering research + science-informed deregulation, then mining approval. Company partnerships accelerate validation: Twin Metals/PolyMet/Cleveland-Cliffs volunteer equipment/machinery to lab. Real-world field testing in actual Minnesota climate (harsh winters, extreme cold) - not just theoretical research. Engineering validation provides peace of mind, then we mine responsibly. FIRST: Attack Walz on fraud, stagnation, blocking jobs. THEN: Demuth wins 2026, unlocks Minnesota as national baseline.',
+    corruptionEvidence: 'Feeding Our Families: $250M+ stolen (70+ indicted). Largest pandemic fraud case in US history. Additional COVID relief fraud under investigation. Total exposure: $1B+. AG Ellison under federal scrutiny. Low build rate (0.6%) + high non-physical spending (82%) = predictable corruption. Walz enabled this.',
     pathToVictory: [
-      '2025: Federal fraud prosecutions continue, political damage to Walz accumulates',
-      '2025-26: DOJ investigation expands, Walz 3rd term campaign under pressure',
-      '2026: GOP candidate runs on "Build Minnesota" — mining jobs, accountability, anti-fraud',
-      '2026: Walz vulnerable (fraud, VP loss, 8 years of stagnation) — 35-40% chance of defeat',
-      '2027: New governor + legislature = permitting reform, Twin Metals reinstated',
-      '2028-30: Mining development begins — 25,000+ jobs, $5B+ annual output',
-      '2035: Minnesota transformed — energy exporter, critical minerals hub, Iron Range reborn'
+      '2025: Attack Walz relentlessly — fraud ($1B+ exposure), 8 years of stagnation, blocking 25,000+ Iron Range jobs, blocking nuclear energy',
+      '2025-26: DOJ investigation expands, Walz 3rd term campaign under pressure. Demuth builds coalition: Iron Range workers + Twin Cities robotics + nuclear advocates',
+      '2026: Demuth runs on "Build Minnesota" — National lab FIRST (prove we can mine responsibly), then mining jobs. Nuclear SMR deployment, robotics hub, accountability, anti-fraud',
+      '2026: Walz vulnerable (fraud, VP loss, 8 years of stagnation, blocking jobs) — 40-45% chance of defeat with strong Demuth campaign',
+      '2027: Demuth wins + legislature = IMMEDIATE action: National lab research begins using existing facilities (U of M, NRRI Duluth). Companies volunteer equipment/machinery for lab use (Twin Metals, PolyMet, Cleveland-Cliffs). Message: "Accelerated validation with public-private partnership, then we mine responsibly"',
+      '2027-28: 6-9 MONTH ACCELERATED RESEARCH & DEREGULATION PERIOD — Real-world engineering lab operational (existing buildings + field testing + company equipment). PARALLEL work streams: (1) Water treatment validation (winter testing), (2) Environmental monitoring protocols (cold weather), (3) Sustainable extraction methods (field testing), (4) Baseline environmental studies (air, water, soil), (5) Mitigation strategies (proven in real conditions). Company partnerships accelerate: Twin Metals/PolyMet provide equipment, Cleveland-Cliffs shares expertise, lab validates in actual climate. Simultaneously: Deregulation tied to research findings — modernize permitting based on real-world validation, streamline regulations that field testing proves are unnecessary, keep protections real-world testing validates as critical',
+      '2028 (6-9 months): Research complete + deregulation complete — Real-world lab validates: water treatment methods work in Minnesota winters, environmental monitoring protocols ready for extreme cold, sustainable extraction proven safe in actual climate, baseline studies complete, mitigation strategies proven. Regulations modernized based on real-world engineering validation: streamlined permitting (2yr→6mo), science-based standards proven in field, removed outdated barriers, kept essential protections validated by actual testing. Company partnerships enabled faster validation using existing equipment/expertise',
+      '2028: Mining permits approved WITH lab oversight — Twin Metals, PolyMet reinstated. Permits move quickly (6 months vs 20 years) because research validated safety, regulations modernized based on science',
+      '2028-30: Mining development begins with active lab guidance — 25,000+ jobs, $5B+ annual output. Lab ensures best practices, environmental protection, continuous monitoring. Permanent lab facility construction begins (Duluth + Twin Cities satellite)',
+      '2029-30: Permanent lab facility operational — Full capabilities, research continues to monitor and improve operations',
+      '2030-32: Nuclear SMR construction starts (powered by lab research). Robotics hub fully operational, controlling Iron Range operations remotely',
+      '2035: Minnesota transformed — energy exporter (nuclear), critical minerals hub (Iron Range), robotics center (Twin Cities), national lab (research leader), national baseline model for other states'
     ]
   },
   
@@ -1857,77 +1870,10 @@ export default function Home() {
             </div>
           </div>
           
-          <div style={styles.historySection}>
-            <div style={styles.historyTitle}>The Decline: 1960 → Today</div>
-            <div style={styles.historyTimeline}>
-              {HAMILTONIAN_HISTORY.map((point, i) => (
-                <div key={point.year} style={styles.historyPoint}>
-                  <div style={styles.historyYear}>{point.year}</div>
-                  <div style={{ 
-                    ...styles.historyBar,
-                    height: `${point.share * 2}px`,
-                    backgroundColor: point.year === 2024 ? COLORS.hamiltonian : 
-                      point.share >= 30 ? COLORS.hamiltonian + '88' : 
-                      point.share >= 20 ? COLORS.warning + '88' : COLORS.other + '88'
-                  }} />
-                  <div style={styles.historyShare}>{point.share}%</div>
-                  <div style={styles.historyEvent}>{point.event}</div>
-                </div>
-              ))}
-            </div>
-            <div style={styles.historyNote}>
-              In 1960, 35% of federal borrowing built highways, power plants, and Apollo. Today it's 18%.
-              <br />We borrowed 100x more but built proportionally less.
-            </div>
-          </div>
-          
-          {/* Monthly Progress Tracker */}
-          <div style={styles.trendSection}>
-            <div style={styles.trendTitle}>PROGRESS TRACKER — Path to 30%</div>
-            <div style={styles.trendChart}>
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={MONTHLY_TREND} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={COLORS.hamiltonian} stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor={COLORS.hamiltonian} stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorProjected" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={COLORS.accent} stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor={COLORS.accent} stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.border} />
-                  <XAxis dataKey="month" tick={{ fill: COLORS.textDim, fontSize: 10 }} axisLine={{ stroke: COLORS.border }} />
-                  <YAxis domain={[0, 35]} tick={{ fill: COLORS.textDim, fontSize: 10 }} axisLine={{ stroke: COLORS.border }} tickFormatter={(v) => `${v}%`} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 8 }}
-                    labelStyle={{ color: COLORS.text }}
-                  />
-                  {/* Target line at 30% */}
-                  <Area type="monotone" dataKey="target" stroke={COLORS.gold} strokeWidth={2} strokeDasharray="5 5" fill="none" name="Target" />
-                  {/* Actual data */}
-                  <Area type="monotone" dataKey="actual" stroke={COLORS.hamiltonian} strokeWidth={2} fill="url(#colorActual)" name="Actual" />
-                  {/* Projected data (dashed) */}
-                  <Area type="monotone" dataKey="projected" stroke={COLORS.accent} strokeWidth={2} strokeDasharray="5 5" fill="url(#colorProjected)" name="Projected" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={styles.trendLegend}>
-              <span style={styles.legendItem}><span style={{ ...styles.legendDot, backgroundColor: COLORS.hamiltonian }} /> Actual</span>
-              <span style={styles.legendItem}><span style={{ ...styles.legendDot, backgroundColor: COLORS.accent, border: '1px dashed' }} /> Projected</span>
-              <span style={styles.legendItem}><span style={{ ...styles.legendDot, backgroundColor: COLORS.gold }} /> Target (30%)</span>
-            </div>
-            <div style={styles.trendNote}>
-              At current pace: <strong style={{ color: COLORS.hamiltonian }}>+0.8%/year</strong> → Target reached by <strong>2032</strong><br />
-              With Genesis + CHIPS momentum: <strong style={{ color: COLORS.accent }}>+3%/year</strong> → Target reached by <strong>2028</strong>
-            </div>
-          </div>
-          
           <div style={styles.methodologyNote}>
             <strong>Methodology:</strong> Hamiltonian Share = Federal spending on capital assets (infrastructure, energy, manufacturing, R&D, defense capital) 
             as a percentage of total federal outlays. Based on OMB Budget Object Class data and BEA fixed investment series.
-            <br /><em>A "national debt, if not excessive, will be to us a national blessing" — Hamilton, 1781</em>
+            <br /><em>1960: 35% → 2024: 18%. Target: 30%+</em>
           </div>
         </section>
 
@@ -2001,755 +1947,9 @@ export default function Home() {
         </ScrollReveal>
 
         {/* ================================================================ */}
-        {/* THE STRATEGY - Policy Sequence */}
-        {/* ================================================================ */}
-        <ScrollReveal delay={200}>
-          <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>
-            <span style={{ color: COLORS.accent }}>THE STRATEGY</span> — How We Win
-          </h2>
-          <p style={styles.sectionSubtitle}>
-            A clear policy sequence: each step enables the next
-          </p>
-          
-          <div style={styles.strategyFlow}>
-            {policySequence.map((step, i) => (
-              <div key={i} style={styles.strategyStep}>
-                <div style={styles.stepNumber}>{step.step}</div>
-                <div style={styles.stepContent}>
-                  <div style={styles.stepHeader}>
-                    <span style={styles.stepIcon}>{step.icon}</span>
-                    <span style={styles.stepName}>{step.name}</span>
-                    <span style={{
-                      ...styles.stepStatus,
-                      backgroundColor: step.status === 'active' ? '#00ff8822' : step.status === 'building' ? '#00aaff22' : '#ffaa0022',
-                      color: step.status === 'active' ? COLORS.hamiltonian : step.status === 'building' ? COLORS.accent : COLORS.warning,
-                    }}>{step.status}</span>
-                  </div>
-                  <div style={styles.stepAction}>{step.action}</div>
-                  <p style={styles.stepDesc}>{step.description}</p>
-                  <div style={styles.stepExamples}>
-                    {step.examples.map((ex, j) => (
-                      <span key={j} style={styles.exampleTag}>{ex}</span>
-                    ))}
-                  </div>
-                  <div style={styles.stepRevenue}>{step.revenue}</div>
-                </div>
-                {i < policySequence.length - 1 && <div style={styles.stepArrow}>→</div>}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ================================================================ */}
-        {/* THE WORKFORCE - Build With Americans */}
-        {/* ================================================================ */}
-        <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>
-            <span style={{ color: COLORS.warning }}>THE WORKFORCE</span> — Build With Americans
-          </h2>
-          <p style={styles.sectionSubtitle}>
-            You can't build America without American workers. A tight labor market means rising wages and investment in training.
-          </p>
-          
-          <div style={styles.workforceGrid}>
-            <div style={styles.workforceCard}>
-              <div style={styles.wfHeader}>
-                <span style={styles.wfIcon}>📊</span>
-                <span style={styles.wfLabel}>LABOR FORCE PARTICIPATION</span>
-              </div>
-              <div style={styles.wfMetric}>
-                <span style={styles.wfValue}>62.5%</span>
-                <span style={styles.wfTarget}>Target: 67%+</span>
-              </div>
-              <div style={styles.wfNote}>Millions of Americans sidelined from workforce</div>
-            </div>
-            
-            <div style={{ ...styles.workforceCard, borderColor: COLORS.other }}>
-              <div style={styles.wfHeader}>
-                <span style={styles.wfIcon}>🚨</span>
-                <span style={styles.wfLabel}>RECENT ILLEGAL ARRIVALS</span>
-              </div>
-              <div style={styles.wfMetric}>
-                <span style={{ ...styles.wfValue, color: COLORS.other }}>6-8M</span>
-                <span style={styles.wfTarget}>2021-2024</span>
-              </div>
-              <div style={styles.wfNote}>≈ 2 Chicagos of labor supply added</div>
-            </div>
-            
-            <div style={styles.workforceCard}>
-              <div style={styles.wfHeader}>
-                <span style={styles.wfIcon}>🔨</span>
-                <span style={styles.wfLabel}>CONSTRUCTION WAGES</span>
-              </div>
-              <div style={styles.wfMetric}>
-                <span style={{ ...styles.wfValue, color: COLORS.warning }}>+2.1%/yr</span>
-                <span style={styles.wfTarget}>Target: 4%+/yr</span>
-              </div>
-              <div style={styles.wfNote}>Wage growth stagnant due to labor surplus</div>
-            </div>
-            
-            <div style={styles.workforceCard}>
-              <div style={styles.wfHeader}>
-                <span style={styles.wfIcon}>🎓</span>
-                <span style={styles.wfLabel}>APPRENTICESHIPS/YEAR</span>
-              </div>
-              <div style={styles.wfMetric}>
-                <span style={{ ...styles.wfValue, color: COLORS.warning }}>~500K</span>
-                <span style={styles.wfTarget}>Target: 1M+</span>
-              </div>
-              <div style={styles.wfNote}>Need to double training investment</div>
-            </div>
-          </div>
-          
-          <div style={styles.workforcePolicy}>
-            <div style={styles.wfPolicyTitle}>American System Workforce Policy</div>
-            <div style={styles.wfPolicyGrid}>
-              <div style={styles.wfPolicyItem}>
-                <span style={styles.wfPolicyIcon}>🛡️</span>
-                <div>
-                  <strong>Secure Border</strong>
-                  <p>Control inflows → tight labor market → rising wages</p>
-                </div>
-              </div>
-              <div style={styles.wfPolicyItem}>
-                <span style={styles.wfPolicyIcon}>⚖️</span>
-                <div>
-                  <strong>Enforce Laws</strong>
-                  <p>E-Verify mandatory, employer penalties, deportations</p>
-                </div>
-              </div>
-              <div style={styles.wfPolicyItem}>
-                <span style={styles.wfPolicyIcon}>📚</span>
-                <div>
-                  <strong>Train Americans</strong>
-                  <p>Apprenticeships, trade schools, veteran programs</p>
-                </div>
-              </div>
-              <div style={styles.wfPolicyItem}>
-                <span style={styles.wfPolicyIcon}>💪</span>
-                <div>
-                  <strong>Raise Wages</strong>
-                  <p>Tight labor + training = American workers win</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div style={styles.workforceQuote}>
-            "Build with American hands, trained in American schools, paid American wages."
-          </div>
-          </section>
-        </ScrollReveal>
-
-        {/* ================================================================ */}
-        {/* NATIONAL CAPACITY - Hamiltonian System View */}
-        {/* ================================================================ */}
-        <ScrollReveal delay={300}>
-          <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>
-            <span style={{ color: COLORS.accent }}>NATIONAL CAPACITY</span> — Build Where It's Best
-          </h2>
-          <p style={styles.sectionSubtitle}>
-            Hamilton's approach: Build where natural advantages exist and politics allow. Route around obstacles. Serve national aims.
-          </p>
-          
-          <div style={styles.nationalCapacityGrid}>
-            {[
-              {
-                category: '⚛️ Nuclear',
-                need: '300 GW',
-                current: '95 GW',
-                bestFit: 'TX, TN, WY, OH, PA',
-                whyThere: 'Water, land, friendly politics, grid access',
-                building: 'Vogtle (GA), SMRs (TN, WY)',
-                blocked: 'CA, NY (political)',
-                status: 'building'
-              },
-              {
-                category: '🔲 Chip Fabs',
-                need: '35% global',
-                current: '12%',
-                bestFit: 'AZ, OH, TX, NY',
-                whyThere: 'Water, power, talent pipelines, incentives',
-                building: 'TSMC (AZ), Intel (OH), Samsung (TX)',
-                blocked: 'Permitting delays',
-                status: 'building'
-              },
-              {
-                category: '⚡ Grid/HVDC',
-                need: '150 GW',
-                current: '25 GW',
-                bestFit: 'Plains corridor, Southeast',
-                whyThere: 'Connect wind/solar to demand centers',
-                building: 'SunZia (NM-AZ), Grain Belt (KS-IN)',
-                blocked: 'State permitting, NIMBYism',
-                status: 'planned'
-              },
-              {
-                category: '🛢️ Oil & Gas',
-                need: 'Energy dominance',
-                current: '#1 producer',
-                bestFit: 'TX, AK, NM, ND, PA',
-                whyThere: 'Reserves, infrastructure, friendly politics',
-                building: 'Willow (AK), Permian expansion',
-                blocked: 'Federal lands (some), pipelines',
-                status: 'active'
-              },
-              {
-                category: '🚢 Shipbuilding',
-                need: '100 ships/yr',
-                current: '5 ships/yr',
-                bestFit: 'VA, MS, ME, WI',
-                whyThere: 'Existing yards, workforce, Navy contracts',
-                building: 'Submarine expansion (CT, VA)',
-                blocked: 'Workforce, funding',
-                status: 'critical'
-              },
-              {
-                category: '⛏️ Critical Minerals',
-                need: '30% domestic',
-                current: '< 5%',
-                bestFit: 'NV, AZ, WY, MN, AK',
-                whyThere: 'Known deposits (lithium, copper, rare earths)',
-                building: 'Thacker Pass (NV), Resolution (AZ)',
-                blocked: 'Permitting (10+ years avg)',
-                status: 'blocked'
-              },
-            ].map((item, i) => (
-              <div key={i} style={{
-                ...styles.capacityCard,
-                borderColor: item.status === 'active' ? COLORS.hamiltonian :
-                  item.status === 'building' ? COLORS.accent :
-                  item.status === 'planned' ? COLORS.warning :
-                  item.status === 'critical' ? COLORS.other :
-                  COLORS.other
-              }}>
-                <div style={styles.capHeader}>
-                  <span style={styles.capCategory}>{item.category}</span>
-                  <span style={{
-                    ...styles.capStatus,
-                    backgroundColor: item.status === 'active' ? COLORS.hamiltonian + '33' :
-                      item.status === 'building' ? COLORS.accent + '33' :
-                      item.status === 'planned' ? COLORS.warning + '33' :
-                      COLORS.other + '33',
-                    color: item.status === 'active' ? COLORS.hamiltonian :
-                      item.status === 'building' ? COLORS.accent :
-                      item.status === 'planned' ? COLORS.warning :
-                      COLORS.other
-                  }}>{item.status}</span>
-                </div>
-                <div style={styles.capMetrics}>
-                  <div style={styles.capMetric}>
-                    <span style={styles.capLabel}>Need</span>
-                    <span style={styles.capValue}>{item.need}</span>
-                  </div>
-                  <div style={styles.capMetric}>
-                    <span style={styles.capLabel}>Now</span>
-                    <span style={styles.capValue}>{item.current}</span>
-                  </div>
-                </div>
-                <div style={styles.capDetail}>
-                  <div style={styles.capRow}>
-                    <span style={styles.capRowLabel}>🎯 Best fit:</span>
-                    <span>{item.bestFit}</span>
-                  </div>
-                  <div style={styles.capRow}>
-                    <span style={styles.capRowLabel}>💡 Why:</span>
-                    <span>{item.whyThere}</span>
-                  </div>
-                  <div style={styles.capRow}>
-                    <span style={styles.capRowLabel}>🔨 Building:</span>
-                    <span style={{ color: COLORS.hamiltonian }}>{item.building}</span>
-                  </div>
-                  <div style={styles.capRow}>
-                    <span style={styles.capRowLabel}>🚫 Blocked:</span>
-                    <span style={{ color: COLORS.other }}>{item.blocked}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <div style={styles.hamiltonianPrinciple}>
-            <div style={styles.hpTitle}>THE HAMILTONIAN PRINCIPLE</div>
-            <div style={styles.hpContent}>
-              <div style={styles.hpItem}>
-                <span style={styles.hpIcon}>✅</span>
-                <span><strong>Build where you can.</strong> Don't wait for every state to agree.</span>
-              </div>
-              <div style={styles.hpItem}>
-                <span style={styles.hpIcon}>🔄</span>
-                <span><strong>Route around obstacles.</strong> CA won't build nuclear? TX will. Build HVDC to export.</span>
-              </div>
-              <div style={styles.hpItem}>
-                <span style={styles.hpIcon}>🎯</span>
-                <span><strong>Optimize for the nation.</strong> States serve the system, not the reverse.</span>
-              </div>
-              <div style={styles.hpItem}>
-                <span style={styles.hpIcon}>⏳</span>
-                <span><strong>Political change follows success.</strong> When TX thrives on nuclear, others will follow.</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ================================================================ */}
-        {/* CAPACITY GAPS - Detailed Targets */}
-        {/* ================================================================ */}
-        <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>
-            <span style={{ color: COLORS.warning }}>CAPACITY TARGETS</span> — The Numbers
-          </h2>
-          <p style={styles.sectionSubtitle}>
-            Current capacity vs target. Investment needed. Jobs created.
-          </p>
-          
-          <div style={styles.gapsGrid}>
-            {capacityGaps.map((gap, i) => {
-              const pct = (gap.current / gap.target) * 100
-              return (
-                <div key={i} style={styles.gapCard}>
-                  <div style={styles.gapHeader}>
-                    <span style={styles.gapArea}>{gap.area}</span>
-                    <span style={styles.gapTimeline}>by {gap.timeline}</span>
-                  </div>
-                  <div style={styles.gapBar}>
-                    <div style={{ ...styles.gapFill, width: `${Math.min(100, pct)}%` }} />
-                  </div>
-                  <div style={styles.gapNumbers}>
-                    <span>{gap.current} {gap.unit}</span>
-                    <span style={{ color: COLORS.hamiltonian }}>{gap.target} {gap.unit}</span>
-                  </div>
-                  <div style={styles.gapFooter}>
-                    <span style={styles.gapInvestment}>${gap.investment}B needed</span>
-                    <span style={styles.gapJobs}>{gap.jobs}K jobs</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-
-        {/* ================================================================ */}
-        {/* LEAPFROG - Skip to Next-Gen */}
-        {/* ================================================================ */}
-        <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>
-            <span style={{ color: COLORS.accent }}>LEAPFROG</span> — Don't Catch Up, Skip Ahead
-          </h2>
-          
-          <div style={styles.leapfrogGrid}>
-            {leapfrogData.map((item, i) => (
-              <div key={i} style={styles.leapfrogCard}>
-                <div style={styles.leapfrogIcon}>{item.icon}</div>
-                <div style={styles.leapfrogArea}>{item.area}</div>
-                <div style={styles.leapfrogRow}>
-                  <span style={{ color: COLORS.textMuted }}>🇨🇳 {item.chinaHas}</span>
-                </div>
-                <div style={styles.leapfrogArrow}>↓</div>
-                <div style={styles.leapfrogRow}>
-                  <span style={{ color: COLORS.hamiltonian }}>🇺🇸 {item.weSkipTo}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          </section>
-        </ScrollReveal>
-
-        {/* ================================================================ */}
-        {/* GROWTH INITIATIVES - Moon, Defense, AI, Energy */}
-        {/* ================================================================ */}
-        <ScrollReveal delay={400}>
-          <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>
-            <span style={{ color: COLORS.gold }}>GROWTH INITIATIVES</span> — The Next Frontiers
-          </h2>
-          <p style={styles.sectionSubtitle}>
-            Major programs that will define American capacity for the next decade. Short-term wins and long-term moonshots.
-          </p>
-          
-          <div style={styles.initiativesGrid}>
-            {/* Short-Term (2025-2028) */}
-            <div style={styles.initiativeColumn}>
-              <div style={styles.initiativeHeader}>
-                <span style={styles.initiativeTimeframe}>⚡ SHORT-TERM</span>
-                <span style={styles.initiativeYears}>2025-2028</span>
-              </div>
-              
-              <div style={styles.initiativeCard}>
-                <div style={styles.initIcon}>🛢️</div>
-                <div style={styles.initContent}>
-                  <div style={styles.initTitle}>Willow Project (Alaska)</div>
-                  <div style={styles.initStats}>
-                    <span>$8B investment</span>
-                    <span>180K bbl/day</span>
-                    <span>2,500+ jobs</span>
-                  </div>
-                  <div style={styles.initDesc}>ConocoPhillips. First oil ~2029. Energy dominance.</div>
-                </div>
-              </div>
-              
-              <div style={styles.initiativeCard}>
-                <div style={styles.initIcon}>⛽</div>
-                <div style={styles.initContent}>
-                  <div style={styles.initTitle}>LNG Export Expansion</div>
-                  <div style={styles.initStats}>
-                    <span>$40B+ investment</span>
-                    <span>TX, LA</span>
-                    <span>10K+ jobs</span>
-                  </div>
-                  <div style={styles.initDesc}>Golden Pass, Plaquemines. Europe/Asia demand.</div>
-                </div>
-              </div>
-              
-              <div style={styles.initiativeCard}>
-                <div style={styles.initIcon}>🔋</div>
-                <div style={styles.initContent}>
-                  <div style={styles.initTitle}>Battery Plants</div>
-                  <div style={styles.initStats}>
-                    <span>$20B+ investment</span>
-                    <span>MI, TN, GA</span>
-                    <span>15K+ jobs</span>
-                  </div>
-                  <div style={styles.initDesc}>Ford, GM, SK, LG. EV supply chain reshoring.</div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Medium-Term (2028-2035) */}
-            <div style={styles.initiativeColumn}>
-              <div style={styles.initiativeHeader}>
-                <span style={styles.initiativeTimeframe}>🎯 MEDIUM-TERM</span>
-                <span style={styles.initiativeYears}>2028-2035</span>
-              </div>
-              
-              <div style={styles.initiativeCard}>
-                <div style={styles.initIcon}>🚀</div>
-                <div style={styles.initContent}>
-                  <div style={styles.initTitle}>Artemis / Moon Base</div>
-                  <div style={styles.initStats}>
-                    <span>$25B+/year</span>
-                    <span>Isaacman/NASA</span>
-                    <span>50K+ jobs</span>
-                  </div>
-                  <div style={styles.initDesc}>Moon landing 2026-27. Permanent base by 2030s. Mars prep.</div>
-                </div>
-              </div>
-              
-              <div style={styles.initiativeCard}>
-                <div style={styles.initIcon}>🛡️</div>
-                <div style={styles.initContent}>
-                  <div style={styles.initTitle}>Iron Dome for America</div>
-                  <div style={styles.initStats}>
-                    <span>$50-100B</span>
-                    <span>Nationwide</span>
-                    <span>100K+ jobs</span>
-                  </div>
-                  <div style={styles.initDesc}>Comprehensive missile defense. Interceptors, radar, C2. Domestic manufacturing.</div>
-                </div>
-              </div>
-              
-              <div style={styles.initiativeCard}>
-                <div style={styles.initIcon}>⚛️</div>
-                <div style={styles.initContent}>
-                  <div style={styles.initTitle}>SMR Nuclear Fleet</div>
-                  <div style={styles.initStats}>
-                    <span>$60B+</span>
-                    <span>20 reactors</span>
-                    <span>30K+ jobs</span>
-                  </div>
-                  <div style={styles.initDesc}>NuScale, TerraPower, X-energy. Factory-built, fast deploy.</div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Long-Term (2030s+) */}
-            <div style={styles.initiativeColumn}>
-              <div style={styles.initiativeHeader}>
-                <span style={styles.initiativeTimeframe}>🌟 LONG-TERM</span>
-                <span style={styles.initiativeYears}>2030s+</span>
-              </div>
-              
-              <div style={styles.initiativeCard}>
-                <div style={styles.initIcon}>🤖</div>
-                <div style={styles.initContent}>
-                  <div style={styles.initTitle}>AI Manhattan Project</div>
-                  <div style={styles.initStats}>
-                    <span>$50-100B</span>
-                    <span>Defense + Industrial</span>
-                    <span>Tech leadership</span>
-                  </div>
-                  <div style={styles.initDesc}>Israel-style AI integration. Autonomous defense, industrial AI, cyber.</div>
-                </div>
-              </div>
-              
-              <div style={styles.initiativeCard}>
-                <div style={styles.initIcon}>🔴</div>
-                <div style={styles.initContent}>
-                  <div style={styles.initTitle}>Mars Colony Prep</div>
-                  <div style={styles.initStats}>
-                    <span>$100B+</span>
-                    <span>SpaceX + NASA</span>
-                    <span>2030s crewed</span>
-                  </div>
-                  <div style={styles.initDesc}>Starship development. Propellant depots. Life support R&D.</div>
-                </div>
-              </div>
-              
-              <div style={styles.initiativeCard}>
-                <div style={styles.initIcon}>⚡</div>
-                <div style={styles.initContent}>
-                  <div style={styles.initTitle}>Fusion Power</div>
-                  <div style={styles.initStats}>
-                    <span>$20B+ R&D</span>
-                    <span>Commonwealth, TAE</span>
-                    <span>2030s grid?</span>
-                  </div>
-                  <div style={styles.initDesc}>Private fusion race. Could be grid-ready by late 2030s.</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div style={styles.initiativeSummary}>
-            <div style={styles.summaryItem}>
-              <span style={styles.summaryLabel}>Total Investment Pipeline</span>
-              <span style={styles.summaryValue}>$500B+</span>
-            </div>
-            <div style={styles.summaryItem}>
-              <span style={styles.summaryLabel}>Jobs Created</span>
-              <span style={styles.summaryValue}>500K+</span>
-            </div>
-            <div style={styles.summaryItem}>
-              <span style={styles.summaryLabel}>Impact States</span>
-              <span style={styles.summaryValue}>All 50</span>
-            </div>
-          </div>
-          </section>
-        </ScrollReveal>
-
-        {/* ================================================================ */}
-        {/* YOUR STAKE - Clear Personal Impact */}
-        {/* ================================================================ */}
-        <ScrollReveal delay={500}>
-          <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>
-            <span style={{ color: COLORS.gold }}>YOUR STAKE</span> — What This Means for You
-          </h2>
-          
-          <div style={styles.stakeCalculator}>
-            <div style={styles.stakeInputs}>
-              <div style={styles.inputGroup}>
-                <label>Your State</label>
-                <select 
-                  value={selectedState}
-                  onChange={(e) => setSelectedState(e.target.value)}
-                  style={styles.select}
-                >
-                  {Object.keys(stateData).map(state => (
-                    <option key={state} value={state}>{state}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div style={styles.inputGroup}>
-                <label>Household Size</label>
-                <select 
-                  value={householdSize}
-                  onChange={(e) => setHouseholdSize(parseInt(e.target.value))}
-                  style={styles.select}
-                >
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <option key={n} value={n}>{n} {n === 1 ? 'person' : 'people'}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={styles.inputGroup}>
-                <label>Build Rate Scenario</label>
-                <div style={styles.scenarioButtons}>
-                  {[
-                    { rate: 2, label: '2%', sublabel: 'Now' },
-                    { rate: 3, label: '3%', sublabel: 'Genesis' },
-                    { rate: 4, label: '4%', sublabel: 'Ambitious' },
-                    { rate: 5, label: '5%', sublabel: 'Full System' },
-                  ].map(({ rate, label, sublabel }) => (
-                    <button
-                      key={rate}
-                      onClick={() => setBuildScenario(rate)}
-                      style={{
-                        ...styles.scenarioBtn,
-                        backgroundColor: buildScenario === rate 
-                          ? (rate === 2 ? COLORS.other : COLORS.hamiltonian) 
-                          : 'transparent',
-                        color: buildScenario === rate ? COLORS.bg : COLORS.text,
-                        borderColor: rate === 2 ? COLORS.other : COLORS.border,
-                      }}
-                    >
-                      <span style={{ fontWeight: 700, fontSize: '1rem' }}>{label}</span>
-                      <span style={{ fontSize: '0.55rem', opacity: 0.85, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{sublabel}</span>
-                    </button>
-                  ))}
-                </div>
-                <div style={styles.scenarioExplainer}>
-                  {buildScenario === 2 && <span style={{ color: COLORS.other }}>Status quo — decline continues</span>}
-                  {buildScenario === 3 && <span style={{ color: COLORS.warning }}>Genesis Direction — <strong>sustainable</strong>, stops the bleeding</span>}
-                  {buildScenario === 4 && <span style={{ color: COLORS.accent }}>Beyond Genesis — Infrastructure Bank + Permitting Reform</span>}
-                  {buildScenario === 5 && <span style={{ color: COLORS.hamiltonian }}>Full American System — <strong>winning</strong>, competitive with China</span>}
-                </div>
-              </div>
-            </div>
-            
-            <div style={styles.stakeResults}>
-              <h3 style={{ 
-                ...styles.stakeResultsTitle, 
-                color: buildScenario === 2 ? COLORS.other : COLORS.hamiltonian 
-              }}>
-                {buildScenario === 2 
-                  ? "Status Quo (2%) — What You're Missing:" 
-                  : `If We Build at ${buildScenario}% of GDP:`}
-              </h3>
-              
-              <div style={styles.benefitsGrid}>
-                <div style={styles.benefitCard}>
-                  <div style={styles.benefitIcon}>{buildScenario === 2 ? '📉' : '💵'}</div>
-                  <div style={styles.benefitLabel}>{buildScenario === 2 ? 'Potential Savings Lost' : 'Your Energy Savings'}</div>
-                  <div style={{ 
-                    ...styles.benefitValue, 
-                    color: buildScenario === 2 ? COLORS.other : COLORS.hamiltonian 
-                  }}>
-                    {buildScenario === 2 
-                      ? `−$${Math.round(stateInfo.energySavings * householdSize / 2).toLocaleString()}/yr`
-                      : `$${Math.round(stateInfo.energySavings * (buildScenario - 2) / 3 * householdSize / 2).toLocaleString()}/year`}
-                  </div>
-                  <div style={styles.benefitNote}>{buildScenario === 2 ? 'vs 5% build rate' : 'Cheaper electricity from new capacity'}</div>
-                </div>
-                
-                <div style={styles.benefitCard}>
-                  <div style={styles.benefitIcon}>{buildScenario === 2 ? '🚫' : '👷'}</div>
-                  <div style={styles.benefitLabel}>{buildScenario === 2 ? 'Jobs Not Created' : `Jobs Coming to ${selectedState}`}</div>
-                  <div style={{ 
-                    ...styles.benefitValue, 
-                    color: buildScenario === 2 ? COLORS.other : COLORS.hamiltonian 
-                  }}>
-                    {buildScenario === 2 
-                      ? `−${Math.round(stateInfo.jobsCreated / 1000).toLocaleString()}K`
-                      : `+${Math.round(stateInfo.jobsCreated * (buildScenario - 2) / 3 / 1000).toLocaleString()}K`}
-                  </div>
-                  <div style={styles.benefitNote}>{buildScenario === 2 ? 'That could exist' : 'Technical, union-scale positions'}</div>
-                </div>
-                
-                <div style={styles.benefitCard}>
-                  <div style={styles.benefitIcon}>{buildScenario === 2 ? '💸' : '💰'}</div>
-                  <div style={styles.benefitLabel}>{buildScenario === 2 ? 'Investment Going Elsewhere' : 'Investment Coming'}</div>
-                  <div style={{ 
-                    ...styles.benefitValue, 
-                    color: buildScenario === 2 ? COLORS.other : COLORS.hamiltonian 
-                  }}>
-                    {buildScenario === 2 
-                      ? `−$${Math.round(stateInfo.investmentComing * 0.75).toLocaleString()}B`
-                      : `$${Math.round(stateInfo.investmentComing * ((buildScenario - 2) / 3 + 0.25)).toLocaleString()}B`}
-                  </div>
-                  <div style={styles.benefitNote}>{buildScenario === 2 ? 'To other countries' : 'Federal + private capital'}</div>
-                </div>
-                
-                <div style={styles.benefitCard}>
-                  <div style={styles.benefitIcon}>{buildScenario === 2 ? '⚠️' : '📈'}</div>
-                  <div style={styles.benefitLabel}>{buildScenario === 2 ? 'Growth Foregone' : 'GDP Multiplier'}</div>
-                  <div style={{ 
-                    ...styles.benefitValue, 
-                    color: buildScenario === 2 ? COLORS.other : COLORS.hamiltonian 
-                  }}>
-                    {buildScenario === 2 ? '1.0x' : `${multiplier}x`}
-                  </div>
-                  <div style={styles.benefitNote}>{buildScenario === 2 ? 'Treading water' : `Every $1 invested → $${multiplier} GDP`}</div>
-                </div>
-              </div>
-              
-              <div style={styles.stateProjects}>
-                <h4>Key Projects in {selectedState}:</h4>
-                <div style={styles.projectsList}>
-                  {stateInfo.keyProjects.map((project, i) => (
-                    <span key={i} style={styles.projectTag}>{project}</span>
-                  ))}
-                </div>
-              </div>
-              
-              <div style={{ 
-                ...styles.bottomLine, 
-                borderColor: buildScenario === 2 ? COLORS.other : COLORS.hamiltonian 
-              }}>
-                {buildScenario === 2 ? (
-                  <>
-                    <strong>The Cost of Inaction:</strong> Every year at 2%, your household forgoes approximately{' '}
-                    <span style={{ color: COLORS.other }}>
-                      ${Math.round(stateInfo.energySavings * householdSize / 2 + 3 * 2000 * householdSize).toLocaleString()}/year
-                    </span>{' '}
-                    in potential savings and economic opportunity that a 5% build rate would create.
-                  </>
-                ) : (
-                  <>
-                    <strong>The Bottom Line:</strong> At {buildScenario}% build rate, your household gains approximately{' '}
-                    <span style={{ color: COLORS.hamiltonian }}>
-                      ${Math.round((stateInfo.energySavings * (buildScenario - 2) / 3 * householdSize / 2) + 
-                        ((buildScenario - 2) * 2000 * householdSize)).toLocaleString()}/year
-                    </span>{' '}
-                    in savings and economic opportunity. Plus: job security, stable grid, funded benefits.
-                  </>
-                )}
-              </div>
-              
-              {/* Calculation Breakdown */}
-              {buildScenario > 2 && (
-                <div style={styles.calculationBreakdown}>
-                  <div style={styles.calcTitle}>📊 How This Is Calculated</div>
-                  <div style={styles.calcGrid}>
-                    <div style={styles.calcItem}>
-                      <span style={styles.calcLabel}>📉 Energy Savings</span>
-                      <span style={styles.calcValue}>
-                        ${Math.round(stateInfo.energySavings * (buildScenario - 2) / 3 * householdSize / 2).toLocaleString()}/yr
-                      </span>
-                      <span style={styles.calcExplain}>Lower utility bills from cheaper, abundant power</span>
-                    </div>
-                    <div style={styles.calcItem}>
-                      <span style={styles.calcLabel}>💼 Wage/Opportunity Premium</span>
-                      <span style={styles.calcValue}>
-                        ${Math.round((buildScenario - 2) * 1200 * householdSize).toLocaleString()}/yr
-                      </span>
-                      <span style={styles.calcExplain}>Tighter labor market = higher wages, more job options</span>
-                    </div>
-                    <div style={styles.calcItem}>
-                      <span style={styles.calcLabel}>🏠 Wealth Effect</span>
-                      <span style={styles.calcValue}>
-                        ${Math.round((buildScenario - 2) * 500 * householdSize).toLocaleString()}/yr
-                      </span>
-                      <span style={styles.calcExplain}>Property values, local economy growth, 401k gains</span>
-                    </div>
-                    <div style={styles.calcItem}>
-                      <span style={styles.calcLabel}>🏛️ Better Services</span>
-                      <span style={styles.calcValue}>
-                        ${Math.round((buildScenario - 2) * 300 * householdSize).toLocaleString()}/yr
-                      </span>
-                      <span style={styles.calcExplain}>More tax revenue = better schools, roads, services</span>
-                    </div>
-                  </div>
-                  <div style={styles.calcNote}>
-                    Estimates based on economic multiplier effects from increased capital investment. 
-                    Actual impact varies by location, industry, and individual circumstances.
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          </section>
-        </ScrollReveal>
-
-        {/* ================================================================ */}
         {/* STATE REVIEW - Hamiltonian Analysis by State */}
         {/* ================================================================ */}
-        <ScrollReveal delay={600}>
-          <section style={styles.section}>
+        <section style={styles.section}>
           <h2 style={styles.sectionTitle}>
             <span style={{ color: COLORS.gold }}>STATE REVIEW</span> — Hamiltonian Analysis
           </h2>
@@ -2757,12 +1957,39 @@ export default function Home() {
             Every state evaluated through the Hamiltonian lens: What are they building? What should they build? How do they serve national capacity?
           </p>
           
-          <div style={styles.stateReviewSelector}>
-            <label style={styles.stateReviewLabel}>Select State:</label>
+          <div style={{
+            ...styles.stateReviewSelector,
+            backgroundColor: COLORS.bgCard,
+            border: `2px solid ${COLORS.hamiltonian}`,
+            borderRadius: '12px',
+            padding: '1.5rem',
+            marginBottom: '2rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            justifyContent: 'center'
+          }}>
+            <label style={{
+              ...styles.stateReviewLabel,
+              fontSize: '1.1rem',
+              fontWeight: 700,
+              color: COLORS.hamiltonian
+            }}>Select State:</label>
             <select 
               value={selectedState}
               onChange={(e) => setSelectedState(e.target.value)}
-              style={styles.stateReviewSelect}
+              style={{
+                ...styles.stateReviewSelect,
+                fontSize: '1.1rem',
+                padding: '0.75rem 1.5rem',
+                fontWeight: 600,
+                border: `2px solid ${COLORS.border}`,
+                borderRadius: '8px',
+                backgroundColor: COLORS.bg,
+                color: COLORS.text,
+                cursor: 'pointer',
+                minWidth: '250px'
+              }}
             >
               {Object.keys(stateHamiltonianAnalysis).map(state => (
                 <option key={state} value={state}>{state}</option>
@@ -2776,6 +2003,25 @@ export default function Home() {
             
             return (
               <div style={styles.stateReviewContent}>
+                {/* Baseline State Badge for Minnesota */}
+                {selectedState === 'Minnesota' && (
+                  <div style={{
+                    background: `linear-gradient(135deg, ${COLORS.hamiltonian}22, ${COLORS.gold}22)`,
+                    border: `2px solid ${COLORS.hamiltonian}`,
+                    borderRadius: '8px',
+                    padding: '1rem',
+                    marginBottom: '1.5rem',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ color: COLORS.gold, fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                      🎯 BASELINE STATE FOR NATIONAL MODEL
+                    </div>
+                    <div style={{ color: COLORS.hamiltonian, fontSize: '0.85rem' }}>
+                      Minnesota serves as the template for other states: Robotics hub (Twin Cities) controlling Iron Range operations, 
+                      nuclear SMR deployment, critical minerals development. Demuth plan unlocks this potential.
+                    </div>
+                  </div>
+                )}
                 {/* State Metrics */}
                 <div style={styles.stateMetricsGrid}>
                   <div style={styles.stateMetricCard}>
@@ -3221,31 +2467,6 @@ export default function Home() {
             </div>
           </div>
           </section>
-        </ScrollReveal>
-
-        {/* ================================================================ */}
-        {/* WIN CONDITION */}
-        {/* ================================================================ */}
-        <ScrollReveal delay={800}>
-          <section style={styles.winSection}>
-          <h2 style={styles.winTitle}>THE WIN CONDITION</h2>
-          <p style={styles.winSubtitle}>Self-sufficiency in critical capabilities. If trade stops tomorrow, can we survive and thrive?</p>
-          
-          <div style={styles.winGrid}>
-            <div style={styles.winItem}>⚡ Energy independent</div>
-            <div style={styles.winItem}>🔲 Chip sovereign</div>
-            <div style={styles.winItem}>🏭 Manufacturing capable</div>
-            <div style={styles.winItem}>💧 Water secure</div>
-            <div style={styles.winItem}>👷 Workforce ready</div>
-            <div style={styles.winItem}>🚀 Innovation leading</div>
-          </div>
-          
-          <div style={styles.winQuote}>
-            "A national debt, if it is not excessive, will be to us a national blessing."
-            <span style={styles.quoteAuthor}>— Alexander Hamilton, 1781</span>
-          </div>
-          </section>
-        </ScrollReveal>
 
         {/* ================================================================ */}
         {/* FOOTER */}
