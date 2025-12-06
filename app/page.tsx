@@ -1878,39 +1878,128 @@ export default function Home() {
         </section>
 
         {/* ================================================================ */}
-        {/* STATE LEADERBOARD - Top Hamiltonian Share */}
+        {/* NATIONAL BUILD RATE - The Real Picture */}
         {/* ================================================================ */}
         <section style={styles.section}>
           <h2 style={styles.sectionTitle}>
-            <span style={{ color: COLORS.gold }}>STATE LEADERBOARD</span> — Top Hamiltonian Share
+            <span style={{ color: COLORS.gold }}>NATIONAL BUILD RATE</span> — The Complete Picture
           </h2>
           <p style={styles.sectionSubtitle}>
-            Which states are leading in productive capital investment? States ranked by Hamiltonian Share (% of spending on building assets).
-            <br /><strong>Contribution to National %:</strong> Shows how each state's capital investment contributes to the overall American Hamiltonian Share (18%).
+            How much of America's economy is being invested in building? This combines federal AND state capital spending.
           </p>
           
           {(() => {
-            // Calculate total national GDP from all states
-            const totalStateGDP = Object.values(stateHamiltonianAnalysis).reduce((sum, state) => sum + state.stateGDP, 0)
+            // Calculate totals
             const totalStateCapitalInvestment = Object.values(stateHamiltonianAnalysis).reduce((sum, state) => sum + state.stateCapitalInvestment, 0)
-            
-            // National Hamiltonian Share is 18% (federal level)
-            // We'll show how state capital investment contributes to national capacity
-            // State capital investment as % of national GDP
             const nationalGDP = econData.gdp * 1000 // Convert trillions to billions
-            const stateCapitalAsPctOfNationalGDP = (totalStateCapitalInvestment / nationalGDP) * 100
+            
+            // Federal capital spending estimates (from OMB data)
+            // Defense capital (~$150B) + Infrastructure (~$140B) + Energy (~$80B) + R&D facilities (~$50B) + Other (~$80B)
+            const federalDirectCapital = 500 // ~$500B federal direct capital
+            const federalGrantsForCapital = 90 // ~$90B federal grants that flow to states for capital (highways, transit, airports)
+            const totalFederalCapital = federalDirectCapital + federalGrantsForCapital
+            
+            // State own-source capital (subtract federal pass-through to avoid double-counting)
+            // Roughly 35-40% of state capital comes from federal grants
+            const federalPassThroughPct = 0.35
+            const stateOwnSourceCapital = totalStateCapitalInvestment * (1 - federalPassThroughPct)
+            
+            // Local government capital (~$150-200B from Census data)
+            const localCapital = 175
+            
+            // Total public capital (no double-counting)
+            const totalPublicCapital = federalDirectCapital + federalGrantsForCapital + stateOwnSourceCapital + localCapital
+            
+            // National Build Rate = Total public capital / GDP
+            const nationalBuildRate = (totalPublicCapital / nationalGDP) * 100
+            const targetBuildRate = 5.0 // 5% of GDP target
             
             return (
-              <div style={styles.leaderboardContainer}>
-                <div style={styles.leaderboardHeader}>
-                  <div style={styles.leaderboardHeaderNote}>
-                    <strong>National Context:</strong> Total state capital investment: ${totalStateCapitalInvestment.toFixed(1)}B 
-                    ({stateCapitalAsPctOfNationalGDP.toFixed(2)}% of national GDP). 
-                    Federal Hamiltonian Share: {(HAMILTONIAN_SHARE * 100).toFixed(0)}% 
-                    (state + federal capital spending builds national capacity).
+              <div style={styles.nationalBuildContainer}>
+                {/* Main National Build Rate Display */}
+                <div style={styles.nationalBuildMain}>
+                  <div style={styles.buildRateGauge}>
+                    <div style={styles.buildRateLabel}>NATIONAL BUILD RATE</div>
+                    <div style={styles.buildRateValue}>
+                      <span style={{ color: nationalBuildRate >= targetBuildRate ? COLORS.hamiltonian : COLORS.warning }}>
+                        {nationalBuildRate.toFixed(1)}%
+                      </span>
+                      <span style={styles.buildRateOf}> of GDP</span>
+                    </div>
+                    <div style={styles.buildRateTarget}>Target: {targetBuildRate}%+ of GDP</div>
+                    <div style={styles.buildRateBar}>
+                      <div style={{
+                        width: `${Math.min((nationalBuildRate / 8) * 100, 100)}%`,
+                        height: '100%',
+                        backgroundColor: nationalBuildRate >= targetBuildRate ? COLORS.hamiltonian : COLORS.warning,
+                        borderRadius: '4px',
+                        transition: 'width 0.3s ease'
+                      }} />
+                    </div>
+                  </div>
+                  
+                  {/* Breakdown */}
+                  <div style={styles.buildBreakdown}>
+                    <div style={styles.buildBreakdownTitle}>Where Public Capital Comes From</div>
+                    <div style={styles.buildBreakdownGrid}>
+                      <div style={styles.buildBreakdownItem}>
+                        <div style={styles.buildBreakdownIcon}>🏛️</div>
+                        <div style={styles.buildBreakdownLabel}>Federal Direct</div>
+                        <div style={styles.buildBreakdownValue}>${federalDirectCapital}B</div>
+                        <div style={styles.buildBreakdownPct}>{((federalDirectCapital / totalPublicCapital) * 100).toFixed(0)}%</div>
+                      </div>
+                      <div style={styles.buildBreakdownItem}>
+                        <div style={styles.buildBreakdownIcon}>🛣️</div>
+                        <div style={styles.buildBreakdownLabel}>Federal→State Grants</div>
+                        <div style={styles.buildBreakdownValue}>${federalGrantsForCapital}B</div>
+                        <div style={styles.buildBreakdownPct}>{((federalGrantsForCapital / totalPublicCapital) * 100).toFixed(0)}%</div>
+                      </div>
+                      <div style={styles.buildBreakdownItem}>
+                        <div style={styles.buildBreakdownIcon}>🏗️</div>
+                        <div style={styles.buildBreakdownLabel}>State Own-Source</div>
+                        <div style={styles.buildBreakdownValue}>${stateOwnSourceCapital.toFixed(0)}B</div>
+                        <div style={styles.buildBreakdownPct}>{((stateOwnSourceCapital / totalPublicCapital) * 100).toFixed(0)}%</div>
+                      </div>
+                      <div style={styles.buildBreakdownItem}>
+                        <div style={styles.buildBreakdownIcon}>🏘️</div>
+                        <div style={styles.buildBreakdownLabel}>Local Government</div>
+                        <div style={styles.buildBreakdownValue}>${localCapital}B</div>
+                        <div style={styles.buildBreakdownPct}>{((localCapital / totalPublicCapital) * 100).toFixed(0)}%</div>
+                      </div>
+                    </div>
+                    <div style={styles.buildBreakdownTotal}>
+                      <strong>Total Public Capital:</strong> ${totalPublicCapital.toFixed(0)}B / year → {nationalBuildRate.toFixed(1)}% of ${nationalGDP.toFixed(0)}B GDP
+                    </div>
                   </div>
                 </div>
                 
+                <div style={styles.buildMethodology}>
+                  <strong>⚠️ No Double-Counting:</strong> Federal grants to states (~$90B for highways, transit, airports) are counted ONCE at federal level. 
+                  State "own-source" capital is state bonds + state-funded projects (not federal pass-through). 
+                  This gives the true picture of total public investment.
+                </div>
+              </div>
+            )
+          })()}
+        </section>
+
+        {/* ================================================================ */}
+        {/* STATE LEADERBOARD - Build Rate Rankings */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>
+            <span style={{ color: COLORS.gold }}>STATE LEADERBOARD</span> — Build Rate Rankings
+          </h2>
+          <p style={styles.sectionSubtitle}>
+            States ranked by Hamiltonian Share (% of state spending on capital assets). 
+            <strong> Build Rate</strong> shows how aggressively each state invests in capital relative to their economy.
+          </p>
+          
+          {(() => {
+            const totalStateCapitalInvestment = Object.values(stateHamiltonianAnalysis).reduce((sum, state) => sum + state.stateCapitalInvestment, 0)
+            
+            return (
+              <div style={styles.leaderboardContainer}>
                 {Object.values(stateHamiltonianAnalysis)
                   .sort((a, b) => b.hamiltonianShare - a.hamiltonianShare)
                   .slice(0, 15)
@@ -1920,17 +2009,12 @@ export default function Home() {
                 const isTop10 = rank <= 10
                 const meetsTarget = state.hamiltonianShare >= 25
                 
-                // Calculate state's contribution to national Hamiltonian Share
-                // State capital investment as % of national GDP
-                const nationalGDP = econData.gdp * 1000 // Convert trillions to billions
-                const stateCapitalAsPctOfNationalGDP = (state.stateCapitalInvestment / nationalGDP) * 100
+                // State Build Rate = Capital investment / State GDP (how aggressively they're building)
+                const stateBuildRate = (state.stateCapitalInvestment / state.stateGDP) * 100
+                const buildRateMeetsTarget = stateBuildRate >= 1.0
                 
-                // State's share of total state GDP
-                const stateGDPShare = (state.stateGDP / totalStateGDP) * 100
-                
-                // Weighted contribution: if this state improved to 25%, how much would it move the national average?
-                // This is a simplified model showing state-level building activity
-                const contributionToNational = stateCapitalAsPctOfNationalGDP
+                // Share of total state building (what % of state-level capital this state represents)
+                const shareOfStateBuilding = (state.stateCapitalInvestment / totalStateCapitalInvestment) * 100
                 
                 return (
                   <div 
@@ -1972,7 +2056,7 @@ export default function Home() {
                       }}>
                         {state.trend === 'rising' ? '📈 Rising' : state.trend === 'declining' ? '📉 Declining' : '➡️ Flat'}
                         {' • '}
-                        ${state.stateCapitalInvestment}B capital
+                        ${state.stateGDP}B GDP
                       </div>
                     </div>
                     <div style={styles.leaderboardScore}>
@@ -1985,27 +2069,27 @@ export default function Home() {
                         {state.hamiltonianShare}%
                       </div>
                       <div style={{
-                        fontSize: '0.7rem',
+                        fontSize: '0.65rem',
                         color: COLORS.textMuted,
                         marginTop: '2px'
                       }}>
-                        {meetsTarget ? '✓ Target' : 'Target: 25%'}
+                        Hamiltonian Share
                       </div>
                     </div>
                     <div style={styles.leaderboardContribution}>
                       <div style={{
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        color: COLORS.hamiltonian,
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
+                        color: buildRateMeetsTarget ? COLORS.hamiltonian : COLORS.warning,
                         marginBottom: '2px'
                       }}>
-                        +{contributionToNational.toFixed(3)}%
+                        {stateBuildRate.toFixed(1)}%
                       </div>
                       <div style={{
-                        fontSize: '0.65rem',
+                        fontSize: '0.6rem',
                         color: COLORS.textMuted
                       }}>
-                        to national
+                        Build Rate
                       </div>
                     </div>
                     <div style={styles.leaderboardBar}>
@@ -2025,10 +2109,10 @@ export default function Home() {
           })()}
           
           <div style={styles.leaderboardNote}>
-            <strong>How the Equation Works:</strong> Each state's capital investment (${Object.values(stateHamiltonianAnalysis).reduce((sum, s) => sum + s.stateCapitalInvestment, 0).toFixed(1)}B total) 
-            contributes to national capacity building. The <strong>"Contribution to National %"</strong> shows each state's capital spending as a percentage of national GDP. 
-            Combined with federal Hamiltonian spending (18%), this builds America's productive capacity. 
-            <br /><strong>Click any state</strong> to view detailed analysis. Target: 25%+ Hamiltonian Share per state.
+            <strong>Metrics Explained:</strong><br />
+            • <strong>Hamiltonian Share:</strong> % of state spending that goes to capital assets (infrastructure, energy, manufacturing)<br />
+            • <strong>Build Rate:</strong> State capital investment as % of State GDP (how aggressively they're building relative to their economy)<br />
+            <strong>Click any state</strong> to view detailed analysis. Target: 25%+ Hamiltonian Share, 1%+ Build Rate.
           </div>
         </section>
 
@@ -3687,24 +3771,126 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   
   // State Review Section
+  // National Build Rate Section
+  nationalBuildContainer: {
+    marginTop: '1.5rem',
+  },
+  nationalBuildMain: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1.5fr',
+    gap: '2rem',
+    padding: '1.5rem',
+    backgroundColor: COLORS.bgCard,
+    borderRadius: '12px',
+    border: `1px solid ${COLORS.border}`,
+    marginBottom: '1rem',
+  },
+  buildRateGauge: {
+    textAlign: 'center' as const,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buildRateLabel: {
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+    letterSpacing: '2px',
+    marginBottom: '0.5rem',
+    textTransform: 'uppercase' as const,
+  },
+  buildRateValue: {
+    fontSize: '3rem',
+    fontWeight: 800,
+    lineHeight: 1,
+    marginBottom: '0.5rem',
+  },
+  buildRateOf: {
+    fontSize: '1rem',
+    fontWeight: 400,
+    color: COLORS.textMuted,
+  },
+  buildRateTarget: {
+    fontSize: '0.8rem',
+    color: COLORS.textMuted,
+    marginBottom: '1rem',
+  },
+  buildRateBar: {
+    width: '100%',
+    maxWidth: '200px',
+    height: '12px',
+    backgroundColor: COLORS.bg,
+    borderRadius: '6px',
+    overflow: 'hidden',
+  },
+  buildBreakdown: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+  },
+  buildBreakdownTitle: {
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    color: COLORS.text,
+    marginBottom: '1rem',
+    borderBottom: `1px solid ${COLORS.border}`,
+    paddingBottom: '0.5rem',
+  },
+  buildBreakdownGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '1rem',
+    marginBottom: '1rem',
+  },
+  buildBreakdownItem: {
+    textAlign: 'center' as const,
+    padding: '0.75rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '8px',
+    border: `1px solid ${COLORS.border}`,
+  },
+  buildBreakdownIcon: {
+    fontSize: '1.5rem',
+    marginBottom: '0.5rem',
+  },
+  buildBreakdownLabel: {
+    fontSize: '0.65rem',
+    color: COLORS.textMuted,
+    marginBottom: '0.25rem',
+  },
+  buildBreakdownValue: {
+    fontSize: '1.1rem',
+    fontWeight: 700,
+    color: COLORS.hamiltonian,
+  },
+  buildBreakdownPct: {
+    fontSize: '0.7rem',
+    color: COLORS.textMuted,
+  },
+  buildBreakdownTotal: {
+    fontSize: '0.85rem',
+    color: COLORS.text,
+    padding: '0.75rem',
+    backgroundColor: COLORS.bgCardAlt,
+    borderRadius: '6px',
+    textAlign: 'center' as const,
+  },
+  buildMethodology: {
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+    padding: '0.75rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '6px',
+    border: `1px solid ${COLORS.warning}44`,
+    lineHeight: 1.5,
+  },
+  
+  // Leaderboard Section
   leaderboardContainer: {
     display: 'flex',
     flexDirection: 'column' as const,
     gap: '0.75rem',
     marginTop: '1.5rem',
     marginBottom: '1rem',
-  },
-  leaderboardHeader: {
-    marginBottom: '1rem',
-  },
-  leaderboardHeaderNote: {
-    fontSize: '0.8rem',
-    color: COLORS.textMuted,
-    padding: '0.75rem',
-    backgroundColor: COLORS.bg,
-    borderRadius: '6px',
-    border: `1px solid ${COLORS.border}`,
-    lineHeight: 1.5,
   },
   leaderboardRow: {
     display: 'grid',
