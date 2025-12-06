@@ -623,21 +623,48 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     hamiltonianShare: 24,
     buildRate: 0.7,
     trend: 'rising',
-    naturalAdvantages: ['Freshwater', 'Central location', 'Existing manufacturing', 'Workforce'],
+    naturalAdvantages: [
+      'Freshwater (Lake Erie, Ohio River)',
+      'Central location — within 600 miles of 60% of US/Canada population',
+      'Manufacturing legacy + workforce',
+      'Low cost of living',
+      'Major research universities (Ohio State, Case Western)',
+      'Existing auto supply chain (Honda legacy)',
+      'Natural gas (Utica Shale)',
+      'Pro-business governor (DeWine)'
+    ],
     currentProjects: [
-      { name: 'Intel mega-fab ($20B)', category: 'Chip Fabs', status: 'Building', investment: 20 },
-      { name: 'Honda EV plant', category: 'Manufacturing', status: 'Active', investment: 3.5 },
-      { name: 'Nuclear restart', category: 'Energy', status: 'Proposed', investment: 2 }
+      { name: 'Intel Ohio One (New Albany)', category: 'Chip Fabs', status: 'Building — $20B Phase 1, up to $100B total', investment: 20 },
+      { name: 'Honda-LG battery plant (Fayette County)', category: 'Manufacturing', status: 'Building — $4.4B, 2,200 jobs', investment: 4.4 },
+      { name: 'Honda EV hub (Marysville/East Liberty)', category: 'Manufacturing', status: 'Converting — $700M EV transition', investment: 0.7 },
+      { name: 'Ford battery JV (potential)', category: 'Manufacturing', status: 'Evaluating', investment: 0 },
+      { name: 'Davis-Besse nuclear', category: 'Energy', status: 'Operating — saved from closure by HB6', investment: 0 },
+      { name: 'Perry nuclear', category: 'Energy', status: 'Operating — saved from closure', investment: 0 }
     ],
     capacityGaps: [
-      { category: 'Nuclear', need: '15 GW', current: '3 GW' },
-      { category: 'Grid', need: 'HVDC to East Coast', current: 'Regional' }
+      { category: 'Energy', need: 'Massive power for Intel fab', current: '3 GW nuclear (Davis-Besse, Perry). Coal closing. Need more baseload.' },
+      { category: 'Grid', need: 'HVDC to East Coast + fab power', current: 'Regional grid, needs expansion for data centers + fabs' },
+      { category: 'Workforce', need: 'Semiconductor technicians', current: 'Manufacturing base but needs retraining for chips' },
+      { category: 'Water', need: 'Fab water supply', current: 'Abundant (Lake Erie) but needs infrastructure' }
     ],
     politicalFeasibility: 'high',
-    nationalRole: 'Chip manufacturing hub, Midwest manufacturing anchor',
-    energyProfile: 'Coal legacy, transitioning to nuclear + renewables.',
+    nationalRole: 'MIDWEST REVIVAL. Intel fab is second only to Micron in chip investment. Honda EV hub. If Intel fully builds out ($100B), Ohio becomes America\'s chip heartland. DeWine (R) made it happen with $2B in state incentives.',
+    energyProfile: 'Coal legacy but transitioning. Saved Davis-Besse and Perry nuclear from closure (HB6 scandal, but plants still running). Utica Shale gas. Need more baseload for Intel fab power demand.',
     workforceReadiness: 'high',
-    assessment: 'RESURGENT. Intel fab is transformative. Need to rebuild energy base.'
+    assessment: 'RUST BELT REVIVAL. Intel\'s $20B fab (Phase 1) is transformational — could grow to $100B with 8 fabs. 3,000 Intel jobs + 7,000 construction + massive supply chain. Honda pivoting to EVs in Ohio (legacy relationship). Battery plants coming. DeWine (R) delivered with $2B incentives + site prep. HB6 scandal (FirstEnergy bribery) saved nuclear plants — corrupt but effective. KEY QUESTION: Can Ohio supply power for chip fabs? Need grid expansion + baseload. This is what bringing manufacturing back looks like.',
+    pathToVictory: [
+      '2022: Intel announces $20B fab — largest private investment in Ohio history',
+      '2022: DeWine provides $2B in state incentives + site prep',
+      '2023-24: Construction underway — 7,000+ construction jobs',
+      '2024: Honda-LG battery plant breaks ground — $4.4B',
+      '2025: Intel fab shell complete — equipment installation begins',
+      '2026: Intel Phase 1 operational — first chips produced in Ohio',
+      '2027-28: Honda EV production ramps up (Marysville/East Liberty)',
+      '2028-30: Intel expansion decision — Phase 2-8 would add $80B more',
+      '2030: Full potential — Ohio as chip + EV + battery hub. Rust belt revival complete.',
+      'RISK: Power supply. Fabs are energy-intensive. Need grid expansion + baseload.',
+      'LESSON: State incentives + governor leadership + existing workforce = success'
+    ]
   },
   'Arizona': {
     state: 'Arizona',
@@ -698,22 +725,48 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     hamiltonianShare: 25,
     buildRate: 0.6,
     trend: 'rising',
-    naturalAdvantages: ['Savannah port', 'Land', 'Business-friendly', 'Southeast hub'],
+    naturalAdvantages: [
+      'Savannah port — 4th largest US port, fastest growing',
+      'Land availability + low cost',
+      'Business-friendly (right-to-work, low taxes)',
+      'Southeast logistics hub (Atlanta)',
+      'Hartsfield-Jackson — busiest airport in world',
+      'Vogtle — ONLY new nuclear in US in 30+ years',
+      'Growing population (migration from CA/NY)',
+      'Georgia Tech + research universities',
+      'Film/TV industry ($4B+/year)'
+    ],
     currentProjects: [
-      { name: 'Hyundai EV plant (Metaplant)', category: 'Manufacturing', status: 'Building', investment: 7.6 },
-      { name: 'Savannah port expansion', category: 'Infrastructure', status: 'Active', investment: 1.8 },
-      { name: 'SK/Hyundai Battery', category: 'Manufacturing', status: 'Active', investment: 5 },
-      { name: 'Vogtle nuclear (Units 3&4)', category: 'Energy', status: 'Complete', investment: 35 }
+      { name: 'Vogtle Unit 3', category: 'Nuclear', status: 'Commercial operation July 2023 — FIRST new US reactor since 2016', investment: 17 },
+      { name: 'Vogtle Unit 4', category: 'Nuclear', status: 'Commercial operation April 2024 — 2.2 GW total added', investment: 17 },
+      { name: 'Hyundai Metaplant (Bryan County)', category: 'Manufacturing', status: 'Building — 300K EVs/year by 2025', investment: 7.6 },
+      { name: 'SK Battery Georgia (Commerce)', category: 'Manufacturing', status: 'Operational — supplies Ford F-150 Lightning', investment: 2.6 },
+      { name: 'SK Battery Georgia 2', category: 'Manufacturing', status: 'Building', investment: 2.5 },
+      { name: 'Rivian expansion', category: 'Manufacturing', status: 'Paused (market conditions)', investment: 5 },
+      { name: 'Savannah port deepening + expansion', category: 'Infrastructure', status: 'Active', investment: 1.8 },
+      { name: 'Qcells solar manufacturing (Dalton)', category: 'Manufacturing', status: 'Expanding — largest solar panel factory in US', investment: 2.5 }
     ],
     capacityGaps: [
-      { category: 'Grid', need: 'Southeast interconnection', current: 'Regional' },
-      { category: 'Water', need: 'Reservoir expansion', current: 'Adequate' }
+      { category: 'Grid', need: 'Data center power demand exploding', current: 'Vogtle helps but demand growing faster' },
+      { category: 'Water', need: 'Reservoir expansion for manufacturing', current: 'Adequate but watch list' },
+      { category: 'Workforce', need: 'Skilled manufacturing labor', current: 'Good but competition for workers' }
     ],
     politicalFeasibility: 'high',
-    nationalRole: 'Port logistics, EV manufacturing, nuclear (Vogtle)',
-    energyProfile: 'Just completed Vogtle nuclear. Only new nuclear in 30 years.',
+    nationalRole: 'THE SUCCESS STORY. Vogtle proves nuclear CAN be built in America (2.2 GW added). EV manufacturing hub (Hyundai, SK, Rivian). Port logistics leader (Savannah). Solar manufacturing (Qcells). This is what "building" looks like.',
+    energyProfile: 'NUCLEAR SUCCESS. Vogtle Units 3 & 4 are first new US nuclear in 30+ years. Combined 2.2 GW — enough for 1M homes. Yes, it was over budget ($35B vs $14B original) and delayed (7 years late). But IT GOT BUILT. That matters more than anything.',
     workforceReadiness: 'high',
-    assessment: 'STRONG. Vogtle proves nuclear can be built. EV cluster forming.'
+    assessment: 'AMERICA\'S BUILDER. Georgia is doing what other states talk about: Vogtle — first new nuclear in 30 years, completed 2023-24 despite massive cost overruns ($35B). Hyundai Metaplant — $7.6B EV factory, first production 2025. SK Battery — already supplying Ford F-150 Lightning. Qcells — largest US solar panel factory. Savannah — fastest growing port. WHY IT WORKS: Pro-business governor (Kemp), regulated utility model (Georgia Power could absorb Vogtle costs), right-to-work state, land availability, population growth. LESSON FOR OTHER STATES: Georgia proves you CAN build nuclear in America. It just requires political will and regulatory certainty.',
+    pathToVictory: [
+      '2023 July: Vogtle Unit 3 commercial operation — FIRST new US reactor since Watts Bar 2 (2016)',
+      '2024 April: Vogtle Unit 4 commercial operation — 2.2 GW total new nuclear capacity',
+      '2024-25: Hyundai Metaplant construction completes — 300K EVs/year capacity',
+      '2025: SK Battery at full production — powering Ford/Hyundai EVs',
+      '2025-26: Qcells expansion — doubling US solar panel production',
+      '2026: Rivian decision — proceed or cancel based on EV market',
+      '2027+: Data center boom — Google, Microsoft, others expanding in Georgia',
+      '2030: Georgia as Southeast manufacturing hub — EV, battery, solar, logistics',
+      'KEY INSIGHT: Georgia proves the model works. Copy it: regulated utility, political will, business-friendly, build anyway despite costs.'
+    ]
   },
   
   // === TIER 2: MIXED POTENTIAL (Could Go Either Way) ===
@@ -1117,21 +1170,43 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     hamiltonianShare: 55,
     buildRate: 1.8,
     trend: 'rising',
-    naturalAdvantages: ['Coal', 'Uranium', 'Wind', 'Land', 'Water rights', 'Business-friendly'],
+    naturalAdvantages: [
+      'Lowest population in US (580,000) — highest per-capita everything',
+      '#1 coal producer (40% of US coal)',
+      '#1 uranium producer (potential for fuel supply)',
+      'Massive wind potential (Class 6-7 winds)',
+      'Land availability (97,000 sq mi)',
+      'No state income tax',
+      'Most pro-energy state',
+      'Water rights (Colorado River headwaters)',
+      'Trona (soda ash) — 90% of US production'
+    ],
     currentProjects: [
-      { name: 'TerraPower Natrium SMR', category: 'Energy', status: 'Building', investment: 4 },
-      { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 2 },
-      { name: 'Rare earth exploration', category: 'Mining', status: 'Active', investment: 0.5 }
+      { name: 'TerraPower Natrium SMR (Kemmerer)', category: 'Nuclear', status: 'Construction started 2024 — FIRST advanced reactor in US', investment: 4 },
+      { name: 'Chokecherry/Sierra Madre Wind', category: 'Energy', status: 'Building — one of world\'s largest wind farms', investment: 5 },
+      { name: 'TransWest Express HVDC', category: 'Infrastructure', status: 'Approved — 730 miles to CA/NV', investment: 3 },
+      { name: 'Rare earth exploration', category: 'Mining', status: 'Active', investment: 0.5 },
+      { name: 'Carbon capture pilots', category: 'Energy', status: 'Active', investment: 0.3 }
     ],
     capacityGaps: [
-      { category: 'Grid', need: 'HVDC to West Coast', current: 'Regional only' },
-      { category: 'Workforce', need: 'Skilled workers', current: 'Small population' }
+      { category: 'Grid', need: 'HVDC to West Coast markets', current: 'TransWest Express approved — unlocks wind export' },
+      { category: 'Workforce', need: 'Population', current: 'Only 580,000 — smallest state. Limits growth.' },
+      { category: 'Diversification', need: 'Beyond energy', current: 'Energy-dependent, vulnerable to transitions' }
     ],
     politicalFeasibility: 'high',
-    nationalRole: 'Energy exporter, nuclear pioneer, mining',
-    energyProfile: 'Coal transitioning to nuclear + wind. First SMR deployment.',
+    nationalRole: 'NUCLEAR PIONEER + ENERGY EXPORTER. TerraPower Natrium is FIRST advanced reactor to break ground in US — Bill Gates-backed, 345 MW sodium-cooled. Coal-to-nuclear transition at Kemmerer. Massive wind export potential to CA via TransWest HVDC.',
+    energyProfile: '#1 coal producer but transitioning. TerraPower Natrium (2024 construction start) is first advanced reactor. Wind potential enormous. TransWest HVDC unlocks export to CA/NV.',
     workforceReadiness: 'medium',
-    assessment: 'PIONEER. Small but mighty. TerraPower SMR is nationally significant.'
+    assessment: 'SMALL BUT PIONEERING. 55% Hamiltonian Share (highest in US) because small economy + big investments = high percentage. TerraPower Natrium at Kemmerer — replacing coal with advanced nuclear. This is THE test case for coal-to-nuclear transition. Bill Gates personally invested. If it works, model for 100+ US coal plants. Chokecherry wind + TransWest HVDC = export clean energy to California. Wyoming proves small states can lead.',
+    pathToVictory: [
+      '2024: TerraPower Natrium construction begins — FIRST advanced reactor groundbreaking in US',
+      '2025: Chokecherry/Sierra Madre wind construction continues',
+      '2026-27: Wind farm phases operational — exporting to California',
+      '2028: TransWest Express HVDC operational',
+      '2030: TerraPower Natrium operational — proves coal-to-nuclear transition',
+      '2030+: If Natrium works, model for 100+ US coal plant sites',
+      'NATIONAL SIGNIFICANCE: TerraPower is most important energy project in America'
+    ]
   },
   'Alaska': {
     state: 'Alaska',
@@ -1205,22 +1280,49 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     population: 0.78,
     hamiltonianShare: 45,
     buildRate: 1.5,
-    trend: 'flat',
-    naturalAdvantages: ['Bakken shale', 'Wind', 'Farmland', 'Low cost'],
+    trend: 'rising',
+    naturalAdvantages: [
+      'Bakken Shale — made ND an oil powerhouse',
+      '$10.7B Legacy Fund (sovereign wealth fund)',
+      'Wind potential (Great Plains corridor)',
+      'Farmland (#1 spring wheat, sunflowers, honey)',
+      'No state income tax',
+      'Low cost of living',
+      'Business-friendly',
+      'Governor Burgum — now Trump Energy Secretary',
+      'Data center growth (low power costs)',
+      'Carbon storage potential (deep geology)'
+    ],
     currentProjects: [
-      { name: 'Bakken production', category: 'Energy', status: 'Active', investment: 3 },
+      { name: 'Bakken oil production', category: 'Energy', status: 'Active — ~1M bbl/day', investment: 3 },
+      { name: 'Two 350-mile gas pipelines (proposed)', category: 'Infrastructure', status: 'Evaluating — would reduce flaring, power industry', investment: 2 },
+      { name: 'Applied Digital data centers (Jamestown/Ellendale)', category: 'Infrastructure', status: 'Building — $2.2B over 10 years', investment: 2.2 },
       { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 1 },
-      { name: 'Data centers', category: 'Infrastructure', status: 'Building', investment: 0.5 }
+      { name: 'Green Bison soybean processing (Spiritwood)', category: 'Agriculture', status: 'Operational 2023 — renewable diesel', investment: 0.5 },
+      { name: 'Carbon capture projects', category: 'Energy', status: 'Piloting — Red Trail Energy', investment: 0.3 }
     ],
     capacityGaps: [
-      { category: 'Pipeline', need: 'Export capacity', current: 'Constrained' },
-      { category: 'Workforce', need: 'Retention', current: 'Boom/bust cycles' }
+      { category: 'Pipeline', need: 'Gas pipeline to eastern ND', current: 'Flaring gas, wasting resource. Two 350-mile pipelines proposed.' },
+      { category: 'Workforce', need: 'Population stability', current: 'Boom/bust oil cycles cause worker migration' },
+      { category: 'Diversification', need: 'Beyond oil/ag', current: 'Data centers + renewable diesel starting to diversify' }
     ],
     politicalFeasibility: 'high',
-    nationalRole: 'Oil production, wind energy',
-    energyProfile: 'Major oil producer. Good wind. Pipeline constraints.',
+    nationalRole: 'DOING IT RIGHT. Bakken oil, wind energy, $10.7B Legacy Fund saved for future. Led nation in GDP growth (12.4% Q1 2023). Carbon neutrality goal by 2030. Burgum now Energy Secretary — ND model could go national. Data centers attracted by low power costs. Agriculture powerhouse. Small population but wealthy and well-managed.',
+    energyProfile: 'Bakken produces ~1M bbl/day. Flaring gas is waste — two 350-mile pipelines would fix. Wind growing. Carbon capture piloting. Carbon neutrality goal by 2030 (Burgum). Could be model for responsible energy production.',
     workforceReadiness: 'medium',
-    assessment: 'STEADY. Producing energy. Need more pipeline capacity.'
+    assessment: 'WEALTHY + WELL-MANAGED. $10.7B Legacy Fund (30% of oil tax goes to savings — could hit $75-100B by 2039). Led nation in GDP growth 2023. Burgum as Energy Secretary brings ND model to national stage. DATA CENTERS: Applied Digital investing $2.2B — attracted by low power costs and cold climate. AGRICULTURE: #1 spring wheat, sunflowers, honey. Green Bison makes renewable diesel from soybeans. CHALLENGE: Small population (780,000) limits diversification. Boom/bust oil cycles cause instability. But for energy production, ND is doing it right.',
+    pathToVictory: [
+      '2023: Led nation in GDP growth (12.4%) — Bakken + ag',
+      '2023: Green Bison operational — renewable diesel from soybeans',
+      '2024: Applied Digital data centers expanding — $2.2B investment',
+      '2024: Burgum selected as Trump Energy Secretary — ND model goes national',
+      '2025-26: Gas pipeline decisions — would reduce flaring, power eastern ND',
+      '2027+: Legacy Fund grows toward $75-100B',
+      '2030: Carbon neutrality goal (Burgum)',
+      'STRENGTH: Sovereign wealth fund model — saving for future, not just spending',
+      'RISK: Oil price volatility, small population limits growth',
+      'NATIONAL IMPACT: Burgum as Energy Secretary brings ND approach to federal policy'
+    ]
   },
   'New Mexico': {
     state: 'New Mexico',
