@@ -587,15 +587,17 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     state: 'Texas',
     stateGDP: 2400,
     stateDebt: 45,
-    stateCapitalInvestment: 12,
-    hamiltonianShare: 22,
-    buildRate: 0.5,
+    stateCapitalInvestment: 18,
+    hamiltonianShare: 24,
+    buildRate: 0.75,
     trend: 'rising',
     naturalAdvantages: ['Oil/gas reserves', 'Wind/solar potential', 'Port access', 'Land availability', 'Business-friendly'],
     currentProjects: [
-      { name: 'Samsung fab expansion', category: 'Chip Fabs', status: 'Building', investment: 17 },
+      { name: 'Samsung fab expansion (Taylor)', category: 'Chip Fabs', status: 'Building', investment: 17 },
+      { name: 'Texas Instruments fabs (Sherman)', category: 'Chip Fabs', status: 'Building', investment: 30 },
       { name: 'LNG export terminals', category: 'Energy', status: 'Active', investment: 25 },
-      { name: 'Grid hardening', category: 'Infrastructure', status: 'Planned', investment: 8 },
+      { name: 'TxDOT infrastructure', category: 'Infrastructure', status: 'Active', investment: 14 },
+      { name: 'Grid hardening (ERCOT)', category: 'Infrastructure', status: 'Planned', investment: 8 },
       { name: 'Nuclear SMRs', category: 'Energy', status: 'Proposed', investment: 12 }
     ],
     capacityGaps: [
@@ -847,26 +849,29 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     state: 'California',
     stateGDP: 3800,
     stateDebt: 95,
-    stateCapitalInvestment: 12,
-    hamiltonianShare: 12,
-    buildRate: 0.3,
-    trend: 'declining',
-    naturalAdvantages: ['Tech talent', 'Ports', 'Solar/wind potential', 'Research universities'],
+    stateCapitalInvestment: 25,
+    hamiltonianShare: 14,
+    buildRate: 0.65,
+    trend: 'flat',
+    naturalAdvantages: ['Tech talent', 'Ports (LA/Long Beach)', 'Solar/wind potential', 'Research universities', 'Aerospace'],
     currentProjects: [
-      { name: 'No major manufacturing', category: 'Manufacturing', status: 'Exiting', investment: 0 },
-      { name: 'Grid upgrades (reactive)', category: 'Infrastructure', status: 'Planned', investment: 8 },
-      { name: 'Desalination (blocked)', category: 'Infrastructure', status: 'Blocked', investment: 0 }
+      { name: 'High-speed rail (troubled)', category: 'Infrastructure', status: 'Delayed', investment: 10 },
+      { name: 'Caltrans infrastructure', category: 'Infrastructure', status: 'Active', investment: 15 },
+      { name: 'Port modernization', category: 'Infrastructure', status: 'Active', investment: 3 },
+      { name: 'Grid upgrades', category: 'Energy', status: 'Active', investment: 8 },
+      { name: 'Diablo Canyon extension', category: 'Energy', status: 'Approved', investment: 1.4 }
     ],
     capacityGaps: [
-      { category: 'Nuclear', need: 'Baseload', current: 'Banned, closing Diablo Canyon' },
-      { category: 'Water', need: 'Desalination', current: 'Blocked, rationing' },
-      { category: 'Manufacturing', need: 'Any', current: 'Exiting to TX, AZ, NV' }
+      { category: 'Nuclear', need: 'Baseload', current: 'Diablo Canyon extended (was closing)' },
+      { category: 'Water', need: 'Desalination', current: 'Some projects, mostly blocked' },
+      { category: 'Manufacturing', need: 'Retention', current: 'Exiting to TX, AZ, NV' },
+      { category: 'Housing', need: 'Construction', current: 'Severely blocked' }
     ],
     politicalFeasibility: 'low',
-    nationalRole: 'Tech innovation only. Manufacturing and energy in decline.',
-    energyProfile: 'Grid unreliable. Rolling blackouts. Bans nuclear while closing last plant.',
+    nationalRole: 'Tech innovation, ports (40% of US imports), aerospace (SpaceX/Northrop)',
+    energyProfile: 'Grid stressed. Extended Diablo Canyon. Solar leader but reliability issues.',
     workforceReadiness: 'high',
-    assessment: 'DECLINING. Massive economy but anti-build politics. Companies fleeing. Grid failing.'
+    assessment: 'CONFLICTED. Massive spending but poor outcomes. High-speed rail debacle. Diablo extension is win.'
   },
   'New York': {
     state: 'New York',
@@ -1463,6 +1468,361 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     energyProfile: 'Wind leader. 60%+ renewable. Good example.',
     workforceReadiness: 'high',
     assessment: 'WIND MODEL. Shows renewable can work. Need diversification beyond ag.'
+  },
+  
+  // === ADDITIONAL STATES (Completing All 50) ===
+  'North Carolina': {
+    state: 'North Carolina',
+    stateGDP: 730,
+    stateDebt: 15,
+    stateCapitalInvestment: 8,
+    hamiltonianShare: 28,
+    buildRate: 1.1,
+    trend: 'rising',
+    naturalAdvantages: ['Research Triangle', 'Ports', 'Low cost', 'Growing workforce', 'Business-friendly'],
+    currentProjects: [
+      { name: 'Wolfspeed SiC fab', category: 'Chip Fabs', status: 'Building', investment: 5 },
+      { name: 'VinFast EV plant', category: 'Manufacturing', status: 'Building', investment: 4 },
+      { name: 'Toyota battery plant', category: 'Manufacturing', status: 'Building', investment: 3.8 },
+      { name: 'Boom Supersonic', category: 'Aerospace', status: 'Building', investment: 0.5 }
+    ],
+    capacityGaps: [
+      { category: 'Energy', need: 'Grid expansion for fabs', current: 'Nuclear + gas' },
+      { category: 'Water', need: 'Industrial supply', current: 'Adequate' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Chip manufacturing (SiC), EV batteries, biotech, finance',
+    energyProfile: 'Nuclear (4 plants) + gas. Duke Energy dominant. Good baseload.',
+    workforceReadiness: 'high',
+    assessment: 'RISING STAR. Major chip/EV investment. Research Triangle talent. Watch closely.'
+  },
+  'Oklahoma': {
+    state: 'Oklahoma',
+    stateGDP: 220,
+    stateDebt: 8,
+    stateCapitalInvestment: 2.5,
+    hamiltonianShare: 26,
+    buildRate: 1.1,
+    trend: 'rising',
+    naturalAdvantages: ['Oil/gas', 'Wind', 'Low cost', 'Aerospace (Tinker AFB)', 'Central location'],
+    currentProjects: [
+      { name: 'Oil/gas production', category: 'Energy', status: 'Active', investment: 3 },
+      { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 1.5 },
+      { name: 'Tinker AFB modernization', category: 'Defense', status: 'Active', investment: 1 }
+    ],
+    capacityGaps: [
+      { category: 'Diversification', need: 'Beyond oil/gas', current: 'Energy-dependent' },
+      { category: 'Workforce', need: 'Tech skills', current: 'Oil/gas focused' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Oil/gas production, wind energy, aerospace maintenance',
+    energyProfile: 'Major oil/gas producer. Growing wind. Good energy position.',
+    workforceReadiness: 'medium',
+    assessment: 'ENERGY STATE. Oil/gas strong but needs diversification. Wind growing.'
+  },
+  'Oregon': {
+    state: 'Oregon',
+    stateGDP: 280,
+    stateDebt: 12,
+    stateCapitalInvestment: 2,
+    hamiltonianShare: 16,
+    buildRate: 0.7,
+    trend: 'flat',
+    naturalAdvantages: ['Ports', 'Timber', 'Tech (Intel)', 'Hydropower', 'No sales tax'],
+    currentProjects: [
+      { name: 'Intel expansion', category: 'Chip Fabs', status: 'Delayed', investment: 5 },
+      { name: 'Port modernization', category: 'Infrastructure', status: 'Planned', investment: 0.5 }
+    ],
+    capacityGaps: [
+      { category: 'Energy', need: 'Baseload', current: 'Hydro + imports' },
+      { category: 'Manufacturing', need: 'Beyond Intel', current: 'Limited' }
+    ],
+    politicalFeasibility: 'low',
+    nationalRole: 'Chip manufacturing (Intel), timber, ports',
+    energyProfile: 'Hydro-dependent. Anti-nuclear. Limited expansion.',
+    workforceReadiness: 'high',
+    assessment: 'INTEL-DEPENDENT. Good tech talent but politics blocking growth. Portland decline.'
+  },
+  'Idaho': {
+    state: 'Idaho',
+    stateGDP: 105,
+    stateDebt: 3,
+    stateCapitalInvestment: 1.5,
+    hamiltonianShare: 28,
+    buildRate: 1.4,
+    trend: 'rising',
+    naturalAdvantages: ['Low cost', 'Business-friendly', 'Tech growth (Boise)', 'Agriculture', 'Hydropower'],
+    currentProjects: [
+      { name: 'Micron expansion', category: 'Chip Fabs', status: 'Building', investment: 15 },
+      { name: 'Data centers', category: 'Infrastructure', status: 'Building', investment: 2 },
+      { name: 'INL nuclear research', category: 'R&D', status: 'Active', investment: 1 }
+    ],
+    capacityGaps: [
+      { category: 'Workforce', need: 'Skilled labor', current: 'Growing but limited' },
+      { category: 'Infrastructure', need: 'Roads/utilities', current: 'Strained by growth' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Chip manufacturing (Micron), nuclear R&D (INL), agriculture',
+    energyProfile: 'Hydro + nuclear research (INL). Good baseload.',
+    workforceReadiness: 'medium',
+    assessment: 'FAST GROWTH. Micron fab is huge. INL is nuclear innovation center. Infrastructure straining.'
+  },
+  'Montana': {
+    state: 'Montana',
+    stateGDP: 65,
+    stateDebt: 2,
+    stateCapitalInvestment: 0.6,
+    hamiltonianShare: 22,
+    buildRate: 0.9,
+    trend: 'flat',
+    naturalAdvantages: ['Mining', 'Agriculture', 'Hydropower', 'Land', 'Wind potential'],
+    currentProjects: [
+      { name: 'Mining operations', category: 'Mining', status: 'Active', investment: 0.5 },
+      { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 0.3 }
+    ],
+    capacityGaps: [
+      { category: 'Infrastructure', need: 'Roads/rail', current: 'Limited' },
+      { category: 'Workforce', need: 'Population', current: 'Small, aging' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Mining, agriculture, energy export potential',
+    energyProfile: 'Coal + hydro. Wind potential. Energy exporter.',
+    workforceReadiness: 'medium',
+    assessment: 'RESOURCE STATE. Mining and energy potential. Small population limits growth.'
+  },
+  'Nebraska': {
+    state: 'Nebraska',
+    stateGDP: 150,
+    stateDebt: 2,
+    stateCapitalInvestment: 2,
+    hamiltonianShare: 24,
+    buildRate: 1.3,
+    trend: 'rising',
+    naturalAdvantages: ['Agriculture', 'Central location', 'Low cost', 'Wind', 'Data center growth'],
+    currentProjects: [
+      { name: 'Data centers (Facebook/Google)', category: 'Infrastructure', status: 'Building', investment: 3 },
+      { name: 'Beef processing', category: 'Agriculture', status: 'Active', investment: 0.5 },
+      { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 0.5 }
+    ],
+    capacityGaps: [
+      { category: 'Diversification', need: 'Beyond agriculture', current: 'Ag-focused' },
+      { category: 'Workforce', need: 'Tech skills', current: 'Agricultural skills' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Agriculture, data centers, wind energy',
+    energyProfile: 'Coal transitioning to wind. Nuclear (Cooper). Good position.',
+    workforceReadiness: 'high',
+    assessment: 'DATA CENTER HUB. Ag base + growing tech infrastructure. Low debt, stable.'
+  },
+  'Kansas': {
+    state: 'Kansas',
+    stateGDP: 190,
+    stateDebt: 6,
+    stateCapitalInvestment: 1.5,
+    hamiltonianShare: 18,
+    buildRate: 0.8,
+    trend: 'flat',
+    naturalAdvantages: ['Central location', 'Aerospace (Wichita)', 'Agriculture', 'Wind', 'Low cost'],
+    currentProjects: [
+      { name: 'Spirit AeroSystems', category: 'Aerospace', status: 'Active (troubled)', investment: 0.5 },
+      { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 1 },
+      { name: 'Panasonic battery (nearby KS)', category: 'Manufacturing', status: 'Building', investment: 4 }
+    ],
+    capacityGaps: [
+      { category: 'Aerospace', need: 'Boeing supply chain', current: 'Spirit struggling' },
+      { category: 'Diversification', need: 'Beyond ag/aerospace', current: 'Limited' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Aerospace manufacturing, agriculture, wind energy',
+    energyProfile: 'Wind leader. Coal declining. Good renewable position.',
+    workforceReadiness: 'high',
+    assessment: 'AEROSPACE HUB. Spirit troubles hurt but Panasonic battery nearby helps. Wind strong.'
+  },
+  'Arkansas': {
+    state: 'Arkansas',
+    stateGDP: 160,
+    stateDebt: 5,
+    stateCapitalInvestment: 1.5,
+    hamiltonianShare: 20,
+    buildRate: 0.9,
+    trend: 'rising',
+    naturalAdvantages: ['Low cost', 'Central location', 'Walmart/Tyson HQs', 'Agriculture', 'Natural gas'],
+    currentProjects: [
+      { name: 'Steel production (Big River)', category: 'Manufacturing', status: 'Building', investment: 1.5 },
+      { name: 'Walmart logistics expansion', category: 'Infrastructure', status: 'Active', investment: 1 },
+      { name: 'Tyson automation', category: 'Manufacturing', status: 'Active', investment: 0.5 }
+    ],
+    capacityGaps: [
+      { category: 'Workforce', need: 'Skilled labor', current: 'Education lagging' },
+      { category: 'Infrastructure', need: 'Modernization', current: 'Rural gaps' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Retail logistics (Walmart), agriculture, steel',
+    energyProfile: 'Nuclear (ANO) + gas. Adequate baseload.',
+    workforceReadiness: 'medium',
+    assessment: 'LOGISTICS HUB. Walmart effect drives investment. Steel revival promising.'
+  },
+  'Hawaii': {
+    state: 'Hawaii',
+    stateGDP: 95,
+    stateDebt: 12,
+    stateCapitalInvestment: 0.8,
+    hamiltonianShare: 12,
+    buildRate: 0.8,
+    trend: 'declining',
+    naturalAdvantages: ['Strategic Pacific location', 'Military bases', 'Tourism', 'Renewable potential'],
+    currentProjects: [
+      { name: 'Military base modernization', category: 'Defense', status: 'Active', investment: 1 },
+      { name: 'Renewable energy transition', category: 'Energy', status: 'Active', investment: 0.5 }
+    ],
+    capacityGaps: [
+      { category: 'Energy', need: 'End oil dependence', current: '80% oil imports' },
+      { category: 'Cost', need: 'Affordability', current: 'Highest costs in US' }
+    ],
+    politicalFeasibility: 'medium',
+    nationalRole: 'Pacific defense hub, strategic military location',
+    energyProfile: 'Oil-dependent. Transitioning to renewables. 100% renewable goal by 2045.',
+    workforceReadiness: 'medium',
+    assessment: 'STRATEGIC but struggling. Maui fires devastated economy. High costs, tourism-dependent.'
+  },
+  'New Hampshire': {
+    state: 'New Hampshire',
+    stateGDP: 105,
+    stateDebt: 8,
+    stateCapitalInvestment: 0.8,
+    hamiltonianShare: 16,
+    buildRate: 0.75,
+    trend: 'flat',
+    naturalAdvantages: ['No income/sales tax', 'Tech growth', 'Defense (shipyard)', 'Educated workforce'],
+    currentProjects: [
+      { name: 'Portsmouth Naval Shipyard', category: 'Defense', status: 'Active', investment: 0.5 },
+      { name: 'Tech sector growth', category: 'Infrastructure', status: 'Active', investment: 0.3 }
+    ],
+    capacityGaps: [
+      { category: 'Energy', need: 'Baseload', current: 'Nuclear (Seabrook) + imports' },
+      { category: 'Housing', need: 'Affordability', current: 'Boston spillover prices' }
+    ],
+    politicalFeasibility: 'medium',
+    nationalRole: 'Submarine repair (Portsmouth), defense, tech',
+    energyProfile: 'Nuclear (Seabrook) is major asset. Low-carbon grid.',
+    workforceReadiness: 'high',
+    assessment: 'STABLE. No income tax attracts business. Shipyard critical. Housing shortage.'
+  },
+  'Vermont': {
+    state: 'Vermont',
+    stateGDP: 40,
+    stateDebt: 3,
+    stateCapitalInvestment: 0.3,
+    hamiltonianShare: 14,
+    buildRate: 0.75,
+    trend: 'flat',
+    naturalAdvantages: ['Quality of life', 'Educated population', 'Dairy/agriculture', 'Hydro'],
+    currentProjects: [
+      { name: 'Renewable energy', category: 'Energy', status: 'Active', investment: 0.2 },
+      { name: 'Broadband expansion', category: 'Infrastructure', status: 'Active', investment: 0.1 }
+    ],
+    capacityGaps: [
+      { category: 'Manufacturing', need: 'Any', current: 'Minimal' },
+      { category: 'Energy', need: 'Baseload (closed Vermont Yankee)', current: 'Imports' }
+    ],
+    politicalFeasibility: 'low',
+    nationalRole: 'Limited national role. Small, rural economy.',
+    energyProfile: 'Closed nuclear (Vermont Yankee). Now imports energy. Hydro + renewables.',
+    workforceReadiness: 'high',
+    assessment: 'SMALL ECONOMY. Closed only nuclear plant. Anti-development politics. Aging population.'
+  },
+  'Rhode Island': {
+    state: 'Rhode Island',
+    stateGDP: 70,
+    stateDebt: 10,
+    stateCapitalInvestment: 0.5,
+    hamiltonianShare: 12,
+    buildRate: 0.7,
+    trend: 'flat',
+    naturalAdvantages: ['Ports', 'Naval Station Newport', 'Offshore wind potential', 'Universities'],
+    currentProjects: [
+      { name: 'Offshore wind (Block Island)', category: 'Energy', status: 'Active', investment: 0.3 },
+      { name: 'Naval Station Newport', category: 'Defense', status: 'Active', investment: 0.2 }
+    ],
+    capacityGaps: [
+      { category: 'Energy', need: 'Diversification', current: 'Gas-dependent' },
+      { category: 'Manufacturing', need: 'Revival', current: 'Declined' }
+    ],
+    politicalFeasibility: 'medium',
+    nationalRole: 'Naval training (Newport), offshore wind pilot',
+    energyProfile: 'Gas + first US offshore wind farm. Limited baseload.',
+    workforceReadiness: 'high',
+    assessment: 'SMALL but strategic. Naval Station Newport. Offshore wind pioneer. High costs.'
+  },
+  'Delaware': {
+    state: 'Delaware',
+    stateGDP: 85,
+    stateDebt: 5,
+    stateCapitalInvestment: 0.6,
+    hamiltonianShare: 14,
+    buildRate: 0.7,
+    trend: 'flat',
+    naturalAdvantages: ['Corporate haven', 'Port access', 'Pharma/finance', 'Location (I-95 corridor)'],
+    currentProjects: [
+      { name: 'Port of Wilmington', category: 'Infrastructure', status: 'Active', investment: 0.3 },
+      { name: 'Pharma manufacturing', category: 'Manufacturing', status: 'Active', investment: 0.2 }
+    ],
+    capacityGaps: [
+      { category: 'Energy', need: 'Nuclear/gas', current: 'Imports from PA/NJ' },
+      { category: 'Diversification', need: 'Beyond finance', current: 'Corporate-focused' }
+    ],
+    politicalFeasibility: 'medium',
+    nationalRole: 'Corporate headquarters, pharma, finance, port',
+    energyProfile: 'Energy importer. Some offshore wind potential.',
+    workforceReadiness: 'high',
+    assessment: 'CORPORATE HAVEN. Finance/pharma but little manufacturing. Port is asset.'
+  },
+  'Maryland': {
+    state: 'Maryland',
+    stateGDP: 450,
+    stateDebt: 28,
+    stateCapitalInvestment: 3.5,
+    hamiltonianShare: 16,
+    buildRate: 0.8,
+    trend: 'flat',
+    naturalAdvantages: ['Federal presence (DC metro)', 'Biotech', 'Ports (Baltimore)', 'Universities', 'Cybersecurity hub'],
+    currentProjects: [
+      { name: 'Port of Baltimore rebuild (Key Bridge)', category: 'Infrastructure', status: 'Rebuilding', investment: 2 },
+      { name: 'Fort Meade/NSA expansion', category: 'Defense', status: 'Active', investment: 1 },
+      { name: 'Biotech expansion', category: 'R&D', status: 'Active', investment: 0.5 }
+    ],
+    capacityGaps: [
+      { category: 'Energy', need: 'Baseload', current: 'Nuclear (Calvert Cliffs) + gas' },
+      { category: 'Fiscal', need: 'Debt control', current: 'Credit downgrade (Moody\'s Aa1)' }
+    ],
+    politicalFeasibility: 'medium',
+    nationalRole: 'Federal hub, cybersecurity (NSA/Fort Meade), biotech, ports',
+    energyProfile: 'Nuclear (Calvert Cliffs) + gas. Offshore wind planned.',
+    workforceReadiness: 'high',
+    assessment: 'FEDERAL DEPENDENT. Key Bridge collapse hurt. Credit downgrade in 2025. Strong biotech/cyber.'
+  },
+  'South Dakota': {
+    state: 'South Dakota',
+    stateGDP: 65,
+    stateDebt: 2,
+    stateCapitalInvestment: 0.5,
+    hamiltonianShare: 18,
+    buildRate: 0.8,
+    trend: 'flat',
+    naturalAdvantages: ['No income tax', 'Low cost', 'Agriculture', 'Business-friendly', 'Trust industry'],
+    currentProjects: [
+      { name: 'Data centers', category: 'Infrastructure', status: 'Building', investment: 0.3 },
+      { name: 'Ag processing', category: 'Agriculture', status: 'Active', investment: 0.2 }
+    ],
+    capacityGaps: [
+      { category: 'Workforce', need: 'Population', current: 'Small, rural' },
+      { category: 'Diversification', need: 'Beyond agriculture', current: 'Ag-dependent' }
+    ],
+    politicalFeasibility: 'high',
+    nationalRole: 'Agriculture, trust/banking industry',
+    energyProfile: 'Wind + hydro. Low energy costs.',
+    workforceReadiness: 'medium',
+    assessment: 'STABLE but small. No income tax attracts financial services. Limited manufacturing.'
   }
 }
 
