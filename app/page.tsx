@@ -579,6 +579,7 @@ interface StateHamiltonianAnalysis {
   assessment: string // honest assessment
   corruptionEvidence?: string // proven fraud/corruption cases
   pathToVictory?: string[] // how to unblock
+  blockedProjects?: { name: string, investment: number, jobs: number, yearsBlocked: number, blocker: string, status: string }[] // specific blocked projects with details
 }
 
 // ALL 50 STATES - Honest Hamiltonian Analysis
@@ -749,22 +750,55 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     population: 13.0,
     hamiltonianShare: 18,
     buildRate: 0.7,
-    trend: 'flat',
-    naturalAdvantages: ['Shale gas (Marcellus)', 'Existing nuclear', 'Ports', 'Manufacturing history'],
+    trend: 'rising',
+    naturalAdvantages: [
+      'Marcellus Shale (largest US gas reserve)',
+      '9 GW nuclear (2nd largest fleet)',
+      'Three Mile Island restart potential',
+      '83,000 miles of rivers (600+ MW hydro potential)',
+      'Manufacturing workforce',
+      'Strategic Northeast location',
+      'Data center boom (nuclear-powered)',
+      'Geothermal potential (could meet 100% of needs)'
+    ],
     currentProjects: [
+      { name: 'Three Mile Island Unit 1 restart (Constellation/Microsoft)', category: 'Nuclear', status: 'Approved - restart 2028', investment: 1.6 },
+      { name: 'Data centers (nuclear-powered)', category: 'Infrastructure', status: 'Building', investment: 8 },
+      { name: 'Shale gas infrastructure', category: 'Energy', status: 'Active', investment: 2.5 },
+      { name: 'Great Cove Solar (150 MW)', category: 'Energy', status: 'Operational 2023', investment: 0.3 },
       { name: 'Steel plant modernization', category: 'Manufacturing', status: 'Active', investment: 1.2 },
-      { name: 'Data centers (nuclear-powered)', category: 'Infrastructure', status: 'Proposed', investment: 8 },
-      { name: 'Shale infrastructure', category: 'Energy', status: 'Active', investment: 2.5 }
+      { name: 'US Steel Mon Valley Works', category: 'Manufacturing', status: 'Uncertain (Nippon deal blocked)', investment: 0 }
     ],
     capacityGaps: [
-      { category: 'Nuclear', need: 'Preserve/expand', current: '9 GW (threatened)' },
-      { category: 'Manufacturing', need: 'Steel revival', current: 'Declining' }
+      { category: 'Pipelines', need: 'Northeast gas delivery (NY/NJ markets)', current: 'PennEast cancelled (2021, $1B+, 12,000 jobs lost). Constitution Pipeline cancelled. NESE cancelled. Williams trying to revive.' },
+      { category: 'Nuclear', need: 'Preserve 9 GW + expand', current: 'TMI restart is win. Bell Bend (new plant) was cancelled.' },
+      { category: 'Hydro', need: '600+ MW potential', current: 'No new facilities since 2014. Existing plants avg 60 years old.' },
+      { category: 'Wind', need: '18,000-45,000 MW potential', current: 'Only 1,550 MW installed. Broad Mountain blocked by lawsuits.' },
+      { category: 'Manufacturing', need: 'Steel revival', current: 'US Steel sale to Nippon blocked. Cleveland-Cliffs bid rejected.' },
+      { category: 'Grid', need: 'Clean energy interconnection', current: 'Major delays connecting renewables to grid' }
     ],
     politicalFeasibility: 'medium',
-    nationalRole: 'Energy production (gas + nuclear), steel',
-    energyProfile: 'Major gas producer, significant nuclear. Political gridlock on energy.',
+    nationalRole: 'SHOULD BE: Northeast energy hub (gas + nuclear), steel manufacturing, data center capital. ACTUALLY: Pipelines blocked by NY/NJ, wind blocked by lawsuits, steel ownership uncertain. TMI restart is major win.',
+    energyProfile: 'Major gas producer (#2 in US). 9 GW nuclear (#2 fleet). Ranks 49th in renewable growth despite huge potential. TMI restart shows nuclear future is possible.',
     workforceReadiness: 'high',
-    assessment: 'UNDERPERFORMING. Has resources but politics block development. Could be energy powerhouse.'
+    assessment: 'MASSIVE UNTAPPED POTENTIAL. Has everything: Marcellus gas, 9 GW nuclear, hydro potential, wind potential, geothermal potential, manufacturing workforce. BLOCKED: PennEast pipeline ($1B, 12,000 jobs) cancelled. Constitution Pipeline cancelled. Broad Mountain wind blocked. Bell Bend nuclear cancelled. BUT: TMI restart is huge win — Microsoft deal proves nuclear has corporate backing. Shapiro (D) is pragmatic on energy. Key unlock: Federal pipeline approval + grid modernization. Could be #1 energy state if unblocked.',
+    blockedProjects: [
+      { name: 'PennEast Pipeline', investment: 1.0, jobs: 12000, yearsBlocked: 6, blocker: 'NJ regulators + environmental lawsuits', status: 'Cancelled 2021' },
+      { name: 'Constitution Pipeline', investment: 0.9, jobs: 8000, yearsBlocked: 10, blocker: 'NY DEC denied water permit', status: 'Cancelled, revival attempts ongoing' },
+      { name: 'Northeast Supply Enhancement (NESE)', investment: 1.0, jobs: 5000, yearsBlocked: 5, blocker: 'NY/NJ regulators', status: 'Cancelled, Williams reviving' },
+      { name: 'Broad Mountain Wind', investment: 0.2, jobs: 200, yearsBlocked: 5, blocker: 'Local lawsuits, permit revoked', status: 'Blocked' },
+      { name: 'Bell Bend Nuclear Plant', investment: 10.0, jobs: 3000, yearsBlocked: 0, blocker: 'Economics + regulatory uncertainty', status: 'Cancelled before construction' }
+    ],
+    pathToVictory: [
+      '2024-25: TMI restart approved — proves nuclear revival is possible with corporate backing (Microsoft)',
+      '2025: Williams working with federal regulators to revive PA→NY pipelines. Trump admin may expedite.',
+      '2025-26: Data center boom creates demand for reliable baseload (nuclear advantage)',
+      '2026: Grid modernization needed to connect 600+ MW hydro potential',
+      '2027: Geothermal study shows PA could meet 100% of energy needs — workforce from oil/gas can transition',
+      '2028: TMI Unit 1 restarts — first US nuclear restart in decades',
+      '2028-30: If pipelines revived, PA becomes Northeast energy hub. $3B+ investment unlocked, 25,000+ jobs',
+      '2030: Full potential — gas + nuclear + renewables makes PA energy exporter to entire Northeast'
+    ]
   },
   'Nevada': {
     state: 'Nevada',
@@ -863,26 +897,57 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     population: 39.0,
     hamiltonianShare: 14,
     buildRate: 0.65,
-    trend: 'flat',
-    naturalAdvantages: ['Tech talent', 'Ports (LA/Long Beach)', 'Solar/wind potential', 'Research universities', 'Aerospace'],
+    trend: 'declining',
+    naturalAdvantages: [
+      'Largest state economy ($3.8T GDP)',
+      'Ports (LA/Long Beach handle 40% of US imports)',
+      'Tech talent (Silicon Valley)',
+      'Research universities (UC system, Stanford, Caltech)',
+      'Aerospace (SpaceX, Northrop, Lockheed)',
+      'Solar/wind potential',
+      'Agricultural powerhouse (#1 ag state)',
+      'Deep water ports for Pacific trade'
+    ],
     currentProjects: [
-      { name: 'High-speed rail (troubled)', category: 'Infrastructure', status: 'Delayed', investment: 10 },
+      { name: 'High-speed rail (Central Valley segment)', category: 'Infrastructure', status: 'Building (troubled) - $4B federal funding revoked 2025', investment: 10 },
       { name: 'Caltrans infrastructure', category: 'Infrastructure', status: 'Active', investment: 15 },
-      { name: 'Port modernization', category: 'Infrastructure', status: 'Active', investment: 3 },
-      { name: 'Grid upgrades', category: 'Energy', status: 'Active', investment: 8 },
-      { name: 'Diablo Canyon extension', category: 'Energy', status: 'Approved', investment: 1.4 }
+      { name: 'Port modernization (LA/Long Beach)', category: 'Infrastructure', status: 'Active', investment: 3 },
+      { name: 'Grid upgrades (fire prevention)', category: 'Energy', status: 'Active', investment: 8 },
+      { name: 'Diablo Canyon extension', category: 'Nuclear', status: 'Extended to 2030 (was closing 2025)', investment: 1.4 },
+      { name: 'Delta Conveyance Project (water tunnel)', category: 'Water', status: 'Delayed by litigation', investment: 16 }
     ],
     capacityGaps: [
-      { category: 'Nuclear', need: 'Baseload', current: 'Diablo Canyon extended (was closing)' },
-      { category: 'Water', need: 'Desalination', current: 'Some projects, mostly blocked' },
-      { category: 'Manufacturing', need: 'Retention', current: 'Exiting to TX, AZ, NV' },
-      { category: 'Housing', need: 'Construction', current: 'Severely blocked' }
+      { category: 'Nuclear', need: 'New baseload beyond Diablo', current: 'Diablo is ONLY nuclear. San Onofre closed 2013. Sundesert blocked 1978. Bodega Bay blocked 1964.' },
+      { category: 'Water', need: 'Desalination at scale', current: 'Poseidon Huntington Beach rejected 2022 after 20+ years. Carlsbad (50M gal/day) is only major plant.' },
+      { category: 'Housing', need: '3.5M+ units shortage', current: 'CEQA blocks most projects. Avg permit takes 2-3 years. 80% of land zoned single-family only.' },
+      { category: 'Manufacturing', need: 'Retention', current: 'Companies fleeing: Tesla (HQ→TX), Oracle (HQ→TX), HP (HQ→TX). High costs, regulations.' },
+      { category: 'Energy reliability', need: 'Baseload power', current: 'Rolling blackouts 2020. Grid stressed by EV mandates + nuclear closures.' },
+      { category: 'Carbon capture', need: 'Industrial decarbonization', current: 'DOE cancelled $3.7B for 24 clean energy projects including 3 in CA (2025)' }
     ],
     politicalFeasibility: 'low',
-    nationalRole: 'Tech innovation, ports (40% of US imports), aerospace (SpaceX/Northrop)',
-    energyProfile: 'Grid stressed. Extended Diablo Canyon. Solar leader but reliability issues.',
+    nationalRole: 'SHOULD BE: Manufacturing + tech + ag + energy powerhouse. Largest economy, best ports, best universities. ACTUALLY: Exporting companies, blocking housing, closing nuclear, failed rail project. Diablo extension is only recent win.',
+    energyProfile: 'Grid stressed. Extended Diablo Canyon (only nuclear, was closing). Solar leader but rolling blackouts in 2020. San Onofre closed. No new nuclear since 1985.',
     workforceReadiness: 'high',
-    assessment: 'CONFLICTED. Massive spending but poor outcomes. High-speed rail debacle. Diablo extension is win.'
+    assessment: 'SELF-SABOTAGING despite having everything. Largest economy but: High-speed rail 20+ years, $100B+ and still not running. Poseidon desalination blocked after 20 years of permitting. Housing crisis (3.5M unit shortage) but CEQA blocks building. Companies fleeing to TX/AZ/NV. Only wins: Diablo extension, ports still operating. Path forward unclear — supermajority Dem legislature, no political check.',
+    blockedProjects: [
+      { name: 'Poseidon Huntington Beach Desalination', investment: 1.4, jobs: 2400, yearsBlocked: 24, blocker: 'California Coastal Commission', status: 'Rejected 2022' },
+      { name: 'High-Speed Rail (full SF-LA)', investment: 100, jobs: 200000, yearsBlocked: 16, blocker: 'Cost overruns, litigation, federal funding revoked', status: 'Partial construction only' },
+      { name: 'Sundesert Nuclear Power Plant', investment: 2.0, jobs: 3000, yearsBlocked: 47, blocker: 'Governor + state agency denial', status: 'Rejected 1978' },
+      { name: 'San Onofre (premature closure)', investment: -6.0, jobs: -1500, yearsBlocked: 0, blocker: 'Steam generator issues + regulatory burden', status: 'Closed 2013' },
+      { name: 'Housing (statewide CEQA delays)', investment: 50, jobs: 500000, yearsBlocked: 30, blocker: 'CEQA lawsuits, local zoning', status: 'Ongoing - 3.5M unit shortage' }
+    ],
+    pathToVictory: [
+      'UNLIKELY PATH — no political mechanism for change:',
+      '2024-25: Diablo Canyon extension is only win. Proves nuclear is needed but culture still anti-nuclear.',
+      '2025: Federal funding revoked for high-speed rail ($4B) — project may collapse entirely.',
+      '2025-26: Budget crisis as tech revenue falls. May force CEQA reform for economic reasons.',
+      '2026: No governor change possible (Newsom term-limited, likely replaced by similar Dem).',
+      '2027: Housing crisis may force state preemption of local zoning (SB 35 expansion).',
+      '2028: Delta Conveyance may break ground if litigation resolved (16+ years of delays).',
+      '2030+: Without political realignment, expect continued decline. Companies will keep leaving.',
+      'WILD CARD: Bankruptcy of major utility (PG&E precedent) could force restructuring.',
+      'ACTUAL PATH: Unlocking CA requires federal preemption or bankruptcy forcing reform. State politics cannot self-correct.'
+    ]
   },
   'New York': {
     state: 'New York',
