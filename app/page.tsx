@@ -580,6 +580,12 @@ interface StateHamiltonianAnalysis {
   corruptionEvidence?: string // proven fraud/corruption cases
   pathToVictory?: string[] // how to unblock
   blockedProjects?: { name: string, investment: number, jobs: number, yearsBlocked: number, blocker: string, status: string }[] // specific blocked projects with details
+  // Strategic Capacity Metrics (for AI/Digital/Energy analysis)
+  nuclearCapacity?: number // GW of nuclear power
+  chipInvestment?: number // $B in chip fab investments
+  dataCenterCapacity?: 'high' | 'medium' | 'low' | 'emerging' // data center / AI hosting capacity
+  gridReliability?: 'stable' | 'stressed' | 'vulnerable' // grid reliability for AI/industrial load
+  aiReadiness?: 'high' | 'medium' | 'low' // overall AI infrastructure readiness
 }
 
 // ALL 50 STATES - Honest Hamiltonian Analysis
@@ -641,7 +647,13 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
       'RISK: Another 2021-style freeze before nuclear buildout could be catastrophic',
       'OPPORTUNITY: If Texas adds nuclear + grid ties, it becomes unassailable energy/manufacturing leader',
       'POLITICAL ADVANTAGE: No state income tax, tort reform, right-to-work — companies keep coming'
-    ]
+    ],
+    // Strategic Capacity Metrics
+    nuclearCapacity: 5, // Only 5 GW (Comanche Peak + South Texas)
+    chipInvestment: 47, // Samsung $17B + TI $30B
+    dataCenterCapacity: 'high', // Large and growing
+    gridReliability: 'vulnerable', // ERCOT isolation, 2021 freeze
+    aiReadiness: 'medium' // High capacity but grid risk undermines it
   },
   'Ohio': {
     state: 'Ohio',
@@ -693,7 +705,13 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
       '2030: Full potential — Ohio as chip + EV + battery hub. Rust belt revival complete.',
       'RISK: Power supply. Fabs are energy-intensive. Need grid expansion + baseload.',
       'LESSON: State incentives + governor leadership + existing workforce = success'
-    ]
+    ],
+    // Strategic Capacity Metrics
+    nuclearCapacity: 2.1, // Davis-Besse + Perry (saved by HB6)
+    chipInvestment: 20, // Intel $20B Phase 1, up to $100B
+    dataCenterCapacity: 'emerging', // Growing with Intel
+    gridReliability: 'stressed', // Needs expansion for fab load
+    aiReadiness: 'medium' // Nuclear + freshwater but grid needs work
   },
   'Arizona': {
     state: 'Arizona',
@@ -751,7 +769,13 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
       'WATER SOLUTIONS: Desal from Sea of Cortez? Recycled water expansion? Ag-to-urban transfers?',
       'KEY ASSET: Palo Verde uses recycled sewage — proves water-independent energy is possible',
       'RISK: If water fails, $85B becomes stranded. National security disaster — chips depend on Arizona.'
-    ]
+    ],
+    // Strategic Capacity Metrics
+    nuclearCapacity: 3.9, // Palo Verde — largest US nuclear plant
+    chipInvestment: 85, // TSMC $65B + Intel $20B
+    dataCenterCapacity: 'high', // Microsoft, Google building
+    gridReliability: 'stable', // Palo Verde provides baseload
+    aiReadiness: 'high' // Nuclear + chips + data centers, IF water solved
   },
   'Tennessee': {
     state: 'Tennessee',
@@ -828,7 +852,13 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
       '2027+: Data center boom — Google, Microsoft, others expanding in Georgia',
       '2030: Georgia as Southeast manufacturing hub — EV, battery, solar, logistics',
       'KEY INSIGHT: Georgia proves the model works. Copy it: regulated utility, political will, business-friendly, build anyway despite costs.'
-    ]
+    ],
+    // Strategic Capacity Metrics
+    nuclearCapacity: 6.2, // Vogtle (4.5 GW after expansion) + other Georgia Power units
+    chipInvestment: 0, // Not a chip state
+    dataCenterCapacity: 'high', // Google, Microsoft expanding
+    gridReliability: 'stable', // Vogtle + regulated utility model
+    aiReadiness: 'high' // Nuclear baseload + data center growth
   },
   
   // === TIER 2: MIXED POTENTIAL (Could Go Either Way) ===
@@ -942,7 +972,13 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
       '2028: TMI Unit 1 restarts — first US nuclear restart in decades',
       '2028-30: If pipelines revived, PA becomes Northeast energy hub. $3B+ investment unlocked, 25,000+ jobs',
       '2030: Full potential — gas + nuclear + renewables makes PA energy exporter to entire Northeast'
-    ]
+    ],
+    // Strategic Capacity Metrics
+    nuclearCapacity: 9.0, // 2nd largest nuclear fleet in US
+    chipInvestment: 0, // Not a chip state (Pittsburgh has AI, not fabs)
+    dataCenterCapacity: 'high', // Nuclear-powered data centers growing
+    gridReliability: 'stable', // Nuclear baseload
+    aiReadiness: 'high' // 9 GW nuclear + TMI restart = data center magnet
   },
   'Nevada': {
     state: 'Nevada',
@@ -1029,7 +1065,13 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
       '2029-30: Permanent lab facility operational — Full capabilities, research continues to monitor and improve operations',
       '2030-32: Nuclear SMR construction starts (powered by lab research). Robotics hub fully operational, controlling Iron Range operations remotely',
       '2035: Minnesota transformed — energy exporter (nuclear), critical minerals hub (Iron Range), robotics center (Twin Cities), national lab (research leader), national baseline model for other states'
-    ]
+    ],
+    // Strategic Capacity Metrics
+    nuclearCapacity: 0, // Blocked by Walz — Demuth plan: SMR deployment
+    chipInvestment: 0, // Not a chip state — focus is minerals + robotics
+    dataCenterCapacity: 'emerging', // Cold climate advantage, needs power
+    gridReliability: 'stable', // But no nuclear baseload
+    aiReadiness: 'medium' // Cold climate advantage but needs nuclear for baseload
   },
   
   // === TIER 3: STAGNANT/DECLINING (Not Building) ===
@@ -1091,7 +1133,13 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
       '2030+: Without political realignment, expect continued decline. Companies will keep leaving.',
       'WILD CARD: Bankruptcy of major utility (PG&E precedent) could force restructuring.',
       'ACTUAL PATH: Unlocking CA requires federal preemption or bankruptcy forcing reform. State politics cannot self-correct.'
-    ]
+    ],
+    // Strategic Capacity Metrics
+    nuclearCapacity: 2.2, // Diablo Canyon only — San Onofre closed
+    chipInvestment: 0, // No fabs — companies leaving
+    dataCenterCapacity: 'low', // Grid stressed, high costs
+    gridReliability: 'vulnerable', // Rolling blackouts, fire risk, aging infrastructure
+    aiReadiness: 'low' // Grid can't support AI load, hostile to data centers
   },
   'New York': {
     state: 'New York',
@@ -1147,7 +1195,13 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
       '2030: Micron at scale — 25% of US chips. Upstate revival possible.',
       'KEY QUESTION: Is Micron the exception that proves NY is hostile, or the start of policy change?',
       'STRUCTURAL PROBLEM: No political mechanism to change — supermajority Dem, NYC dominates, upstate has no voice'
-    ]
+    ],
+    // Strategic Capacity Metrics
+    nuclearCapacity: 0, // Closed Indian Point (2 GW) — self-inflicted
+    chipInvestment: 100, // Micron $100B over 20 years
+    dataCenterCapacity: 'medium', // Growing but energy constrained
+    gridReliability: 'stressed', // Imports 25%+, closed nuclear
+    aiReadiness: 'low' // Energy crisis undermines data center potential
   },
   'Illinois': {
     state: 'Illinois',
@@ -1268,7 +1322,13 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
       '2030: TerraPower Natrium operational — proves coal-to-nuclear transition',
       '2030+: If Natrium works, model for 100+ US coal plant sites',
       'NATIONAL SIGNIFICANCE: TerraPower is most important energy project in America'
-    ]
+    ],
+    // Strategic Capacity Metrics
+    nuclearCapacity: 0, // TerraPower Natrium SMR coming 2030 — PIONEER
+    chipInvestment: 0, // Not a chip state
+    dataCenterCapacity: 'emerging', // Cold climate + cheap power potential
+    gridReliability: 'stable', // Small but stable, HVDC to CA coming
+    aiReadiness: 'medium' // Cheap power, cold, but small population limits scale
   },
   'Alaska': {
     state: 'Alaska',
@@ -1384,7 +1444,13 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
       'STRENGTH: Sovereign wealth fund model — saving for future, not just spending',
       'RISK: Oil price volatility, small population limits growth',
       'NATIONAL IMPACT: Burgum as Energy Secretary brings ND approach to federal policy'
-    ]
+    ],
+    // Strategic Capacity Metrics
+    nuclearCapacity: 0, // No nuclear
+    chipInvestment: 0, // Not a chip state
+    dataCenterCapacity: 'high', // Applied Digital $2.2B — cold + cheap power
+    gridReliability: 'stable', // Small grid but reliable
+    aiReadiness: 'high' // Cold climate, cheap power, data center magnet
   },
   'New Mexico': {
     state: 'New Mexico',
@@ -1561,7 +1627,13 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     nationalRole: 'Data centers, naval shipbuilding, federal hub',
     energyProfile: 'Data center demand outpacing supply. Nuclear needed.',
     workforceReadiness: 'high',
-    assessment: 'MIXED. Data center boom, shipyards critical. Energy supply lagging demand.'
+    assessment: 'MIXED. Data center boom, shipyards critical. Energy supply lagging demand.',
+    // Strategic Capacity Metrics
+    nuclearCapacity: 3.4, // North Anna + Surry
+    chipInvestment: 0, // Not a chip state
+    dataCenterCapacity: 'high', // #1 in US — Ashburn hub
+    gridReliability: 'stressed', // Demand outpacing supply
+    aiReadiness: 'high' // But hitting capacity limits, need nuclear expansion
   },
   'Washington': {
     state: 'Washington',
@@ -2618,6 +2690,59 @@ export default function Home() {
         </section>
 
         {/* ================================================================ */}
+        {/* STRATEGIC CALLOUTS - Quick-Glance Metrics */}
+        {/* ================================================================ */}
+        <section style={{ 
+          ...styles.section, 
+          paddingTop: '1rem', 
+          paddingBottom: '1rem',
+          background: `linear-gradient(180deg, ${COLORS.bg} 0%, rgba(0,255,136,0.02) 100%)`
+        }}>
+          {(() => {
+            const states = Object.values(stateHamiltonianAnalysis)
+            const totalBlockedInvestment = states.reduce((sum, s) => {
+              if (s.blockedProjects) {
+                return sum + s.blockedProjects.reduce((projSum, p) => projSum + Math.max(0, p.investment), 0)
+              }
+              return sum
+            }, 0)
+            const totalChipInvestment = states.reduce((sum, s) => sum + (s.chipInvestment || 0), 0)
+            const totalNuclearCapacity = states.reduce((sum, s) => sum + (s.nuclearCapacity || 0), 0)
+            
+            return (
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                gap: '2rem', 
+                flexWrap: 'wrap',
+                fontSize: '0.9rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1.2rem' }}>🚫</span>
+                  <span style={{ color: COLORS.other, fontWeight: 700 }}>${totalBlockedInvestment.toFixed(0)}B</span>
+                  <span style={{ color: COLORS.textMuted }}>Blocked</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1.2rem' }}>🔧</span>
+                  <span style={{ color: COLORS.accent, fontWeight: 700 }}>${totalChipInvestment}B</span>
+                  <span style={{ color: COLORS.textMuted }}>Chip Fabs</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1.2rem' }}>⚛️</span>
+                  <span style={{ color: COLORS.gold, fontWeight: 700 }}>{totalNuclearCapacity.toFixed(0)} GW</span>
+                  <span style={{ color: COLORS.textMuted }}>Nuclear (need 95)</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1.2rem' }}>🇹🇼</span>
+                  <span style={{ color: COLORS.warning, fontWeight: 700 }}>25%</span>
+                  <span style={{ color: COLORS.textMuted }}>Chip Independent by 2030</span>
+                </div>
+              </div>
+            )
+          })()}
+        </section>
+
+        {/* ================================================================ */}
         {/* NATIONAL BUILD RATE - The Real Picture */}
         {/* ================================================================ */}
           <section style={styles.section}>
@@ -2720,6 +2845,220 @@ export default function Home() {
                   </div>
                 </div>
               )
+          })()}
+        </section>
+
+        {/* ================================================================ */}
+        {/* STRATEGIC CAPACITY - AI, Chips, Energy */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>
+            <span style={{ color: COLORS.gold }}>STRATEGIC CAPACITY</span> — AI, Chips, Energy Independence
+          </h2>
+          <p style={styles.sectionSubtitle}>
+            Monroe Doctrine 2.0 requires domestic capacity. Current gaps threaten national security.
+          </p>
+          
+          {(() => {
+            // Calculate strategic metrics from state data
+            const states = Object.values(stateHamiltonianAnalysis)
+            
+            // Blocked Potential
+            const totalBlockedInvestment = states.reduce((sum, s) => {
+              if (s.blockedProjects) {
+                return sum + s.blockedProjects.reduce((projSum, p) => projSum + Math.max(0, p.investment), 0)
+              }
+              return sum
+            }, 0)
+            
+            const totalBlockedJobs = states.reduce((sum, s) => {
+              if (s.blockedProjects) {
+                return sum + s.blockedProjects.reduce((projSum, p) => projSum + Math.max(0, p.jobs), 0)
+              }
+              return sum
+            }, 0)
+            
+            // Chip Investment
+            const totalChipInvestment = states.reduce((sum, s) => sum + (s.chipInvestment || 0), 0)
+            
+            // Nuclear Capacity
+            const totalNuclearCapacity = states.reduce((sum, s) => sum + (s.nuclearCapacity || 0), 0)
+            const nuclearTarget = 95 // GW needed
+            
+            // AI Readiness
+            const aiHighStates = states.filter(s => s.aiReadiness === 'high').length
+            const aiMediumStates = states.filter(s => s.aiReadiness === 'medium').length
+            const aiLowStates = states.filter(s => s.aiReadiness === 'low').length
+            
+            // Grid Status
+            const vulnerableGrids = states.filter(s => s.gridReliability === 'vulnerable').length
+            const stressedGrids = states.filter(s => s.gridReliability === 'stressed').length
+            
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                {/* Blocked Potential Card */}
+                <div style={{
+                  ...styles.card,
+                  background: `linear-gradient(135deg, ${COLORS.bgCard} 0%, rgba(255,68,85,0.1) 100%)`,
+                  borderColor: COLORS.other
+                }}>
+                  <div style={{ fontSize: '0.85rem', color: COLORS.textMuted, marginBottom: '0.5rem' }}>
+                    🚫 BLOCKED POTENTIAL
+                  </div>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 700, color: COLORS.other }}>
+                    ${totalBlockedInvestment.toFixed(0)}B+
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: COLORS.textMuted }}>
+                    {(totalBlockedJobs / 1000).toFixed(0)}K+ jobs stuck in permitting
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: COLORS.textDim, marginTop: '0.75rem' }}>
+                    Top blockers: CA, NY, PA pipelines, AK mining
+                  </div>
+                </div>
+                
+                {/* Chip Independence Card */}
+                <div style={{
+                  ...styles.card,
+                  background: `linear-gradient(135deg, ${COLORS.bgCard} 0%, rgba(0,170,255,0.1) 100%)`,
+                  borderColor: COLORS.accent
+                }}>
+                  <div style={{ fontSize: '0.85rem', color: COLORS.textMuted, marginBottom: '0.5rem' }}>
+                    🔧 CHIP INDEPENDENCE
+                  </div>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 700, color: COLORS.accent }}>
+                    ${totalChipInvestment}B
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: COLORS.textMuted }}>
+                    Committed fab investment (TSMC, Intel, Samsung, Micron)
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: COLORS.textDim, marginTop: '0.75rem' }}>
+                    Timeline: 25% independent by 2030, 60% by 2035
+                  </div>
+                  <div style={{ 
+                    marginTop: '0.5rem', 
+                    height: 6, 
+                    background: COLORS.bgCardAlt, 
+                    borderRadius: 3,
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{ 
+                      width: '25%', 
+                      height: '100%', 
+                      background: COLORS.accent,
+                      borderRadius: 3
+                    }} />
+                  </div>
+                </div>
+                
+                {/* Nuclear Capacity Card */}
+                <div style={{
+                  ...styles.card,
+                  background: `linear-gradient(135deg, ${COLORS.bgCard} 0%, rgba(255,215,0,0.1) 100%)`,
+                  borderColor: COLORS.gold
+                }}>
+                  <div style={{ fontSize: '0.85rem', color: COLORS.textMuted, marginBottom: '0.5rem' }}>
+                    ⚛️ NUCLEAR CAPACITY
+                  </div>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 700, color: COLORS.gold }}>
+                    {totalNuclearCapacity.toFixed(0)} GW
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: COLORS.textMuted }}>
+                    of {nuclearTarget} GW needed for AI + industrial load
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: COLORS.textDim, marginTop: '0.75rem' }}>
+                    Shortfall: {(nuclearTarget - totalNuclearCapacity).toFixed(0)} GW — need 10x more SMRs
+                  </div>
+                  <div style={{ 
+                    marginTop: '0.5rem', 
+                    height: 6, 
+                    background: COLORS.bgCardAlt, 
+                    borderRadius: 3,
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{ 
+                      width: `${Math.min(100, (totalNuclearCapacity / nuclearTarget) * 100)}%`, 
+                      height: '100%', 
+                      background: COLORS.gold,
+                      borderRadius: 3
+                    }} />
+                  </div>
+                </div>
+                
+                {/* AI/Data Center Readiness Card */}
+                <div style={{
+                  ...styles.card,
+                  background: `linear-gradient(135deg, ${COLORS.bgCard} 0%, rgba(0,255,136,0.1) 100%)`,
+                  borderColor: COLORS.hamiltonian
+                }}>
+                  <div style={{ fontSize: '0.85rem', color: COLORS.textMuted, marginBottom: '0.5rem' }}>
+                    🤖 AI INFRASTRUCTURE READINESS
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.8rem', fontWeight: 700, color: COLORS.hamiltonian }}>{aiHighStates}</div>
+                      <div style={{ fontSize: '0.75rem', color: COLORS.textMuted }}>HIGH</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.8rem', fontWeight: 700, color: COLORS.warning }}>{aiMediumStates}</div>
+                      <div style={{ fontSize: '0.75rem', color: COLORS.textMuted }}>MEDIUM</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.8rem', fontWeight: 700, color: COLORS.other }}>{aiLowStates}</div>
+                      <div style={{ fontSize: '0.75rem', color: COLORS.textMuted }}>LOW</div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: COLORS.textDim, marginTop: '0.75rem' }}>
+                    High: Nuclear + cold climate + stable grid
+                  </div>
+                </div>
+                
+                {/* Grid Vulnerability Card */}
+                <div style={{
+                  ...styles.card,
+                  background: `linear-gradient(135deg, ${COLORS.bgCard} 0%, rgba(255,170,0,0.1) 100%)`,
+                  borderColor: COLORS.warning
+                }}>
+                  <div style={{ fontSize: '0.85rem', color: COLORS.textMuted, marginBottom: '0.5rem' }}>
+                    ⚡ GRID VULNERABILITY
+                  </div>
+                  <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.8rem', fontWeight: 700, color: COLORS.other }}>{vulnerableGrids}</div>
+                      <div style={{ fontSize: '0.75rem', color: COLORS.textMuted }}>VULNERABLE</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.8rem', fontWeight: 700, color: COLORS.warning }}>{stressedGrids}</div>
+                      <div style={{ fontSize: '0.75rem', color: COLORS.textMuted }}>STRESSED</div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: COLORS.textDim, marginTop: '0.75rem' }}>
+                    TX (ERCOT), CA (rolling blackouts), NY (closed nuclear)
+                  </div>
+                </div>
+                
+                {/* Taiwan Scenario Card */}
+                <div style={{
+                  ...styles.card,
+                  background: `linear-gradient(135deg, ${COLORS.bgCard} 0%, rgba(255,68,85,0.15) 100%)`,
+                  borderColor: COLORS.other
+                }}>
+                  <div style={{ fontSize: '0.85rem', color: COLORS.textMuted, marginBottom: '0.5rem' }}>
+                    🇹🇼 TAIWAN SCENARIO RISK
+                  </div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 600, color: COLORS.other, marginTop: '0.5rem' }}>
+                    2025-2028: CRITICAL WINDOW
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: COLORS.textMuted, marginTop: '0.5rem' }}>
+                    If Taiwan blocked before US fabs scale:
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: COLORS.textDim, marginTop: '0.5rem' }}>
+                    • 90% advanced chip supply cut<br/>
+                    • Defense systems lose replacements<br/>
+                    • AI training halts (GPU shortage)
+                  </div>
+                </div>
+              </div>
+            )
           })()}
         </section>
 
@@ -2930,6 +3269,24 @@ export default function Home() {
                         Build Rate
                       </div>
                     </div>
+                    {/* AI Readiness Indicator */}
+                    <div style={{
+                      textAlign: 'center',
+                      minWidth: '40px'
+                    }}>
+                      <div style={{ 
+                        fontSize: '1rem',
+                        marginBottom: '2px'
+                      }}>
+                        {state.aiReadiness === 'high' ? '🟢' : state.aiReadiness === 'medium' ? '🟡' : state.aiReadiness === 'low' ? '🔴' : '⚪'}
+                      </div>
+                      <div style={{ 
+                        fontSize: '0.55rem',
+                        color: COLORS.textMuted
+                      }}>
+                        AI
+                      </div>
+                    </div>
                     <div style={{...styles.leaderboardBar, minWidth: '80px'}}>
                       <div style={{
                         width: `${Math.min((state.hamiltonianShare / 50) * 100, 100)}%`,
@@ -2952,6 +3309,7 @@ export default function Home() {
             • <strong>Per Capita:</strong> $ invested per person — measures impact on citizens (small states can lead here)<br />
             • <strong>US Share:</strong> What % of total US state capital this state represents — measures absolute contribution to national capacity<br />
             • <strong>Build Rate:</strong> Capital investment ÷ State GDP — how aggressively they're building relative to their economy<br />
+            • <strong>AI:</strong> 🟢 High (nuclear + stable grid), 🟡 Medium (potential), 🔴 Low (grid issues), ⚪ Not rated<br />
             <strong>Click any state</strong> to view details. Targets: 25%+ Hamiltonian, $400+ per capita, 1%+ Build Rate.
           </div>
           </section>
