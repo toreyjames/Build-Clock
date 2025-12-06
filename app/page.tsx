@@ -1878,6 +1878,106 @@ export default function Home() {
         </section>
 
         {/* ================================================================ */}
+        {/* STATE LEADERBOARD - Top Hamiltonian Share */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>
+            <span style={{ color: COLORS.gold }}>STATE LEADERBOARD</span> — Top Hamiltonian Share
+          </h2>
+          <p style={styles.sectionSubtitle}>
+            Which states are leading in productive capital investment? States ranked by Hamiltonian Share (% of spending on building assets).
+          </p>
+          
+          <div style={styles.leaderboardContainer}>
+            {Object.values(stateHamiltonianAnalysis)
+              .sort((a, b) => b.hamiltonianShare - a.hamiltonianShare)
+              .slice(0, 15)
+              .map((state, index) => {
+                const rank = index + 1
+                const isTop3 = rank <= 3
+                const isTop10 = rank <= 10
+                const meetsTarget = state.hamiltonianShare >= 25
+                
+                return (
+                  <div 
+                    key={state.state}
+                    style={{
+                      ...styles.leaderboardRow,
+                      backgroundColor: isTop3 ? `${COLORS.hamiltonian}15` : isTop10 ? `${COLORS.gold}10` : COLORS.bgCard,
+                      borderLeft: `4px solid ${isTop3 ? COLORS.hamiltonian : isTop10 ? COLORS.gold : COLORS.border}`,
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => setSelectedState(state.state)}
+                  >
+                    <div style={styles.leaderboardRank}>
+                      {isTop3 ? (
+                        <span style={{ fontSize: '1.2rem' }}>
+                          {rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}
+                        </span>
+                      ) : (
+                        <span style={{ 
+                          color: isTop10 ? COLORS.text : COLORS.textMuted,
+                          fontWeight: isTop10 ? 700 : 400
+                        }}>
+                          #{rank}
+                        </span>
+                      )}
+                    </div>
+                    <div style={styles.leaderboardState}>
+                      <div style={{ 
+                        fontWeight: 700, 
+                        fontSize: '1rem',
+                        color: COLORS.text
+                      }}>
+                        {state.state}
+                      </div>
+                      <div style={{ 
+                        fontSize: '0.75rem', 
+                        color: COLORS.textMuted,
+                        marginTop: '2px'
+                      }}>
+                        {state.trend === 'rising' ? '📈 Rising' : state.trend === 'declining' ? '📉 Declining' : '➡️ Flat'}
+                        {' • '}
+                        Build Rate: {state.buildRate}%
+                      </div>
+                    </div>
+                    <div style={styles.leaderboardScore}>
+                      <div style={{
+                        fontSize: '1.5rem',
+                        fontWeight: 800,
+                        color: meetsTarget ? COLORS.hamiltonian : isTop10 ? COLORS.gold : COLORS.text,
+                        lineHeight: 1
+                      }}>
+                        {state.hamiltonianShare}%
+                      </div>
+                      <div style={{
+                        fontSize: '0.7rem',
+                        color: COLORS.textMuted,
+                        marginTop: '2px'
+                      }}>
+                        {meetsTarget ? '✓ Target' : 'Target: 25%'}
+                      </div>
+                    </div>
+                    <div style={styles.leaderboardBar}>
+                      <div style={{
+                        width: `${Math.min((state.hamiltonianShare / 50) * 100, 100)}%`,
+                        height: '100%',
+                        backgroundColor: meetsTarget ? COLORS.hamiltonian : isTop10 ? COLORS.gold : COLORS.warning,
+                        borderRadius: '4px',
+                        transition: 'width 0.3s ease'
+                      }} />
+                    </div>
+                  </div>
+                )
+              })}
+          </div>
+          
+          <div style={styles.leaderboardNote}>
+            <strong>Note:</strong> Click any state to view detailed analysis. Target: 25%+ Hamiltonian Share (federal baseline: 18%).
+          </div>
+        </section>
+
+        {/* ================================================================ */}
         {/* STATE REVIEW - Hamiltonian Analysis by State */}
         {/* ================================================================ */}
         <section style={styles.section}>
@@ -3532,6 +3632,55 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   
   // State Review Section
+  leaderboardContainer: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.75rem',
+    marginTop: '1.5rem',
+    marginBottom: '1rem',
+  },
+  leaderboardRow: {
+    display: 'grid',
+    gridTemplateColumns: '60px 1fr 120px 200px',
+    gap: '1rem',
+    alignItems: 'center',
+    padding: '1rem',
+    borderRadius: '8px',
+    border: `1px solid ${COLORS.border}`,
+    transition: 'all 0.2s ease',
+  },
+  leaderboardRank: {
+    fontSize: '1.1rem',
+    fontWeight: 700,
+    textAlign: 'center' as const,
+    color: COLORS.text,
+  },
+  leaderboardState: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+  },
+  leaderboardScore: {
+    textAlign: 'right' as const,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'flex-end',
+  },
+  leaderboardBar: {
+    width: '100%',
+    height: '8px',
+    backgroundColor: COLORS.bg,
+    borderRadius: '4px',
+    overflow: 'hidden',
+  },
+  leaderboardNote: {
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+    marginTop: '1rem',
+    padding: '0.75rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '6px',
+    border: `1px solid ${COLORS.border}`,
+  },
   stateReviewSelector: {
     display: 'flex',
     alignItems: 'center',
