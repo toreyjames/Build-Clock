@@ -726,21 +726,50 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     hamiltonianShare: 20,
     buildRate: 0.8,
     trend: 'flat',
-    naturalAdvantages: ['Freshwater (Great Lakes)', 'Manufacturing legacy', 'Auto supply chain'],
+    naturalAdvantages: [
+      'Freshwater (Great Lakes — 20% of world\'s surface freshwater)',
+      'Manufacturing legacy (auto capital of America)',
+      'Auto supply chain (deepest in US)',
+      'Skilled workforce (UAW, engineering talent)',
+      'Research universities (U of M, Michigan State)',
+      'Port access (Great Lakes shipping)',
+      'Land availability for manufacturing'
+    ],
     currentProjects: [
-      { name: 'GM/Ford EV transition', category: 'Manufacturing', status: 'Active', investment: 15 },
-      { name: 'Battery gigafactories', category: 'Manufacturing', status: 'Building', investment: 8 },
-      { name: 'Gotion battery (blocked?)', category: 'Manufacturing', status: 'Controversial', investment: 2.4 }
+      { name: 'GM Ultium battery plants', category: 'Manufacturing', status: 'Building', investment: 7 },
+      { name: 'Ford EV transition (Rouge, Flat Rock)', category: 'Manufacturing', status: 'Active', investment: 8 },
+      { name: 'Gotion battery plant (Big Rapids)', category: 'Manufacturing', status: 'Controversial — national security concerns', investment: 2.4 },
+      { name: 'Stellantis battery JV', category: 'Manufacturing', status: 'Building', investment: 4.5 },
+      { name: 'DTE coal-to-renewable transition', category: 'Energy', status: 'Underway — grid reliability concerns', investment: 3 },
+      { name: 'Consumers Energy clean energy plan', category: 'Energy', status: 'Active', investment: 2 }
     ],
     capacityGaps: [
-      { category: 'Energy', need: 'Nuclear/gas', current: 'Coal phase-out, no replacement' },
-      { category: 'Grid', need: 'Hardening', current: 'Aging, frequent outages' }
+      { category: 'Energy', need: 'Baseload replacement for coal', current: 'Closing coal plants with no clear replacement. Fermi 2 nuclear is only baseload. No new nuclear planned.' },
+      { category: 'Grid', need: 'Reliability + hardening', current: 'DTE/Consumers among worst utilities for outages. 2023 storms exposed failures. Aging infrastructure.' },
+      { category: 'Supply Chain', need: 'Domestic battery materials', current: 'Gotion controversy highlights China dependence. No domestic lithium/cobalt processing.' },
+      { category: 'Workforce', need: 'EV transition retraining', current: 'UAW strikes showed tension. ICE→EV means fewer jobs per vehicle. Retraining lagging.' },
+      { category: 'Chips', need: 'Semiconductor supply', current: 'Auto industry still chip-constrained. No major fab investment (unlike OH, AZ).' }
     ],
     politicalFeasibility: 'medium',
-    nationalRole: 'Auto manufacturing transition to EV',
-    energyProfile: 'Closing coal with no clear replacement. Grid reliability declining.',
+    nationalRole: 'SHOULD BE: EV/battery manufacturing hub, auto innovation center, freshwater advantage. ACTUALLY: Gotion controversy exposes China dependence. Grid failing. Coal closing with no replacement. UAW tensions. Still #1 auto state but at risk.',
+    energyProfile: 'Closing coal (Belle River, others) with no clear replacement. Fermi 2 is only nuclear (1.1 GW). Wind/solar growing but intermittent. DTE/Consumers reliability among worst in nation.',
     workforceReadiness: 'high',
-    assessment: 'AT RISK. Great workforce, but energy policy is incoherent. Grid failing.'
+    assessment: 'AUTO TRANSITION AT RISK. World\'s best auto workforce, Great Lakes water advantage, deep supply chain. BUT: Gotion controversy (Chinese battery plant in Big Rapids) raises national security questions — is MI building for America or China? Grid is failing — DTE/Consumers among worst utilities. Coal closing with no baseload replacement (only Fermi 2 nuclear). EV transition means fewer jobs per vehicle. UAW 2023 strikes showed workforce anxiety. WIN: Still attracting billions in EV/battery investment. RISK: Energy policy incoherence could collapse the transition.',
+    blockedProjects: [
+      { name: 'Gotion Battery Plant (Big Rapids)', investment: 2.4, jobs: 2350, yearsBlocked: 1, blocker: 'National security concerns, local opposition, China ties', status: 'Controversial — construction ongoing amid protests' },
+      { name: 'New Nuclear (none proposed)', investment: 0, jobs: 0, yearsBlocked: 0, blocker: 'Political will, no utility interest', status: 'Not even proposed — Fermi 2 is only plant' },
+      { name: 'Grid Hardening (deferred)', investment: 5, jobs: 10000, yearsBlocked: 10, blocker: 'Utility underinvestment, rate cases', status: 'Chronic underinvestment' }
+    ],
+    pathToVictory: [
+      '2024-25: Gotion controversy tests whether MI will accept Chinese investment or demand domestic supply chain',
+      '2025: Grid reliability must improve — DTE/Consumers under pressure after storm failures',
+      '2025-26: Coal plant closures (Belle River, others) — need replacement baseload or risk blackouts',
+      '2026: UAW contract negotiations — EV jobs vs ICE jobs tension continues',
+      '2027: If grid stabilizes + domestic battery supply secured, MI leads EV transition',
+      '2028: Full EV production ramp-up — GM, Ford, Stellantis all producing EVs at scale',
+      '2030: Success scenario: MI is EV capital with reliable grid, domestic supply chain, retrained workforce',
+      'RISK scenario: Grid fails, China dependence deepens, workforce shrinks, auto moves to TX/TN/GA'
+    ]
   },
   'Pennsylvania': {
     state: 'Pennsylvania',
@@ -958,21 +987,52 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     hamiltonianShare: 15,
     buildRate: 0.45,
     trend: 'flat',
-    naturalAdvantages: ['Ports', 'Tech talent', 'Capital markets', 'Research'],
+    naturalAdvantages: [
+      'Global financial capital (Wall Street)',
+      'Major ports (NYC, Long Island)',
+      'Research universities (Columbia, Cornell, NYU, RPI)',
+      'Tech talent (NYC tech scene)',
+      'Manufacturing history (upstate)',
+      'Hydropower (Niagara)',
+      'Strategic Northeast location'
+    ],
     currentProjects: [
-      { name: 'Micron fab (Syracuse)', category: 'Chip Fabs', status: 'Building', investment: 100 },
-      { name: 'Offshore wind', category: 'Energy', status: 'Troubled', investment: 2 },
-      { name: 'Indian Point closure', category: 'Energy', status: 'Complete', investment: -6 }
+      { name: 'Micron fab (Syracuse)', category: 'Chip Fabs', status: 'Building — $100B over 20 years, 50,000 jobs', investment: 100 },
+      { name: 'Micron power line (345 kV)', category: 'Infrastructure', status: 'Approved Oct 2025', investment: 0.5 },
+      { name: 'Offshore wind (Empire Wind, Sunrise)', category: 'Energy', status: 'Troubled — cost overruns, contracts cancelled', investment: 2 },
+      { name: 'Albany Nanotech Complex', category: 'R&D', status: 'Active', investment: 1 }
     ],
     capacityGaps: [
-      { category: 'Nuclear', need: 'Replace Indian Point', current: 'Closed, gas imports' },
-      { category: 'Energy', need: 'Baseload', current: 'Importing from PA, Canada' }
+      { category: 'Nuclear', need: 'Replace 2 GW Indian Point', current: 'CLOSED 2021. Now importing gas/electricity from PA + Canada. No replacement built.' },
+      { category: 'Pipelines', need: 'Natural gas delivery', current: 'Constitution Pipeline blocked (NY DEC). PennEast blocked. NESE blocked. Williams reviving. Highest gas prices in continental US.' },
+      { category: 'Energy reliability', need: 'Baseload power', current: 'Importing 25%+ of electricity. Grid stressed. Winter reliability concerns.' },
+      { category: 'Offshore wind', need: 'Planned 9 GW by 2035', current: 'Projects collapsing — Ørsted cancelled 2 projects (2023), cost overruns, supply chain issues.' },
+      { category: 'Housing', need: 'Millions of units', current: 'NYC housing crisis, upstate population declining' },
+      { category: 'Manufacturing', need: 'Revival beyond Micron', current: 'Decades of decline. Micron is exception.' }
     ],
     politicalFeasibility: 'low',
-    nationalRole: 'Finance hub. Micron fab is exception in otherwise hostile environment.',
-    energyProfile: 'Closed Indian Point nuclear. Now imports energy. Offshore wind failing.',
+    nationalRole: 'SHOULD BE: Finance + manufacturing + energy hub for Northeast. ACTUALLY: Closed nuclear, blocked pipelines, highest energy costs, population fleeing upstate. ONE EXCEPTION: Micron fab is largest private investment in state history — proves NY CAN build when it wants to.',
+    energyProfile: 'SELF-INFLICTED ENERGY CRISIS. Closed Indian Point (2 GW nuclear) in 2021 with no replacement. Blocked every pipeline from PA. Now imports 25%+ of electricity + gas from PA and Canada. Highest natural gas prices in continental US. Offshore wind failing (Ørsted cancellations). Only bright spot: Niagara hydro still operating.',
     workforceReadiness: 'high',
-    assessment: 'MIXED. Micron is huge win, but closed nuclear, blocked pipelines. Self-sabotaging.'
+    assessment: 'THE MICRON EXCEPTION. NY has everything: ports, talent, capital, universities. But anti-energy politics created crisis. Indian Point closure (2 GW) was policy choice — plant was safe, profitable, carbon-free. Pipeline blocks (Constitution, PennEast, NESE) mean NY pays highest gas prices in continental US. Offshore wind projects collapsing. Population fleeing upstate. BUT: Micron fab proves NY can attract investment when it tries. $100B, 50,000 jobs, 25% of US chips by 2030. Question: Is Micron the start of revival or last gasp before full decline?',
+    blockedProjects: [
+      { name: 'Indian Point Nuclear (closed)', investment: -6, jobs: -1000, yearsBlocked: 0, blocker: 'Cuomo policy decision', status: 'Closed 2021 — 2 GW lost, no replacement' },
+      { name: 'Constitution Pipeline', investment: 0.9, jobs: 8000, yearsBlocked: 10, blocker: 'NY DEC denied water quality permit', status: 'Cancelled after decade of delays' },
+      { name: 'Northeast Supply Enhancement (NESE)', investment: 1.0, jobs: 5000, yearsBlocked: 5, blocker: 'NY/NJ regulators', status: 'Cancelled, Williams attempting revival' },
+      { name: 'Empire Wind 1 & 2, Sunrise Wind', investment: 8, jobs: 5000, yearsBlocked: 0, blocker: 'Economics, supply chain, cost overruns', status: 'Delayed/restructured, some cancelled' },
+      { name: 'Housing (statewide)', investment: 20, jobs: 100000, yearsBlocked: 20, blocker: 'Local zoning, NIMBYism, rent control politics', status: 'Chronic shortage' }
+    ],
+    pathToVictory: [
+      '2024-25: Micron construction progresses — proves NY can build when it wants to',
+      '2025: Williams attempts to revive PA→NY pipelines with federal support. Could lower gas prices 30%+',
+      '2025-26: Offshore wind crisis deepens OR projects stabilize with federal support',
+      '2026: Hochul term — will she continue Cuomo anti-energy legacy or pivot?',
+      '2027: Micron Phase 1 operational — first chips produced in Syracuse',
+      '2028: If pipelines revived + offshore wind stabilized, NY energy crisis eases',
+      '2030: Micron at scale — 25% of US chips. Upstate revival possible.',
+      'KEY QUESTION: Is Micron the exception that proves NY is hostile, or the start of policy change?',
+      'STRUCTURAL PROBLEM: No political mechanism to change — supermajority Dem, NYC dominates, upstate has no voice'
+    ]
   },
   'Illinois': {
     state: 'Illinois',
@@ -1082,21 +1142,60 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     hamiltonianShare: 40,
     buildRate: 2.0,
     trend: 'rising',
-    naturalAdvantages: ['Oil/gas', 'Critical minerals', 'Ports', 'Strategic Pacific location'],
+    naturalAdvantages: [
+      'Prudhoe Bay — largest oil field in North America (25B barrels original)',
+      '14.5B barrels undiscovered oil (USGS estimate)',
+      '111 trillion cubic feet natural gas (North Slope)',
+      'ANWR Coastal Plain — 1.56M acres reopened Dec 2025',
+      'Red Dog Mine — world\'s largest zinc producer (10% global)',
+      'Critical minerals (rare earths, copper, gold, silver)',
+      '160+ billion tons coal reserves (half of US total)',
+      'Fisheries — 50%+ of US catch, $4.5B/year wholesale',
+      'Tongass National Forest — 17M acres, largest in US',
+      'Strategic Pacific location (defense, Arctic access)',
+      'Ports (Anchorage, Dutch Harbor)',
+      'LNG export potential (Asia markets)'
+    ],
     currentProjects: [
-      { name: 'Willow Project', category: 'Energy', status: 'Active', investment: 8 },
-      { name: 'Alaska LNG', category: 'Energy', status: 'Proposed', investment: 38 },
-      { name: 'Critical minerals mining', category: 'Mining', status: 'Permitting', investment: 2 }
+      { name: 'Willow Project (ConocoPhillips)', category: 'Energy', status: 'Approved 2023, construction underway', investment: 8 },
+      { name: 'Alaska LNG (North Slope→Nikiski)', category: 'Energy', status: 'Proposed — $38B, could supply Asia', investment: 38 },
+      { name: 'ANWR oil/gas leasing', category: 'Energy', status: 'Reopened Dec 2025 (Trump admin)', investment: 5 },
+      { name: 'NPR-A expansion (10.6M acres)', category: 'Energy', status: 'Reopened Nov 2025', investment: 3 },
+      { name: 'Red Dog Mine expansion', category: 'Mining', status: 'Active — zinc, lead, silver', investment: 0.5 },
+      { name: 'Ambler Mining District road', category: 'Infrastructure', status: 'Proposed — opens copper/zinc/gold', investment: 0.5 },
+      { name: 'Arctic Project (copper, zinc, gold)', category: 'Mining', status: 'Permitting', investment: 2 }
     ],
     capacityGaps: [
-      { category: 'Infrastructure', need: 'Roads, ports', current: 'Extremely limited' },
-      { category: 'Grid', need: 'Connections', current: 'Isolated' }
+      { category: 'Infrastructure', need: 'Roads to resources', current: 'Extremely limited. Ambler road blocked. Most resources landlocked.' },
+      { category: 'Grid', need: 'Interconnection', current: 'Isolated grids. No connection to lower 48. Diesel-dependent villages.' },
+      { category: 'Workforce', need: 'Population', current: 'Only 730,000 people. Harsh conditions limit labor pool.' },
+      { category: 'LNG', need: 'Export terminal', current: 'No LNG export capacity. $38B Alaska LNG project stalled for decades.' },
+      { category: 'Mining', need: 'Permitting acceleration', current: 'Pebble Mine blocked (EPA 2023). Other projects face long timelines.' }
     ],
     politicalFeasibility: 'high',
-    nationalRole: 'Energy dominance, Pacific defense, critical minerals',
-    energyProfile: 'Major oil/gas. LNG export potential. Strategically critical.',
+    nationalRole: 'AMERICA\'S RESOURCE VAULT. Largest oil field (Prudhoe), largest zinc mine (Red Dog), half of US fish catch, half of US coal reserves, massive rare earth potential. Strategic Arctic access. LNG export to Asia could rival Qatar. Defense installations (Eielson, Elmendorf, Clear Space Force). UNLOCKING NOW: Trump admin reopened ANWR (Dec 2025), NPR-A (Nov 2025), Willow proceeding.',
+    energyProfile: 'Oil production down from 2M bbl/day peak (1988) to ~450K bbl/day. Willow adds 180K bbl/day. ANWR could add 1M+ bbl/day if developed. Alaska LNG would be game-changer for Asia exports. Trans-Alaska Pipeline has capacity for more oil.',
     workforceReadiness: 'medium',
-    assessment: 'STRATEGIC. Willow is major win. LNG could be transformative.'
+    assessment: 'UNLOCKING AFTER DECADES. Trump admin actions in 2025 are game-changing: ANWR reopened (1.56M acres), NPR-A protections removed (10.6M acres), Willow proceeding. BUT: Pebble Mine still blocked (EPA 2023 — copper/gold in Bristol Bay). Alaska LNG stalled for decades despite massive potential. Infrastructure is the constraint — resources exist but roads/ports don\'t. Small population limits workforce. KEY: Federal action can unlock Alaska; state politics already favorable. This is the fastest-unlocking state if momentum continues.',
+    blockedProjects: [
+      { name: 'Pebble Mine (copper, gold, molybdenum)', investment: 6, jobs: 2000, yearsBlocked: 20, blocker: 'EPA blocked (Jan 2023) — Bristol Bay salmon concerns', status: 'Blocked — one of world\'s largest copper/gold deposits' },
+      { name: 'Alaska LNG', investment: 38, jobs: 15000, yearsBlocked: 10, blocker: 'Economics, permitting, financing', status: 'Stalled — reviving with Asian demand' },
+      { name: 'Ambler Mining District Road', investment: 0.5, jobs: 3000, blocker: 'Environmental review, tribal concerns', yearsBlocked: 5, status: 'Proposed — would unlock copper/zinc/gold region' },
+      { name: 'ANWR (until Dec 2025)', investment: 10, jobs: 5000, yearsBlocked: 40, blocker: 'Biden admin blocked leasing', status: 'UNBLOCKED Dec 2025 — Congress repealed restrictions' }
+    ],
+    pathToVictory: [
+      '2023: Willow Project approved — 180K bbl/day, $8B investment, construction underway',
+      '2025 Oct: ANWR Coastal Plain reopened to oil/gas development (Trump admin)',
+      '2025 Nov: NPR-A protections removed — 10.6M acres opened',
+      '2025 Dec: Congress repeals Biden-era ANWR restrictions — fully unlocked',
+      '2026: First ANWR lease sales since 2021. Major oil companies bid.',
+      '2027: Willow Phase 1 production begins — first new North Slope field in decades',
+      '2027-28: Ambler Road decision — if approved, unlocks major mining district',
+      '2028-30: ANWR exploration/development ramps up. 100K-500K bbl/day potential by 2035.',
+      '2030+: Alaska LNG financing secured? Would transform state into LNG exporter to Asia.',
+      'REMAINING BLOCK: Pebble Mine (EPA block) — world-class copper/gold, needs new administration push',
+      'STRUCTURAL ADVANTAGE: State politics aligned, federal action unlocking, Asian demand for LNG/resources'
+    ]
   },
   'North Dakota': {
     state: 'North Dakota',
