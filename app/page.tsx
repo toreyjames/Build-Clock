@@ -1886,17 +1886,51 @@ export default function Home() {
           </h2>
           <p style={styles.sectionSubtitle}>
             Which states are leading in productive capital investment? States ranked by Hamiltonian Share (% of spending on building assets).
+            <br /><strong>Contribution to National %:</strong> Shows how each state's capital investment contributes to the overall American Hamiltonian Share (18%).
           </p>
           
-          <div style={styles.leaderboardContainer}>
-            {Object.values(stateHamiltonianAnalysis)
-              .sort((a, b) => b.hamiltonianShare - a.hamiltonianShare)
-              .slice(0, 15)
-              .map((state, index) => {
+          {(() => {
+            // Calculate total national GDP from all states
+            const totalStateGDP = Object.values(stateHamiltonianAnalysis).reduce((sum, state) => sum + state.stateGDP, 0)
+            const totalStateCapitalInvestment = Object.values(stateHamiltonianAnalysis).reduce((sum, state) => sum + state.stateCapitalInvestment, 0)
+            
+            // National Hamiltonian Share is 18% (federal level)
+            // We'll show how state capital investment contributes to national capacity
+            // State capital investment as % of national GDP
+            const nationalGDP = econData.gdp * 1000 // Convert trillions to billions
+            const stateCapitalAsPctOfNationalGDP = (totalStateCapitalInvestment / nationalGDP) * 100
+            
+            return (
+              <div style={styles.leaderboardContainer}>
+                <div style={styles.leaderboardHeader}>
+                  <div style={styles.leaderboardHeaderNote}>
+                    <strong>National Context:</strong> Total state capital investment: ${totalStateCapitalInvestment.toFixed(1)}B 
+                    ({stateCapitalAsPctOfNationalGDP.toFixed(2)}% of national GDP). 
+                    Federal Hamiltonian Share: {(HAMILTONIAN_SHARE * 100).toFixed(0)}% 
+                    (state + federal capital spending builds national capacity).
+                  </div>
+                </div>
+                
+                {Object.values(stateHamiltonianAnalysis)
+                  .sort((a, b) => b.hamiltonianShare - a.hamiltonianShare)
+                  .slice(0, 15)
+                  .map((state, index) => {
                 const rank = index + 1
                 const isTop3 = rank <= 3
                 const isTop10 = rank <= 10
                 const meetsTarget = state.hamiltonianShare >= 25
+                
+                // Calculate state's contribution to national Hamiltonian Share
+                // State capital investment as % of national GDP
+                const nationalGDP = econData.gdp * 1000 // Convert trillions to billions
+                const stateCapitalAsPctOfNationalGDP = (state.stateCapitalInvestment / nationalGDP) * 100
+                
+                // State's share of total state GDP
+                const stateGDPShare = (state.stateGDP / totalStateGDP) * 100
+                
+                // Weighted contribution: if this state improved to 25%, how much would it move the national average?
+                // This is a simplified model showing state-level building activity
+                const contributionToNational = stateCapitalAsPctOfNationalGDP
                 
                 return (
                   <div 
@@ -1938,7 +1972,7 @@ export default function Home() {
                       }}>
                         {state.trend === 'rising' ? '📈 Rising' : state.trend === 'declining' ? '📉 Declining' : '➡️ Flat'}
                         {' • '}
-                        Build Rate: {state.buildRate}%
+                        ${state.stateCapitalInvestment}B capital
                       </div>
                     </div>
                     <div style={styles.leaderboardScore}>
@@ -1958,6 +1992,22 @@ export default function Home() {
                         {meetsTarget ? '✓ Target' : 'Target: 25%'}
                       </div>
                     </div>
+                    <div style={styles.leaderboardContribution}>
+                      <div style={{
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        color: COLORS.hamiltonian,
+                        marginBottom: '2px'
+                      }}>
+                        +{contributionToNational.toFixed(3)}%
+                      </div>
+                      <div style={{
+                        fontSize: '0.65rem',
+                        color: COLORS.textMuted
+                      }}>
+                        to national
+                      </div>
+                    </div>
                     <div style={styles.leaderboardBar}>
                       <div style={{
                         width: `${Math.min((state.hamiltonianShare / 50) * 100, 100)}%`,
@@ -1970,10 +2020,15 @@ export default function Home() {
                   </div>
                 )
               })}
-          </div>
+              </div>
+            )
+          })()}
           
           <div style={styles.leaderboardNote}>
-            <strong>Note:</strong> Click any state to view detailed analysis. Target: 25%+ Hamiltonian Share (federal baseline: 18%).
+            <strong>How the Equation Works:</strong> Each state's capital investment (${Object.values(stateHamiltonianAnalysis).reduce((sum, s) => sum + s.stateCapitalInvestment, 0).toFixed(1)}B total) 
+            contributes to national capacity building. The <strong>"Contribution to National %"</strong> shows each state's capital spending as a percentage of national GDP. 
+            Combined with federal Hamiltonian spending (18%), this builds America's productive capacity. 
+            <br /><strong>Click any state</strong> to view detailed analysis. Target: 25%+ Hamiltonian Share per state.
           </div>
         </section>
 
@@ -3639,15 +3694,37 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginTop: '1.5rem',
     marginBottom: '1rem',
   },
+  leaderboardHeader: {
+    marginBottom: '1rem',
+  },
+  leaderboardHeaderNote: {
+    fontSize: '0.8rem',
+    color: COLORS.textMuted,
+    padding: '0.75rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '6px',
+    border: `1px solid ${COLORS.border}`,
+    lineHeight: 1.5,
+  },
   leaderboardRow: {
     display: 'grid',
-    gridTemplateColumns: '60px 1fr 120px 200px',
+    gridTemplateColumns: '60px 1fr 120px 100px 200px',
     gap: '1rem',
     alignItems: 'center',
     padding: '1rem',
     borderRadius: '8px',
     border: `1px solid ${COLORS.border}`,
     transition: 'all 0.2s ease',
+  },
+  leaderboardContribution: {
+    textAlign: 'center' as const,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    padding: '0.5rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '6px',
+    border: `1px solid ${COLORS.border}`,
   },
   leaderboardRank: {
     fontSize: '1.1rem',
