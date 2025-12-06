@@ -565,6 +565,7 @@ interface StateHamiltonianAnalysis {
   stateGDP: number // billions
   stateDebt: number // billions
   stateCapitalInvestment: number // billions
+  population: number // millions (for per capita calculations)
   hamiltonianShare: number // % of state spending on capital
   buildRate: number // % of GDP
   trend: 'rising' | 'flat' | 'declining' // is it getting better or worse?
@@ -588,6 +589,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 2400,
     stateDebt: 45,
     stateCapitalInvestment: 18,
+    population: 30.5,
     hamiltonianShare: 24,
     buildRate: 0.75,
     trend: 'rising',
@@ -616,6 +618,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 750,
     stateDebt: 18,
     stateCapitalInvestment: 5.2,
+    population: 11.8,
     hamiltonianShare: 24,
     buildRate: 0.7,
     trend: 'rising',
@@ -640,6 +643,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 450,
     stateDebt: 12,
     stateCapitalInvestment: 4.5,
+    population: 7.4,
     hamiltonianShare: 28,
     buildRate: 1.0,
     trend: 'rising',
@@ -664,6 +668,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 450,
     stateDebt: 8,
     stateCapitalInvestment: 3.2,
+    population: 7.1,
     hamiltonianShare: 32,
     buildRate: 0.7,
     trend: 'rising',
@@ -688,6 +693,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 700,
     stateDebt: 15,
     stateCapitalInvestment: 4.5,
+    population: 11.0,
     hamiltonianShare: 25,
     buildRate: 0.6,
     trend: 'rising',
@@ -715,6 +721,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 600,
     stateDebt: 22,
     stateCapitalInvestment: 4.8,
+    population: 10.0,
     hamiltonianShare: 20,
     buildRate: 0.8,
     trend: 'flat',
@@ -739,6 +746,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 900,
     stateDebt: 35,
     stateCapitalInvestment: 6.5,
+    population: 13.0,
     hamiltonianShare: 18,
     buildRate: 0.7,
     trend: 'flat',
@@ -763,6 +771,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 200,
     stateDebt: 3.5,
     stateCapitalInvestment: 1.8,
+    population: 3.2,
     hamiltonianShare: 35,
     buildRate: 0.9,
     trend: 'rising',
@@ -787,6 +796,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 420,
     stateDebt: 12,
     stateCapitalInvestment: 2.5,
+    population: 5.7,
     hamiltonianShare: 18,
     buildRate: 0.6,
     trend: 'flat',
@@ -850,6 +860,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 3800,
     stateDebt: 95,
     stateCapitalInvestment: 25,
+    population: 39.0,
     hamiltonianShare: 14,
     buildRate: 0.65,
     trend: 'flat',
@@ -878,6 +889,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 1900,
     stateDebt: 55,
     stateCapitalInvestment: 8.5,
+    population: 19.5,
     hamiltonianShare: 15,
     buildRate: 0.45,
     trend: 'flat',
@@ -902,6 +914,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 950,
     stateDebt: 45,
     stateCapitalInvestment: 4,
+    population: 12.5,
     hamiltonianShare: 14,
     buildRate: 0.4,
     trend: 'declining',
@@ -925,6 +938,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 700,
     stateDebt: 48,
     stateCapitalInvestment: 2.5,
+    population: 9.3,
     hamiltonianShare: 10,
     buildRate: 0.35,
     trend: 'declining',
@@ -948,6 +962,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 650,
     stateDebt: 35,
     stateCapitalInvestment: 2,
+    population: 7.0,
     hamiltonianShare: 12,
     buildRate: 0.3,
     trend: 'flat',
@@ -973,6 +988,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 45,
     stateDebt: 1.2,
     stateCapitalInvestment: 0.8,
+    population: 0.58,
     hamiltonianShare: 55,
     buildRate: 1.8,
     trend: 'rising',
@@ -997,6 +1013,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 60,
     stateDebt: 2.5,
     stateCapitalInvestment: 1.2,
+    population: 0.73,
     hamiltonianShare: 40,
     buildRate: 2.0,
     trend: 'rising',
@@ -1021,6 +1038,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 65,
     stateDebt: 1.5,
     stateCapitalInvestment: 1,
+    population: 0.78,
     hamiltonianShare: 45,
     buildRate: 1.5,
     trend: 'flat',
@@ -1045,6 +1063,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 115,
     stateDebt: 5,
     stateCapitalInvestment: 1.2,
+    population: 2.1,
     hamiltonianShare: 25,
     buildRate: 1.0,
     trend: 'flat',
@@ -1071,6 +1090,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 1400,
     stateDebt: 25,
     stateCapitalInvestment: 5,
+    population: 22.6,
     hamiltonianShare: 15,
     buildRate: 0.35,
     trend: 'flat',
@@ -1095,6 +1115,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 425,
     stateDebt: 8,
     stateCapitalInvestment: 3,
+    population: 6.8,
     hamiltonianShare: 22,
     buildRate: 0.7,
     trend: 'rising',
@@ -1119,6 +1140,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 280,
     stateDebt: 8,
     stateCapitalInvestment: 2.5,
+    population: 5.3,
     hamiltonianShare: 28,
     buildRate: 0.9,
     trend: 'rising',
@@ -1143,6 +1165,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 230,
     stateDebt: 12,
     stateCapitalInvestment: 2,
+    population: 4.5,
     hamiltonianShare: 22,
     buildRate: 0.85,
     trend: 'rising',
@@ -1167,6 +1190,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 280,
     stateDebt: 10,
     stateCapitalInvestment: 3,
+    population: 4.6,
     hamiltonianShare: 30,
     buildRate: 1.1,
     trend: 'flat',
@@ -1191,6 +1215,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 600,
     stateDebt: 18,
     stateCapitalInvestment: 3,
+    population: 8.6,
     hamiltonianShare: 18,
     buildRate: 0.5,
     trend: 'flat',
@@ -1215,6 +1240,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 700,
     stateDebt: 22,
     stateCapitalInvestment: 3.5,
+    population: 7.8,
     hamiltonianShare: 16,
     buildRate: 0.5,
     trend: 'flat',
@@ -1239,6 +1265,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 450,
     stateDebt: 12,
     stateCapitalInvestment: 2,
+    population: 5.8,
     hamiltonianShare: 14,
     buildRate: 0.45,
     trend: 'flat',
@@ -1263,6 +1290,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 370,
     stateDebt: 15,
     stateCapitalInvestment: 2,
+    population: 5.9,
     hamiltonianShare: 16,
     buildRate: 0.55,
     trend: 'flat',
@@ -1287,6 +1315,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 240,
     stateDebt: 5,
     stateCapitalInvestment: 2,
+    population: 3.4,
     hamiltonianShare: 25,
     buildRate: 0.8,
     trend: 'rising',
@@ -1311,6 +1340,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 85,
     stateDebt: 6,
     stateCapitalInvestment: 0.8,
+    population: 1.8,
     hamiltonianShare: 20,
     buildRate: 0.9,
     trend: 'flat',
@@ -1335,6 +1365,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 380,
     stateDebt: 12,
     stateCapitalInvestment: 2,
+    population: 6.2,
     hamiltonianShare: 15,
     buildRate: 0.5,
     trend: 'flat',
@@ -1357,6 +1388,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 280,
     stateDebt: 8,
     stateCapitalInvestment: 2.5,
+    population: 5.1,
     hamiltonianShare: 24,
     buildRate: 0.9,
     trend: 'rising',
@@ -1381,6 +1413,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 130,
     stateDebt: 5,
     stateCapitalInvestment: 1,
+    population: 2.9,
     hamiltonianShare: 20,
     buildRate: 0.75,
     trend: 'flat',
@@ -1404,6 +1437,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 85,
     stateDebt: 4,
     stateCapitalInvestment: 0.5,
+    population: 1.4,
     hamiltonianShare: 18,
     buildRate: 0.6,
     trend: 'flat',
@@ -1427,6 +1461,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 300,
     stateDebt: 35,
     stateCapitalInvestment: 1.5,
+    population: 3.6,
     hamiltonianShare: 14,
     buildRate: 0.5,
     trend: 'declining',
@@ -1450,6 +1485,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 210,
     stateDebt: 5,
     stateCapitalInvestment: 1.5,
+    population: 3.2,
     hamiltonianShare: 20,
     buildRate: 0.7,
     trend: 'flat',
@@ -1476,6 +1512,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 730,
     stateDebt: 15,
     stateCapitalInvestment: 8,
+    population: 10.8,
     hamiltonianShare: 28,
     buildRate: 1.1,
     trend: 'rising',
@@ -1501,6 +1538,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 220,
     stateDebt: 8,
     stateCapitalInvestment: 2.5,
+    population: 4.0,
     hamiltonianShare: 26,
     buildRate: 1.1,
     trend: 'rising',
@@ -1525,6 +1563,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 280,
     stateDebt: 12,
     stateCapitalInvestment: 2,
+    population: 4.2,
     hamiltonianShare: 16,
     buildRate: 0.7,
     trend: 'flat',
@@ -1548,6 +1587,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 105,
     stateDebt: 3,
     stateCapitalInvestment: 1.5,
+    population: 2.0,
     hamiltonianShare: 28,
     buildRate: 1.4,
     trend: 'rising',
@@ -1572,6 +1612,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 65,
     stateDebt: 2,
     stateCapitalInvestment: 0.6,
+    population: 1.1,
     hamiltonianShare: 22,
     buildRate: 0.9,
     trend: 'flat',
@@ -1595,6 +1636,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 150,
     stateDebt: 2,
     stateCapitalInvestment: 2,
+    population: 2.0,
     hamiltonianShare: 24,
     buildRate: 1.3,
     trend: 'rising',
@@ -1619,6 +1661,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 190,
     stateDebt: 6,
     stateCapitalInvestment: 1.5,
+    population: 2.9,
     hamiltonianShare: 18,
     buildRate: 0.8,
     trend: 'flat',
@@ -1643,6 +1686,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 160,
     stateDebt: 5,
     stateCapitalInvestment: 1.5,
+    population: 3.0,
     hamiltonianShare: 20,
     buildRate: 0.9,
     trend: 'rising',
@@ -1667,6 +1711,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 95,
     stateDebt: 12,
     stateCapitalInvestment: 0.8,
+    population: 1.4,
     hamiltonianShare: 12,
     buildRate: 0.8,
     trend: 'declining',
@@ -1690,6 +1735,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 105,
     stateDebt: 8,
     stateCapitalInvestment: 0.8,
+    population: 1.4,
     hamiltonianShare: 16,
     buildRate: 0.75,
     trend: 'flat',
@@ -1713,6 +1759,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 40,
     stateDebt: 3,
     stateCapitalInvestment: 0.3,
+    population: 0.65,
     hamiltonianShare: 14,
     buildRate: 0.75,
     trend: 'flat',
@@ -1736,6 +1783,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 70,
     stateDebt: 10,
     stateCapitalInvestment: 0.5,
+    population: 1.1,
     hamiltonianShare: 12,
     buildRate: 0.7,
     trend: 'flat',
@@ -1759,6 +1807,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 85,
     stateDebt: 5,
     stateCapitalInvestment: 0.6,
+    population: 1.0,
     hamiltonianShare: 14,
     buildRate: 0.7,
     trend: 'flat',
@@ -1782,6 +1831,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 450,
     stateDebt: 28,
     stateCapitalInvestment: 3.5,
+    population: 6.2,
     hamiltonianShare: 16,
     buildRate: 0.8,
     trend: 'flat',
@@ -1806,6 +1856,7 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     stateGDP: 65,
     stateDebt: 2,
     stateCapitalInvestment: 0.5,
+    population: 0.91,
     hamiltonianShare: 18,
     buildRate: 0.8,
     trend: 'flat',
@@ -1902,6 +1953,7 @@ function TickingDebt({
 
 export default function Home() {
   const [selectedState, setSelectedState] = useState('Texas')
+  const [leaderboardSort, setLeaderboardSort] = useState<'hamiltonianShare' | 'perCapita' | 'nationalShare' | 'buildRate'>('hamiltonianShare')
   const [householdSize, setHouseholdSize] = useState(3)
   const [buildScenario, setBuildScenario] = useState(4)
   
@@ -2240,7 +2292,7 @@ export default function Home() {
         {/* ================================================================ */}
         {/* NATIONAL BUILD RATE - The Real Picture */}
         {/* ================================================================ */}
-        <section style={styles.section}>
+          <section style={styles.section}>
           <h2 style={styles.sectionTitle}>
             <span style={{ color: COLORS.gold }}>NATIONAL BUILD RATE</span> — The Complete Picture
           </h2>
@@ -2285,7 +2337,7 @@ export default function Home() {
                         {nationalBuildRate.toFixed(1)}%
                       </span>
                       <span style={styles.buildRateOf}> of GDP</span>
-                    </div>
+              </div>
                     <div style={styles.buildRateTarget}>Target: {targetBuildRate}%+ of GDP</div>
                     <div style={styles.buildRateBar}>
                       <div style={{
@@ -2295,9 +2347,9 @@ export default function Home() {
                         borderRadius: '4px',
                         transition: 'width 0.3s ease'
                       }} />
-                    </div>
-                  </div>
-                  
+              </div>
+            </div>
+            
                   {/* Breakdown */}
                   <div style={styles.buildBreakdown}>
                     <div style={styles.buildBreakdownTitle}>Where Public Capital Comes From</div>
@@ -2307,39 +2359,39 @@ export default function Home() {
                         <div style={styles.buildBreakdownLabel}>Federal Direct</div>
                         <div style={styles.buildBreakdownValue}>${federalDirectCapital}B</div>
                         <div style={styles.buildBreakdownPct}>{((federalDirectCapital / totalPublicCapital) * 100).toFixed(0)}%</div>
-                      </div>
+              </div>
                       <div style={styles.buildBreakdownItem}>
                         <div style={styles.buildBreakdownIcon}>🛣️</div>
                         <div style={styles.buildBreakdownLabel}>Federal→State Grants</div>
                         <div style={styles.buildBreakdownValue}>${federalGrantsForCapital}B</div>
                         <div style={styles.buildBreakdownPct}>{((federalGrantsForCapital / totalPublicCapital) * 100).toFixed(0)}%</div>
-                      </div>
+              </div>
                       <div style={styles.buildBreakdownItem}>
                         <div style={styles.buildBreakdownIcon}>🏗️</div>
                         <div style={styles.buildBreakdownLabel}>State Own-Source</div>
                         <div style={styles.buildBreakdownValue}>${stateOwnSourceCapital.toFixed(0)}B</div>
                         <div style={styles.buildBreakdownPct}>{((stateOwnSourceCapital / totalPublicCapital) * 100).toFixed(0)}%</div>
-                      </div>
+            </div>
                       <div style={styles.buildBreakdownItem}>
                         <div style={styles.buildBreakdownIcon}>🏘️</div>
                         <div style={styles.buildBreakdownLabel}>Local Government</div>
                         <div style={styles.buildBreakdownValue}>${localCapital}B</div>
                         <div style={styles.buildBreakdownPct}>{((localCapital / totalPublicCapital) * 100).toFixed(0)}%</div>
-                      </div>
-                    </div>
+          </div>
+                </div>
                     <div style={styles.buildBreakdownTotal}>
                       <strong>Total Public Capital:</strong> ${totalPublicCapital.toFixed(0)}B / year → {nationalBuildRate.toFixed(1)}% of ${nationalGDP.toFixed(0)}B GDP
-                    </div>
-                  </div>
-                </div>
-                
+              </div>
+            </div>
+          </div>
+          
                 <div style={styles.buildMethodology}>
                   <strong>⚠️ No Double-Counting:</strong> Federal grants to states (~$90B for highways, transit, airports) are counted ONCE at federal level. 
                   State "own-source" capital is state bonds + state-funded projects (not federal pass-through). 
                   This gives the true picture of total public investment.
+                  </div>
                 </div>
-              </div>
-            )
+              )
           })()}
         </section>
 
@@ -2357,12 +2409,68 @@ export default function Home() {
           
           {(() => {
             const totalStateCapitalInvestment = Object.values(stateHamiltonianAnalysis).reduce((sum, state) => sum + state.stateCapitalInvestment, 0)
+            const totalPopulation = Object.values(stateHamiltonianAnalysis).reduce((sum, state) => sum + (state.population || 1), 0)
+            
+            // Sorting options for the leaderboard
+            const sortOptions = [
+              { key: 'hamiltonianShare', label: 'Hamiltonian %' },
+              { key: 'perCapita', label: 'Per Capita $' },
+              { key: 'nationalShare', label: 'National Share' },
+              { key: 'buildRate', label: 'Build Rate' }
+            ]
+            
+            const getSortedStates = () => {
+              return Object.values(stateHamiltonianAnalysis)
+                .map(state => ({
+                  ...state,
+                  perCapitaInvestment: (state.stateCapitalInvestment * 1000) / (state.population || 1), // $ per person (billions to millions)
+                  nationalShare: (state.stateCapitalInvestment / totalStateCapitalInvestment) * 100,
+                  stateBuildRate: (state.stateCapitalInvestment / state.stateGDP) * 100
+                }))
+                .sort((a, b) => {
+                  switch (leaderboardSort) {
+                    case 'perCapita': return b.perCapitaInvestment - a.perCapitaInvestment
+                    case 'nationalShare': return b.nationalShare - a.nationalShare
+                    case 'buildRate': return b.stateBuildRate - a.stateBuildRate
+                    default: return b.hamiltonianShare - a.hamiltonianShare
+                  }
+                })
+                .slice(0, 15)
+            }
             
             return (
               <div style={styles.leaderboardContainer}>
-                {Object.values(stateHamiltonianAnalysis)
-                  .sort((a, b) => b.hamiltonianShare - a.hamiltonianShare)
-                  .slice(0, 15)
+                {/* Sort Toggle */}
+                <div style={{
+                  display: 'flex',
+                  gap: '0.5rem',
+                  marginBottom: '1rem',
+                  flexWrap: 'wrap',
+                  justifyContent: 'center'
+                }}>
+                  <span style={{ color: COLORS.textMuted, fontSize: '0.85rem', marginRight: '0.5rem' }}>Sort by:</span>
+                  {sortOptions.map(opt => (
+                    <button
+                      key={opt.key}
+                      onClick={() => setLeaderboardSort(opt.key as any)}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        fontSize: '0.75rem',
+                        fontWeight: leaderboardSort === opt.key ? 700 : 400,
+                        backgroundColor: leaderboardSort === opt.key ? COLORS.hamiltonian : COLORS.bgCard,
+                        color: leaderboardSort === opt.key ? '#000' : COLORS.text,
+                        border: `1px solid ${leaderboardSort === opt.key ? COLORS.hamiltonian : COLORS.border}`,
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                
+                {getSortedStates()
                   .map((state, index) => {
                 const rank = index + 1
                 const isTop3 = rank <= 3
@@ -2370,16 +2478,20 @@ export default function Home() {
                 const meetsTarget = state.hamiltonianShare >= 25
                 
                 // State Build Rate = Capital investment / State GDP (how aggressively they're building)
-                const stateBuildRate = (state.stateCapitalInvestment / state.stateGDP) * 100
+                const stateBuildRate = state.stateBuildRate
                 const buildRateMeetsTarget = stateBuildRate >= 1.0
                 
+                // Per Capita Investment ($ per person)
+                const perCapitaInvestment = state.perCapitaInvestment
+                const perCapitaMeetsTarget = perCapitaInvestment >= 400 // $400+ per person is good
+                
                 // Share of total state building (what % of state-level capital this state represents)
-                const shareOfStateBuilding = (state.stateCapitalInvestment / totalStateCapitalInvestment) * 100
+                const shareOfStateBuilding = state.nationalShare
                 
                 return (
                   <div 
                     key={state.state}
-                    style={{
+                      style={{
                       ...styles.leaderboardRow,
                       backgroundColor: isTop3 ? `${COLORS.hamiltonian}15` : isTop10 ? `${COLORS.gold}10` : COLORS.bgCard,
                       borderLeft: `4px solid ${isTop3 ? COLORS.hamiltonian : isTop10 ? COLORS.gold : COLORS.border}`,
@@ -2400,7 +2512,7 @@ export default function Home() {
                           #{rank}
                         </span>
                       )}
-                    </div>
+                </div>
                     <div style={styles.leaderboardState}>
                       <div style={{ 
                         fontWeight: 700, 
@@ -2409,7 +2521,7 @@ export default function Home() {
                       }}>
                         {state.state}
                       </div>
-                      <div style={{ 
+                  <div style={{ 
                         fontSize: '0.75rem', 
                         color: COLORS.textMuted,
                         marginTop: '2px'
@@ -2417,42 +2529,80 @@ export default function Home() {
                         {state.trend === 'rising' ? '📈 Rising' : state.trend === 'declining' ? '📉 Declining' : '➡️ Flat'}
                         {' • '}
                         ${state.stateGDP}B GDP
-                      </div>
-                    </div>
+                  </div>
+                </div>
                     <div style={styles.leaderboardScore}>
-                      <div style={{
+                  <div style={{ 
                         fontSize: '1.5rem',
                         fontWeight: 800,
                         color: meetsTarget ? COLORS.hamiltonian : isTop10 ? COLORS.gold : COLORS.text,
                         lineHeight: 1
                       }}>
                         {state.hamiltonianShare}%
-                      </div>
-                      <div style={{
+                  </div>
+                  <div style={{ 
                         fontSize: '0.65rem',
                         color: COLORS.textMuted,
                         marginTop: '2px'
-                      }}>
+                  }}>
                         Hamiltonian Share
+                  </div>
+                </div>
+                    <div style={styles.leaderboardContribution}>
+                  <div style={{ 
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        color: perCapitaMeetsTarget ? COLORS.hamiltonian : COLORS.warning,
+                        marginBottom: '2px'
+                      }}>
+                        ${perCapitaInvestment.toFixed(0)}
+                  </div>
+              <div style={{ 
+                        fontSize: '0.55rem',
+                        color: COLORS.textMuted
+                      }}>
+                        Per Capita
+              </div>
+                    </div>
+                    <div style={{
+                      textAlign: 'center',
+                      minWidth: '55px'
+                    }}>
+                      <div style={{ 
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        color: shareOfStateBuilding >= 5 ? COLORS.hamiltonian : COLORS.text,
+                        marginBottom: '2px'
+                      }}>
+                        {shareOfStateBuilding.toFixed(1)}%
+                      </div>
+                      <div style={{ 
+                        fontSize: '0.55rem',
+                        color: COLORS.textMuted
+                      }}>
+                        US Share
                       </div>
                     </div>
-                    <div style={styles.leaderboardContribution}>
-                      <div style={{
-                        fontSize: '0.9rem',
+                    <div style={{
+                      textAlign: 'center',
+                      minWidth: '50px'
+                    }}>
+                      <div style={{ 
+                        fontSize: '0.85rem',
                         fontWeight: 700,
                         color: buildRateMeetsTarget ? COLORS.hamiltonian : COLORS.warning,
                         marginBottom: '2px'
                       }}>
                         {stateBuildRate.toFixed(1)}%
                       </div>
-                      <div style={{
-                        fontSize: '0.6rem',
+                      <div style={{ 
+                        fontSize: '0.55rem',
                         color: COLORS.textMuted
                       }}>
                         Build Rate
                       </div>
                     </div>
-                    <div style={styles.leaderboardBar}>
+                    <div style={{...styles.leaderboardBar, minWidth: '80px'}}>
                       <div style={{
                         width: `${Math.min((state.hamiltonianShare / 50) * 100, 100)}%`,
                         height: '100%',
@@ -2461,25 +2611,27 @@ export default function Home() {
                         transition: 'width 0.3s ease'
                       }} />
                     </div>
-                  </div>
+                    </div>
                 )
               })}
-              </div>
+                    </div>
             )
           })()}
           
           <div style={styles.leaderboardNote}>
-            <strong>Metrics Explained:</strong><br />
-            • <strong>Hamiltonian Share:</strong> % of state spending that goes to capital assets (infrastructure, energy, manufacturing)<br />
-            • <strong>Build Rate:</strong> State capital investment as % of State GDP (how aggressively they're building relative to their economy)<br />
-            <strong>Click any state</strong> to view detailed analysis. Target: 25%+ Hamiltonian Share, 1%+ Build Rate.
+            <strong>Metrics Explained (click sort buttons to rerank):</strong><br />
+            • <strong>Hamiltonian Share:</strong> % of state spending on capital assets — measures efficiency (Wyoming 55% vs NY 14%)<br />
+            • <strong>Per Capita:</strong> $ invested per person — measures impact on citizens (small states can lead here)<br />
+            • <strong>US Share:</strong> What % of total US state capital this state represents — measures absolute contribution to national capacity<br />
+            • <strong>Build Rate:</strong> Capital investment ÷ State GDP — how aggressively they're building relative to their economy<br />
+            <strong>Click any state</strong> to view details. Targets: 25%+ Hamiltonian, $400+ per capita, 1%+ Build Rate.
           </div>
-        </section>
+          </section>
 
         {/* ================================================================ */}
         {/* STATE REVIEW - Hamiltonian Analysis by State */}
         {/* ================================================================ */}
-        <section style={styles.section}>
+          <section style={styles.section}>
           <h2 style={styles.sectionTitle}>
             <span style={{ color: COLORS.gold }}>STATE REVIEW</span> — Hamiltonian Analysis
           </h2>
