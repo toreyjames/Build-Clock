@@ -594,25 +594,54 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     hamiltonianShare: 24,
     buildRate: 0.75,
     trend: 'rising',
-    naturalAdvantages: ['Oil/gas reserves', 'Wind/solar potential', 'Port access', 'Land availability', 'Business-friendly'],
+    naturalAdvantages: [
+      'Largest state economy ($2.4T GDP — would be 8th largest country)',
+      '#1 oil producer (5.5M bbl/day — 43% of US)',
+      '#1 natural gas producer',
+      '#1 wind power (40 GW installed — 28% of US total)',
+      'Gulf Coast ports (Houston, Corpus Christi, Freeport)',
+      'LNG export leader (largest US export capacity)',
+      'No state income tax',
+      'Business-friendly (tort reform, right-to-work)',
+      'Population boom (+1M in 3 years from CA/other states)',
+      'Land availability',
+      'Research universities (UT, A&M, Rice)'
+    ],
     currentProjects: [
-      { name: 'Samsung fab expansion (Taylor)', category: 'Chip Fabs', status: 'Building', investment: 17 },
-      { name: 'Texas Instruments fabs (Sherman)', category: 'Chip Fabs', status: 'Building', investment: 30 },
-      { name: 'LNG export terminals', category: 'Energy', status: 'Active', investment: 25 },
-      { name: 'TxDOT infrastructure', category: 'Infrastructure', status: 'Active', investment: 14 },
-      { name: 'Grid hardening (ERCOT)', category: 'Infrastructure', status: 'Planned', investment: 8 },
-      { name: 'Nuclear SMRs', category: 'Energy', status: 'Proposed', investment: 12 }
+      { name: 'Samsung fab (Taylor)', category: 'Chip Fabs', status: 'Building — delayed, $17B investment', investment: 17 },
+      { name: 'Texas Instruments fabs (Sherman)', category: 'Chip Fabs', status: 'Building — $30B for 4 fabs', investment: 30 },
+      { name: 'Tesla Gigafactory (Austin)', category: 'Manufacturing', status: 'Operational + expanding', investment: 10 },
+      { name: 'LNG export terminals (Freeport, Sabine, Corpus)', category: 'Energy', status: 'Active — largest US LNG export', investment: 25 },
+      { name: 'TxDOT infrastructure', category: 'Infrastructure', status: 'Active — $14B/year', investment: 14 },
+      { name: 'ERCOT grid hardening', category: 'Infrastructure', status: 'Post-2021 freeze upgrades', investment: 8 },
+      { name: 'Permian Basin production', category: 'Energy', status: 'Active — 6M+ bbl/day by 2025', investment: 15 },
+      { name: 'South Texas Project nuclear expansion', category: 'Energy', status: 'Exploring', investment: 0 }
     ],
     capacityGaps: [
-      { category: 'Nuclear', need: '50 GW', current: '5 GW' },
-      { category: 'Grid/HVDC', need: '25 GW', current: '8 GW' },
-      { category: 'Water', need: 'Desalination', current: 'Groundwater depleting' }
+      { category: 'Grid Reliability', need: 'Dispatchable baseload for ERCOT', current: '2021 freeze killed 250+ people. Grid still vulnerable to extreme weather. Too dependent on wind/gas that failed in cold.' },
+      { category: 'Nuclear', need: '50 GW for baseload', current: 'Only 5 GW (Comanche Peak, South Texas). Need 10x more for grid stability.' },
+      { category: 'Water', need: 'Desal + conservation', current: 'Groundwater depleting. 2022 drought exposed vulnerability. Growing population + industry.' },
+      { category: 'Interconnection', need: 'HVDC to Eastern/Western grids', current: 'ERCOT isolated by design. Helps avoid federal regulation but limits emergency imports.' },
+      { category: 'Chip workforce', need: 'Semiconductor technicians', current: 'Attracting talent but Samsung fab delayed partly due to worker shortage' }
     ],
     politicalFeasibility: 'high',
-    nationalRole: 'Energy dominance, chip manufacturing, export hub',
-    energyProfile: 'Largest producer (oil, gas, wind). Needs nuclear for grid stability.',
+    nationalRole: 'AMERICA\'S BUILDER. Largest energy producer (oil, gas, wind, LNG export). Chip manufacturing hub (Samsung, TI, $47B+ combined). Tesla HQ. Population magnet. BUT: ERCOT grid is Achilles heel — 2021 freeze exposed fatal flaw. Too much wind/gas, not enough nuclear. Grid isolated from national system.',
+    energyProfile: '#1 everything: oil (5.5M bbl/day), gas, wind (40 GW), LNG export. BUT only 5 GW nuclear. 2021 freeze showed wind + gas fail in extreme cold. Grid needs dispatchable baseload. ERCOT isolation means can\'t import in emergencies.',
     workforceReadiness: 'high',
-    assessment: 'LEADING. Aggressive on energy and manufacturing. Grid remains vulnerable.'
+    assessment: 'LEADING BY VOLUME BUT GRID IS FRAGILE. Texas builds more than any other state — $47B in chip fabs alone (Samsung, TI). #1 in oil, gas, wind, LNG export. Tesla, SpaceX, Oracle all moved HQs here. Population boom from CA exodus. BUT: 2021 freeze killed 250+ people, caused $195B in damage. ERCOT grid is still vulnerable. Too dependent on wind (fails in ice) and gas (froze in 2021). Only 5 GW nuclear vs 40 GW wind. Solution: 10x nuclear expansion + grid interconnection. Texas proves you can build in America, but also proves even builders can have fatal flaws.',
+    pathToVictory: [
+      '2021: Winter storm exposes ERCOT vulnerability — 250+ deaths, $195B damage',
+      '2022-24: Grid hardening underway but still insufficient',
+      '2024: Samsung Taylor fab delayed — workforce, supply chain issues',
+      '2025: TI Sherman fabs progressing — $30B for 4 fabs',
+      '2025-26: Data center boom straining grid — 10+ GW new demand',
+      '2026-27: Permian production peaks — 6M+ bbl/day',
+      '2027-28: Samsung Taylor operational (if completed)',
+      '2030: Full potential requires: 50 GW nuclear (currently 5 GW), grid interconnection, water security',
+      'RISK: Another 2021-style freeze before nuclear buildout could be catastrophic',
+      'OPPORTUNITY: If Texas adds nuclear + grid ties, it becomes unassailable energy/manufacturing leader',
+      'POLITICAL ADVANTAGE: No state income tax, tort reform, right-to-work — companies keep coming'
+    ]
   },
   'Ohio': {
     state: 'Ohio',
@@ -675,21 +704,54 @@ const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
     hamiltonianShare: 28,
     buildRate: 1.0,
     trend: 'rising',
-    naturalAdvantages: ['Solar potential', 'Land', 'Tech talent from CA exodus'],
+    naturalAdvantages: [
+      'Palo Verde Nuclear — LARGEST nuclear plant in US (3.9 GW)',
+      'Solar potential (best in nation)',
+      'Land availability',
+      'Business-friendly (right-to-work, low taxes)',
+      'Tech talent (CA exodus)',
+      'ASU + UA research',
+      'Population growth (#3 fastest)',
+      'No water used for Palo Verde (treated sewage)',
+      'Proximity to CA markets'
+    ],
     currentProjects: [
-      { name: 'TSMC fabs (3 plants)', category: 'Chip Fabs', status: 'Building', investment: 40 },
-      { name: 'Intel expansion', category: 'Chip Fabs', status: 'Building', investment: 20 },
-      { name: 'Battery manufacturing', category: 'Manufacturing', status: 'Planned', investment: 2.5 }
+      { name: 'TSMC Fab 21 (Fab 1)', category: 'Chip Fabs', status: 'Building — 4nm, operational 2025', investment: 12 },
+      { name: 'TSMC Fab 21 (Fab 2)', category: 'Chip Fabs', status: 'Building — 3nm/2nm, operational 2028', investment: 28 },
+      { name: 'TSMC Fab 21 (Fab 3)', category: 'Chip Fabs', status: 'Announced — most advanced, 2030+', investment: 25 },
+      { name: 'Intel Ocotillo expansion', category: 'Chip Fabs', status: 'Building — $20B+', investment: 20 },
+      { name: 'Taiwan Semiconductor ecosystem', category: 'Manufacturing', status: 'Forming — suppliers following TSMC', investment: 5 },
+      { name: 'Data centers (Phoenix)', category: 'Infrastructure', status: 'Building — Microsoft, Google', investment: 10 },
+      { name: 'Palo Verde operating', category: 'Nuclear', status: 'Active — 3.9 GW, largest US plant', investment: 0 }
     ],
     capacityGaps: [
-      { category: 'Water', need: 'Desalination/recycling', current: 'Colorado River (crisis)' },
-      { category: 'Energy', need: 'Nuclear baseload', current: 'Solar + gas' }
+      { category: 'Water', need: 'Sustainable supply for growth', current: 'EXISTENTIAL CRISIS. Colorado River at historic lows. AZ taking Tier 2 cuts (21% reduction). Phoenix groundwater being mined. Ag uses 70%+ of water but fabs need reliability.' },
+      { category: 'Energy', need: 'More baseload for fabs', current: 'Palo Verde is asset (3.9 GW, uses no river water). But fabs + data centers adding massive demand. Need nuclear expansion.' },
+      { category: 'Workforce', need: 'Semiconductor technicians', current: 'TSMC delayed partly due to worker quality/training issues. Importing Taiwanese workers temporarily.' },
+      { category: 'Housing', need: 'Affordable housing for workers', current: 'Phoenix costs rising. Workers can\'t afford to live near fabs.' }
     ],
     politicalFeasibility: 'high',
-    nationalRole: 'Chip manufacturing capital of America',
-    energyProfile: 'Solar leader. Water crisis is existential threat to growth.',
+    nationalRole: 'CHIP MANUFACTURING CAPITAL — but water is existential threat. TSMC ($65B for 3 fabs) + Intel ($20B+) = $85B+ in semiconductor investment. Most concentrated chip investment outside Taiwan. Palo Verde (3.9 GW) is secret weapon — uses recycled sewage, not river water. BUT: Colorado River crisis could halt growth. Arizona already taking 21% cuts. Can\'t build chips without water.',
+    energyProfile: 'BEST ENERGY POSITION IN SOUTHWEST. Palo Verde is largest US nuclear plant (3.9 GW) and uses ZERO river water (recycled Phoenix sewage). Solar leader. Gas backup. If water is solved, energy is not the constraint.',
     workforceReadiness: 'medium',
-    assessment: 'BOOMING but fragile. $60B+ in fabs, but water crisis could derail everything.'
+    assessment: 'BOOM VS WATER CRISIS. $85B+ in chip fabs (TSMC $65B, Intel $20B+) makes Arizona the chip capital of America. But Colorado River is at historic lows. Arizona taking 21% water cuts under Tier 2. Agriculture uses 70% of water — will chips compete with farms? TSMC delayed partly due to workforce issues (importing Taiwanese workers). SECRET WEAPON: Palo Verde nuclear uses recycled sewage, not river water. Fabs can use recycled/desal water too. The question: Will Arizona solve water fast enough to sustain the boom? If yes, it\'s the manufacturing capital of America. If no, $85B in investments become stranded assets.',
+    blockedProjects: [
+      { name: 'TSMC delays', investment: 0, jobs: 0, yearsBlocked: 1, blocker: 'Workforce quality issues, construction delays', status: 'Delayed 1-2 years, now on track for 2025' },
+      { name: 'Water-intensive growth', investment: 50, jobs: 100000, yearsBlocked: 0, blocker: 'Colorado River cuts, drought', status: 'EXISTENTIAL — need water solutions or growth stops' }
+    ],
+    pathToVictory: [
+      '2024: TSMC Fab 1 construction progressing — first 4nm chips in US',
+      '2025: TSMC Fab 1 operational — 20,000 wafers/month',
+      '2025-26: Intel Ocotillo expansion operational',
+      '2026: Colorado River negotiations — Arizona\'s water future decided',
+      '2027: TSMC ecosystem suppliers fully established',
+      '2028: TSMC Fab 2 operational — 3nm/2nm most advanced US chips',
+      '2029-30: TSMC Fab 3 construction — if water solved',
+      '2030: Full potential — Arizona as chip capital IF water is solved',
+      'WATER SOLUTIONS: Desal from Sea of Cortez? Recycled water expansion? Ag-to-urban transfers?',
+      'KEY ASSET: Palo Verde uses recycled sewage — proves water-independent energy is possible',
+      'RISK: If water fails, $85B becomes stranded. National security disaster — chips depend on Arizona.'
+    ]
   },
   'Tennessee': {
     state: 'Tennessee',
