@@ -64,6 +64,7 @@ export interface Opportunity {
   otUseCases?: (
     | 'MES'
     | 'SCADA/PLC'
+    | 'DCS'
     | 'Historian'
     | 'OT Network'
     | 'OT Cyber'
@@ -2478,5 +2479,6 @@ export function calculateSectorPipeline(opps: Opportunity[]): SectorPipeline[] {
     }))
     .sort((a, b) => b.pipeline - a.pipeline)
 }
+
 
 

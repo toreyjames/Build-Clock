@@ -30,14 +30,14 @@ const COLORS = {
 // UTILITY FUNCTIONS
 
 
-const formatCurrency = (millions) => {
+const formatCurrency = (millions: number) => {
   if (millions >= 1000) return '$' + (millions / 1000).toFixed(1) + 'B';
   return '$' + millions + 'M';
 };
 
-const formatNumber = (n) => n.toLocaleString();
+const formatNumber = (n: number) => n.toLocaleString();
 
-const getSectorLabel = (sector) => ({
+const getSectorLabel = (sector: string) => ({
   'semiconductors': 'Semiconductors',
   'ev-battery': 'EV & Battery',
   'clean-energy': 'Clean Energy',
@@ -50,7 +50,7 @@ const getSectorLabel = (sector) => ({
   'critical-minerals': 'Critical Minerals',
 }[sector]);
 
-const getStageLabel = (stage) => ({
+const getStageLabel = (stage: string) => ({
   'monitoring': 'Monitoring',
   'pre-rfp': 'Pre-RFP',
   'rfp-open': 'RFP Open',
@@ -60,7 +60,7 @@ const getStageLabel = (stage) => ({
   'lost': 'Lost',
 }[stage]);
 
-const getStageColor = (stage) => ({
+const getStageColor = (stage: string) => ({
   'monitoring': COLORS.textMuted,
   'pre-rfp': COLORS.purple,
   'rfp-open': COLORS.blue,
@@ -70,14 +70,14 @@ const getStageColor = (stage) => ({
   'lost': COLORS.danger,
 }[stage]);
 
-const getRfpStatusLabel = (status) => ({
+const getRfpStatusLabel = (status: string) => ({
   'not-issued': 'Not Issued',
   'expected': 'Expected',
   'open': 'Open',
   'closed': 'Closed',
 }[status]);
 
-const getRelationshipLabel = (rel) => ({
+const getRelationshipLabel = (rel: string) => ({
   'none': 'No Relationship',
   'known': 'Known Contact',
   'active-pursuit': 'Active Pursuit',
@@ -85,21 +85,21 @@ const getRelationshipLabel = (rel) => ({
   'incumbent': 'Incumbent',
 }[rel]);
 
-const getPriorityColor = (priority) => ({
+const getPriorityColor = (priority: string) => ({
   'hot': COLORS.danger,
   'warm': COLORS.warning,
   'tracking': COLORS.textMuted,
 }[priority]);
 
 const NOW = new Date();
-const parseISODate = (s) => {
+const parseISODate = (s: string | null | undefined): Date | null => {
   if (!s) return null;
   const d = new Date(s);
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
 type Horizon = 'now' | 'next' | 'soon' | 'later' | 'none';
-const getHorizon = (milestoneDate) => {
+const getHorizon = (milestoneDate: string | null | undefined): Horizon => {
   const d = parseISODate(milestoneDate);
   if (!d) return 'none';
   const diffDays = Math.ceil((d.getTime() - NOW.getTime()) / (1000 * 60 * 60 * 24));
@@ -109,46 +109,46 @@ const getHorizon = (milestoneDate) => {
   return 'later';
 };
 
-const inferOtRelevance = (opp) => {
+const inferOtRelevance = (opp: Opportunity) => {
   if (opp.otRelevance) return opp.otRelevance;
   if (opp.services.includes('smart-factory') || opp.services.includes('ot-strategy')) return 'core';
   if (opp.services.includes('erp') || opp.services.includes('supply-chain') || opp.services.includes('workforce')) return 'adjacent';
   return 'low';
 };
 
-const getOtLabel = (r) => r === 'core' ? 'OT Core' : r === 'adjacent' ? 'OT Adjacent' : 'OT Low';
+const getOtLabel = (r: string | undefined) => r === 'core' ? 'OT Core' : r === 'adjacent' ? 'OT Adjacent' : 'OT Low';
 
-const getOtColor = (r) => r === 'core' ? COLORS.accent : r === 'adjacent' ? COLORS.warning : COLORS.textMuted;
+const getOtColor = (r: string | undefined) => r === 'core' ? COLORS.accent : r === 'adjacent' ? COLORS.warning : COLORS.textMuted;
 
-const getFrontierLabel = (f) => ({
+const getFrontierLabel = (f: string | undefined) => ({
   'leading-edge': '★★★★★ Leading Edge',
   'advanced': '★★★★☆ Advanced',
   'mature': '★★★☆☆ Mature',
   'commodity': '★★☆☆☆ Commodity',
-}[f]);
+}[f || 'mature']);
 
-const getFrontierColor = (f) => ({
+const getFrontierColor = (f: string | undefined) => ({
   'leading-edge': COLORS.accent,
   'advanced': COLORS.blue,
   'mature': COLORS.warning,
   'commodity': COLORS.textMuted,
-}[f]);
+}[f || 'mature']);
 
-const getEconomicImpactLabel = (e) => ({
+const getEconomicImpactLabel = (e: string | undefined) => ({
   'transformational': 'Transformational (3-5x GDP)',
   'catalytic': 'Catalytic (2-3x GDP)',
   'significant': 'Significant (1-2x GDP)',
   'direct-only': 'Direct Only (<1x GDP)',
-}[e]);
+}[e || 'direct-only']);
 
-const getEconomicImpactColor = (e) => ({
+const getEconomicImpactColor = (e: string | undefined) => ({
   'transformational': COLORS.accent,
   'catalytic': COLORS.blue,
   'significant': COLORS.warning,
   'direct-only': COLORS.textMuted,
-}[e]);
+}[e || 'direct-only']);
 
-const isRfpPastDue = (opp) => {
+const isRfpPastDue = (opp: Opportunity) => {
   if (opp.rfpStatus !== 'open') return false;
   const d = parseISODate(opp.rfpDueDate);
   if (!d) return false;
@@ -167,7 +167,7 @@ export default function OpportunitiesPage() {
   const [selectedOt, setSelectedOt] = useState('core');
   const [selectedHorizon, setSelectedHorizon] = useState('next');
   const [includeSoon, setIncludeSoon] = useState(true);
-  const [expandedId, setExpandedId] = useState(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filtered = opportunities.filter(opp => {
     if (selectedStage !== 'all' && opp.procurementStage !== selectedStage) return false;
@@ -629,8 +629,9 @@ export default function OpportunitiesPage() {
                 (a.nextMilestone?.date || '').localeCompare(b.nextMilestone?.date || '')
               );
               
-              const groups = {};
+              const groups: Record<string, Opportunity[]> = {};
               sorted.forEach(opp => {
+                if (!opp.nextMilestone?.date) return;
                 const date = new Date(opp.nextMilestone.date);
                 const q = Math.ceil((date.getMonth() + 1) / 3);
                 const key = `Q${q} ${date.getFullYear()}`;
