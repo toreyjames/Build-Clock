@@ -840,9 +840,22 @@ export default function BuildClockPage() {
               <span style={styles.gdpImpactIcon}>🏛️</span>
               <div>
                 <div style={styles.gdpImpactTitle}>Federal Spending Composition</div>
-                <div style={styles.gdpImpactSubtitle}>Physical investment as % of federal spending (target: 12-15%)</div>
+                <div style={styles.gdpImpactSubtitle}>Physical investment as % of federal spending</div>
               </div>
             </div>
+            
+            {/* Reasoning - moved to top */}
+            <div style={styles.gdpImpactNote}>
+              <strong style={{ color: COLORS.accent }}>Why 12-15% Target:</strong> To stabilize debt/GDP at ~100% by 2030, GDP must grow faster than debt. 
+              This requires shifting federal spending composition from transfers/operations toward productive investment. 
+              Current federal physical investment is {FEDERAL_SPENDING_IMPACT.currentInvestmentPercent}% of spending ($490B of $6.1T). 
+              Our analysis estimates a shift to <strong>12-15%</strong> is needed to support GDP growth sufficient for fiscal sustainability. 
+              This is an <strong>analytical framework target</strong> based on fiscal math, not an official government target.
+              <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.7rem', color: COLORS.textDim }}>
+                Source: Current 8% from OMB Historical Tables 8.1. Target range derived from fiscal sustainability analysis.
+              </span>
+            </div>
+            
             <div style={styles.gdpImpactProgress}>
               <div style={styles.gdpImpactProgressHeader}>
                 <span>Physical Investment Share of Federal Spending</span>
@@ -870,13 +883,9 @@ export default function BuildClockPage() {
                 </span>
               </div>
             </div>
-            <div style={styles.gdpImpactNote}>
-              <strong>Current Status:</strong> Federal physical investment is {FEDERAL_SPENDING_IMPACT.currentInvestmentPercent}% of federal spending ($490B of $6.1T). 
-              Target is 12-15% to shift spending composition toward productive investment. 
-              <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.7rem', color: COLORS.textDim }}>
-                Note: Pipeline investments are primarily private, not federal spending. This metric tracks federal budget composition shift needed for fiscal sustainability.
-                Source: OMB Historical Tables 8.1.
-              </span>
+            <div style={{ ...styles.gdpImpactNote, marginTop: '1rem', fontSize: '0.85rem' }}>
+              <strong>Note:</strong> Pipeline investments tracked here are primarily private, not federal spending. 
+              This metric tracks the federal budget composition shift needed for fiscal sustainability.
             </div>
           </div>
           
