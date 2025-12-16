@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Hamiltonian Build Clock',
-  description: 'Not just how much we owe – how much of it is actually building America.',
+  title: 'Build Clock | Deloitte',
+  description: 'U.S. Industrial Investment Intelligence - Tracking the reshoring wave.',
 }
 
 export default function RootLayout({

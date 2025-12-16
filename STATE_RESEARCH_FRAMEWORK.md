@@ -292,3 +292,11 @@ Based on initial assessment, these states likely have highest untapped potential
 *Framework version 1.0 — Based on Minnesota deep-dive methodology*
 *Last updated: December 2024*
 
+
+
+
+
+
+
+
+

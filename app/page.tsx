@@ -1,3816 +1,1155 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { 
-  PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, 
-  Tooltip, ResponsiveContainer, BarChart, Bar
-} from 'recharts'
+import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
+import { opportunities, calculateSectorPipeline, type Opportunity } from '../lib/data/opportunities'
 
 // ============================================================================
-// SCROLL REVEAL COMPONENT
+// COLORS & THEME (matching Opportunity Radar)
 // ============================================================================
-
-function ScrollReveal({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) {
-  const [isVisible, setIsVisible] = useState(false)
-  const [hasAnimated, setHasAnimated] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (hasAnimated) return
-    
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !hasAnimated) {
-            setTimeout(() => {
-              setIsVisible(true)
-              setHasAnimated(true)
-            }, delay)
-          }
-        })
-      },
-      { threshold: 0.05, rootMargin: '50px 0px -20px 0px' }
-    )
-
-    const currentRef = ref.current
-    if (currentRef) {
-      observer.observe(currentRef)
-    }
-
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef)
-      }
-    }
-  }, [delay, hasAnimated])
-
-  return (
-    <div
-      ref={ref}
-      style={{
-        opacity: isVisible ? 1 : 0,
-        transform: isVisible ? 'translateY(0)' : 'translateY(40px)',
-        transition: `opacity 0.8s ease-out ${delay}ms, transform 0.8s ease-out ${delay}ms`,
-      }}
-    >
-      {children}
-    </div>
-  )
+const COLORS = {
+  bg: '#0a0f14',
+  bgCard: '#0d1117',
+  border: '#21262d',
+  text: '#e6edf3',
+  textMuted: '#7d8590',
+  textDim: '#484f58',
+  accent: '#7ee787',
+  accentDim: '#238636',
+  warning: '#d29922',
+  danger: '#f85149',
+  blue: '#58a6ff',
+  purple: '#a371f7',
 }
 
 // ============================================================================
-// API & DATA FETCHING
+// API & DATA
 // ============================================================================
-
-// Treasury Fiscal Data API - Real federal debt data (no auth required)
 const TREASURY_API = 'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny?sort=-record_date&page[size]=1'
-
-// FRED API - Federal Reserve Economic Data (free API key required)
-// Get your free key at: https://fred.stlouisfed.org/docs/api/api_key.html
-const FRED_API_KEY = process.env.NEXT_PUBLIC_FRED_API_KEY || ''
-const FRED_BASE_URL = 'https://api.stlouisfed.org/fred/series/observations'
-
-// FRED Series IDs
-const FRED_SERIES = {
-  GDP: 'GDP',                    // Gross Domestic Product (Billions, Quarterly)
-  DEBT_TO_GDP: 'GFDEGDQ188S',   // Federal Debt as % of GDP (Quarterly)
-  GROSS_INVESTMENT: 'GPDI',      // Gross Private Domestic Investment
-  GOV_INVESTMENT: 'W170RC1Q027SBEA', // Government gross investment
-}
-
-interface DebtData {
-  totalDebt: number           // in trillions
-  lastUpdated: string
-  isLoading: boolean
-  error: string | null
-}
-
-interface EconomicData {
-  gdp: number                 // in trillions
-  debtToGdp: number          // percentage
-  grossInvestment: number    // in billions
-  govInvestment: number      // in billions
-  lastUpdated: string
-  isLoading: boolean
-  error: string | null
-}
-
-// Estimated daily debt increase (based on ~$1T/year deficit)
-const DEBT_INCREASE_PER_SECOND = 1_000_000_000_000 / 365 / 24 / 60 / 60  // ~$31,709/second
+const US_POPULATION = 336_000_000
 
 // ============================================================================
-// CONSTANTS & HAMILTONIAN METHODOLOGY
+// FEDERAL SPENDING BREAKDOWN - OMB Historical Tables (Table 8.1)
+// Source: https://www.whitehouse.gov/omb/budget/historical-tables/
 // ============================================================================
 
-const US_POPULATION = 336_000_000  // US population
-
-// Hamiltonian Share Breakdown (% of total federal spending that builds assets)
-// Based on OMB Budget Object Class analysis + capital investment data
-const HAMILTONIAN_BREAKDOWN = {
-  energy: { share: 0.04, label: 'Energy', icon: '⚡', description: 'Power plants, grid, transmission, storage' },
-  infrastructure: { share: 0.05, label: 'Infrastructure', icon: '🛣️', description: 'Roads, bridges, ports, airports, rail' },
-  manufacturing: { share: 0.03, label: 'Manufacturing', icon: '🏭', description: 'CHIPS Act, IRA credits, reshoring incentives' },
-  rnd: { share: 0.03, label: 'R&D', icon: '🔬', description: 'DOE labs, NSF, basic research, science' },
-  defenseCapital: { share: 0.03, label: 'Defense Capital', icon: '🛡️', description: 'Ships, aircraft, facilities, equipment' },
+// FEDERAL SPENDING BREAKDOWN
+// Methodology: OMB Table 8.1 (outlays by function) grouped into 3 categories
+// "Physical Investment" = Function 400 (Transportation) + 250 (Science) + 270 (Energy) + 050 capital
+// This is an ANALYTICAL FRAMEWORK, not an official OMB category
+const FEDERAL_SPENDING = {
+  total: 6100, // $6.1T FY2024 (CBO)
+  breakdown: [
+    {
+      category: 'investment',
+      label: 'Physical Investment',
+      amount: 490, // Functions 250, 270, 400 + defense capital (~8%)
+      percent: 8,
+      color: '#7ee787', // accent green
+      description: 'Infrastructure, R&D, energy, defense capital',
+      sublabel: 'Builds long-term capacity',
+      methodology: 'OMB Table 8.1: Functions 250+270+400 + est. defense capital',
+    },
+    {
+      category: 'operations',
+      label: 'Government Operations',
+      amount: 1220, // ~20%
+      percent: 20,
+      color: '#58a6ff', // blue
+      description: 'Defense operations, federal agencies, administration',
+      sublabel: 'Current services',
+      methodology: 'OMB Table 8.1: Functions 050 (ops) + 750-800',
+    },
+    {
+      category: 'transfers',
+      label: 'Mandatory Programs',
+      amount: 4390, // ~72% - SS, Medicare, Medicaid, interest
+      percent: 72,
+      color: '#f85149', // red
+      description: 'Social Security, Medicare, Medicaid, net interest',
+      sublabel: 'Entitlements & interest',
+      methodology: 'OMB Table 8.1: Functions 550, 570, 650 + interest',
+    },
+  ],
+  source: 'OMB Historical Tables 8.1',
+  sourceUrl: 'https://www.whitehouse.gov/omb/budget/historical-tables/',
+  methodologyNote: 'Categories are analytical groupings of OMB functional data, not official classifications.',
 }
 
-// Calculate total Hamiltonian Share from breakdown
-const HAMILTONIAN_SHARE = Object.values(HAMILTONIAN_BREAKDOWN).reduce((sum, cat) => sum + cat.share, 0)
+// ============================================================================
+// TRACEABLE METRICS - All from real, citable sources
+// ============================================================================
 
-// Historical Hamiltonian Share data (estimated from federal capital investment as % of spending)
-const HAMILTONIAN_HISTORY = [
-  { year: 1960, share: 35, event: 'Interstate Highway System + Apollo' },
-  { year: 1970, share: 33, event: 'Nuclear fleet construction' },
-  { year: 1980, share: 28, event: 'Last major infrastructure push' },
-  { year: 1990, share: 24, event: 'NAFTA, offshoring begins' },
-  { year: 2000, share: 22, event: 'Dot-com focus, manufacturing decline' },
-  { year: 2010, share: 19, event: 'Financial crisis recovery' },
-  { year: 2020, share: 17, event: 'COVID, awareness grows' },
-  { year: 2024, share: 18, event: 'CHIPS + IRA + Genesis' },
-]
-
-// Monthly trend data (for tracking progress toward 30% target)
-// In production, this would come from a database/API
-const MONTHLY_TREND = [
-  { month: 'Jan 24', actual: 17.2, target: 30 },
-  { month: 'Feb 24', actual: 17.3, target: 30 },
-  { month: 'Mar 24', actual: 17.4, target: 30 },
-  { month: 'Apr 24', actual: 17.5, target: 30 },
-  { month: 'May 24', actual: 17.6, target: 30 },
-  { month: 'Jun 24', actual: 17.7, target: 30 },
-  { month: 'Jul 24', actual: 17.8, target: 30 },
-  { month: 'Aug 24', actual: 17.9, target: 30 },
-  { month: 'Sep 24', actual: 18.0, target: 30 },
-  { month: 'Oct 24', actual: 18.0, target: 30 },
-  { month: 'Nov 24', actual: 18.0, target: 30 },
-  // Projected future (dashed line in chart)
-  { month: 'Dec 24', actual: null, projected: 18.1, target: 30 },
-  { month: 'Jun 25', actual: null, projected: 19.0, target: 30 },
-  { month: 'Dec 25', actual: null, projected: 20.5, target: 30 },
-  { month: 'Jun 26', actual: null, projected: 22.0, target: 30 },
-  { month: 'Dec 26', actual: null, projected: 24.0, target: 30 },
-  { month: 'Jun 27', actual: null, projected: 26.5, target: 30 },
-  { month: 'Dec 27', actual: null, projected: 29.0, target: 30 },
-  { month: 'Jun 28', actual: null, projected: 30.5, target: 30 },
-]
-
-// American Advantages with REAL data
-const americanAdvantages = [
-  { 
-    area: 'Frontier AI', 
-    usPosition: '8 of top 10 models',
-    evidence: 'GPT-4, Claude, Gemini, Llama — all American. China\'s best 12-18 months behind.',
-    metric: '80%',
-    metricLabel: 'of frontier AI',
-    icon: '🧠',
-    status: 'dominant'
-  },
-  { 
-    area: 'Cloud Infrastructure', 
-    usPosition: '65% global market',
-    evidence: 'AWS (32%) + Azure (23%) + GCP (10%). Alibaba Cloud = 4%.',
-    metric: '65%',
-    metricLabel: 'market share',
-    icon: '☁️',
-    status: 'dominant'
-  },
-  { 
-    area: 'Nuclear Technology', 
-    usPosition: '90% of SMR IP',
-    evidence: 'NuScale (NRC approved), TerraPower, X-energy. China: 0 approved SMR designs.',
-    metric: '90%',
-    metricLabel: 'of SMR patents',
-    icon: '⚛️',
-    status: 'dominant'
-  },
-  { 
-    area: 'Commercial Space', 
-    usPosition: '70%+ of launches',
-    evidence: 'SpaceX: 96 launches in 2024. All of China: ~67. Reusable rockets = US only.',
-    metric: '96',
-    metricLabel: 'SpaceX launches/yr',
-    icon: '🚀',
-    status: 'dominant'
-  },
-  { 
-    area: 'Biotech & Pharma', 
-    usPosition: '60% of new drugs',
-    evidence: '$150B US pharma R&D vs $30B China. mRNA vaccines, CRISPR, CAR-T = American.',
-    metric: '$150B',
-    metricLabel: 'R&D spending',
-    icon: '🧬',
-    status: 'dominant'
-  },
-  { 
-    area: 'Venture Capital', 
-    usPosition: '50%+ of global VC',
-    evidence: '$170B US VC in 2024 vs $45B China. Startup ecosystem unmatched.',
-    metric: '$170B',
-    metricLabel: 'annual VC',
-    icon: '💰',
-    status: 'leading'
-  },
-  { 
-    area: 'Research Universities', 
-    usPosition: '17 of top 20',
-    evidence: 'MIT, Stanford, Harvard, Caltech, Berkeley. China has 2 in top 50.',
-    metric: '17',
-    metricLabel: 'of top 20',
-    icon: '🎓',
-    status: 'dominant'
-  },
-  { 
-    area: 'Energy Resources', 
-    usPosition: '#1 gas producer',
-    evidence: 'Largest natural gas producer globally. Vast uranium, shale, coal reserves.',
-    metric: '#1',
-    metricLabel: 'nat gas producer',
-    icon: '⛽',
-    status: 'leading'
-  },
-]
-
-// Capacity gaps - what we need to build
-const capacityGaps = [
-  { area: 'Grid/HVDC', current: 25, target: 150, unit: 'GW', investment: 150, jobs: 500, timeline: '2030' },
-  { area: 'Nuclear', current: 95, target: 300, unit: 'GW', investment: 200, jobs: 300, timeline: '2035' },
-  { area: 'Chip Fabs', current: 12, target: 35, unit: '% global', investment: 150, jobs: 200, timeline: '2030' },
-  { area: 'Rare Earths', current: 0, target: 30, unit: '% refining', investment: 25, jobs: 50, timeline: '2030' },
-  { area: 'Shipbuilding', current: 5, target: 100, unit: 'ships/yr', investment: 80, jobs: 200, timeline: '2035' },
-  { area: 'Water Storage', current: 480, target: 800, unit: 'MAF', investment: 120, jobs: 400, timeline: '2040' },
-]
-
-// Policy sequence - the strategy
-const policySequence = [
+// Key Reshoring Metrics (real data, defensible sources)
+const RESHORING_METRICS = [
   {
-    step: 1,
-    name: 'TARIFFS',
-    action: 'Protect the Market',
-    description: 'Raise import prices so American production can compete. Creates price parity.',
-    examples: ['Steel/Aluminum: 25%', 'Solar panels: 50%', 'EVs from China: 100%', 'Chips: Export controls'],
-    icon: '🛡️',
-    status: 'active',
-    revenue: '$80B/year'
+    id: 'public-investment',
+    label: 'Public Investment Rate',
+    current: '3.5%',
+    historical: '5.5%',
+    historicalYear: '1960s',
+    direction: 'down' as const,
+    source: 'BEA / FRED',
+    sourceUrl: 'https://fred.stlouisfed.org/series/W170RC1Q027SBEA',
+    insight: 'Gov investment as % of GDP. Peak was during Interstate Highway era.',
+    highlight: true, // This is the "build rate" metric
   },
   {
-    step: 2,
-    name: 'INCENTIVES',
-    action: 'Subsidize Investment',
-    description: 'Tax credits and grants to make building here profitable. De-risk private investment.',
-    examples: ['CHIPS Act: $52B', 'IRA clean energy: $370B', 'DOE Genesis: $8B', 'Tax credits: 30%'],
-    icon: '💰',
-    status: 'active',
-    revenue: '$430B committed'
+    id: 'mfg-gdp',
+    label: 'Manufacturing Share of GDP',
+    current: '11%',
+    historical: '28%',
+    historicalYear: '1953',
+    direction: 'down' as const,
+    source: 'Bureau of Economic Analysis',
+    sourceUrl: 'https://fred.stlouisfed.org/series/VAPGDPMA',
+    insight: 'Lowest since before WWII. CHIPS & IRA aim to reverse.',
   },
   {
-    step: 3,
-    name: 'INFRASTRUCTURE',
-    action: 'Enable Production',
-    description: 'Cheap, reliable power. Water. Grid capacity. Permitting reform. Without this, factories can\'t run.',
-    examples: ['Grid hardening', 'HVDC corridors', 'Water systems', 'Permitting: 2yr→6mo'],
-    icon: '⚡',
-    status: 'building',
-    revenue: '$300B needed'
+    id: 'factory-construction',
+    label: 'Factory Construction Spending',
+    current: '$225B/yr',
+    historical: '$90B/yr',
+    historicalYear: '2021',
+    direction: 'up' as const,
+    source: 'U.S. Census Bureau',
+    sourceUrl: 'https://fred.stlouisfed.org/series/TLMFGCONS',
+    insight: '2.5x increase since CHIPS/IRA passed. Historic spike.',
   },
   {
-    step: 4,
-    name: 'WORKFORCE',
-    action: 'Train the Workers',
-    description: 'Apprenticeships, technical schools, skills programs. The jobs are coming — workers must be ready.',
-    examples: ['500K apprentices/yr', 'Trade school funding', 'Veteran transition', 'STEM pipeline'],
-    icon: '👷',
-    status: 'planned',
-    revenue: '$50B needed'
+    id: 'chip-share',
+    label: 'U.S. Share of Global Chip Production',
+    current: '12%',
+    historical: '37%',
+    historicalYear: '1990',
+    direction: 'down' as const,
+    source: 'Semiconductor Industry Association',
+    sourceUrl: 'https://www.semiconductors.org/',
+    insight: 'CHIPS Act targets 20%+ by 2030.',
   },
   {
-    step: 5,
-    name: 'CAPACITY',
-    action: 'Factories Come Home',
-    description: 'The result: Domestic manufacturing for critical goods. Supply chain security. Jobs.',
-    examples: ['Intel fabs: OH, AZ', 'TSMC: Arizona', 'Battery plants: MI, TN', 'Steel: revival'],
-    icon: '🏭',
-    status: 'building',
-    revenue: '3M+ jobs'
+    id: 'reshoring-jobs',
+    label: 'Reshoring Job Announcements',
+    current: '350K+',
+    historical: '6K',
+    historicalYear: '2010',
+    direction: 'up' as const,
+    source: 'Reshoring Initiative',
+    sourceUrl: 'https://reshorenow.org/',
+    insight: 'Record year in 2023. Trend accelerating.',
   },
 ]
 
-// Leapfrog strategy
-const leapfrogData = [
-  { area: 'Transport', chinaHas: 'High-speed rail', weSkipTo: 'Hyperloop / Vacuum trains', icon: '🚄' },
-  { area: 'Nuclear', chinaHas: 'Gen III reactors', weSkipTo: 'SMRs + Fusion', icon: '⚛️' },
-  { area: 'Solar', chinaHas: 'Cheap silicon panels', weSkipTo: 'Perovskite + Tandem (40% eff)', icon: '☀️' },
-  { area: 'Batteries', chinaHas: 'Lithium-ion', weSkipTo: 'Solid-state + Sodium-ion', icon: '🔋' },
-  { area: 'Steel', chinaHas: 'Blast furnaces', weSkipTo: 'Green hydrogen steel', icon: '🏗️' },
-  { area: 'Ships', chinaHas: 'Manual shipyards', weSkipTo: 'Modular + Automated', icon: '🚢' },
+// ============================================================================
+// POLICY WAVES - The evolving policy landscape driving reshoring
+// ============================================================================
+
+// POLICY WAVES - All amounts from enacted legislation or official announcements
+// Sources: congress.gov, commerce.gov/chips, energy.gov, treasury.gov
+const POLICY_WAVES = [
+  {
+    wave: 1,
+    label: 'Foundation',
+    period: '2021-2022',
+    description: 'Enacted legislation — amounts authorized',
+    policies: [
+      { name: 'CHIPS & Science Act', amount: 280, status: 'enacted', icon: '🔬', note: 'PL 117-167 • Semiconductor mfg & R&D', sourceUrl: 'https://www.congress.gov/bill/117th-congress/house-bill/4346' },
+      { name: 'Inflation Reduction Act', amount: 369, status: 'enacted', icon: '🌱', note: 'PL 117-169 • Clean energy & mfg credits', sourceUrl: 'https://www.congress.gov/bill/117th-congress/house-bill/5376' },
+      { name: 'Infrastructure Law (IIJA)', amount: 550, status: 'enacted', icon: '🛣️', note: 'PL 117-58 • Roads, grid, broadband', sourceUrl: 'https://www.congress.gov/bill/117th-congress/house-bill/3684' },
+    ],
+    total: 1199,
+    totalNote: 'Federal spending (grants, tax credits, loans) authorized over 5-10 years',
+  },
+  {
+    wave: 2,
+    label: 'Implementation',
+    period: '2023-2025',
+    description: 'Funds obligated or disbursing',
+    policies: [
+      { name: 'CHIPS Awards', amount: null, status: 'awarded', icon: '💰', note: 'Commerce Dept awards ongoing — $50B+ awarded through 2025', sourceUrl: 'https://www.nist.gov/chips' },
+      { name: 'IRA 45X Credits', amount: null, status: 'active', icon: '📋', note: 'Advanced mfg production credits (uncapped)', sourceUrl: 'https://www.energy.gov/eere/solar/federal-solar-tax-credits-businesses' },
+      { name: 'DOE Loan Programs', amount: null, status: 'committed', icon: '⚡', note: 'LPO commitments continuing through 2025', sourceUrl: 'https://www.energy.gov/lpo/loan-programs-office' },
+    ],
+    total: 0,
+    totalNote: 'Ongoing disbursements — amounts cumulative',
+  },
+  {
+    wave: 3,
+    label: 'Strategic Protectionism',
+    period: '2025+',
+    description: 'Distinct approach: Tariffs drive investment through protectionism, not subsidies',
+    policies: [
+      { name: 'Tariff Policy', amount: null, status: 'enacted', icon: '🚢', note: 'Strategic protectionism: 50% steel/aluminum, 10% universal + sector-specific. Drives reshoring through protection, not subsidies. Admin distanced from CHIPS/IRA-style programs.' },
+      { name: 'AI Data Center Buildout', amount: null, status: 'private', icon: '🧠', note: '$100B+ announced (MSFT, AMZN, Google)', sourceUrl: 'https://blogs.microsoft.com/blog/2025/01/21/the-stargate-project/' },
+      { name: 'Nuclear Restarts', amount: null, status: 'active', icon: '⚛️', note: 'TMI, Palisades — private + DOE support', sourceUrl: 'https://www.energy.gov/ne' },
+    ],
+    total: 0,
+    totalNote: 'Amounts TBD or private investment',
+  },
 ]
 
-// Your Stake - state data with clear benefits
-const stateData: Record<string, {
-  projects: number
-  jobsCreated: number
-  energySavings: number
-  investmentComing: number
-  keyProjects: string[]
-}> = {
-  'Texas': { 
-    projects: 12, 
-    jobsCreated: 185000, 
-    energySavings: 1400, 
-    investmentComing: 45,
-    keyProjects: ['Samsung fab expansion', 'Texas Instruments plants', 'LNG export terminals', 'Grid hardening']
-  },
-  'Ohio': { 
-    projects: 8, 
-    jobsCreated: 95000, 
-    energySavings: 1100, 
-    investmentComing: 32,
-    keyProjects: ['Intel mega-fab ($20B)', 'Honda EV plant', 'Steel mill revival', 'Nuclear restart']
-  },
-  'Arizona': { 
-    projects: 7, 
-    jobsCreated: 78000, 
-    energySavings: 1600, 
-    investmentComing: 40,
-    keyProjects: ['TSMC fabs (3 plants)', 'Intel expansion', 'Battery manufacturing', 'Solar manufacturing']
-  },
-  'Michigan': { 
-    projects: 9, 
-    jobsCreated: 110000, 
-    energySavings: 1000, 
-    investmentComing: 28,
-    keyProjects: ['GM/Ford EV transition', 'Battery gigafactories', 'Semiconductor plants', 'Robotics hub']
-  },
-  'Pennsylvania': { 
-    projects: 6, 
-    jobsCreated: 65000, 
-    energySavings: 950, 
-    investmentComing: 18,
-    keyProjects: ['Steel plant modernization', 'Nuclear plant restart', 'Pittsburgh AI corridor', 'Shale infrastructure']
-  },
-  'Tennessee': { 
-    projects: 5, 
-    jobsCreated: 55000, 
-    energySavings: 900, 
-    investmentComing: 15,
-    keyProjects: ['Ford BlueOval City', 'Oak Ridge expansion', 'Volkswagen EV', 'SMR development']
-  },
-  'Georgia': { 
-    projects: 6, 
-    jobsCreated: 72000, 
-    energySavings: 1100, 
-    investmentComing: 22,
-    keyProjects: ['Hyundai EV plant', 'Rivian expansion', 'SK Battery', 'Savannah port expansion']
-  },
-  'New York': { 
-    projects: 7, 
-    jobsCreated: 85000, 
-    energySavings: 1200, 
-    investmentComing: 25,
-    keyProjects: ['Micron fab ($100B)', 'Offshore wind manufacturing', 'Albany nanotechnology', 'Grid modernization']
-  },
-  'California': { 
-    projects: 3, 
-    jobsCreated: 25000, 
-    energySavings: -200, // Negative - energy costs rising
-    investmentComing: 8,
-    keyProjects: ['Grid upgrades (reactive)', 'Solar manufacturing (small)', 'Water systems (blocked)']
-  },
-  'Nevada': { 
-    projects: 4, 
-    jobsCreated: 45000, 
-    energySavings: 1100, 
-    investmentComing: 12,
-    keyProjects: ['Thacker Pass lithium', 'Tesla Gigafactory expansion', 'Data centers', 'Solar expansion']
-  },
-  'Wyoming': { 
-    projects: 3, 
-    jobsCreated: 8000, 
-    energySavings: 1500, 
-    investmentComing: 8,
-    keyProjects: ['TerraPower Natrium SMR', 'Wind expansion', 'Rare earth exploration']
-  },
-  'Alaska': { 
-    projects: 4, 
-    jobsCreated: 15000, 
-    energySavings: 800, 
-    investmentComing: 25,
-    keyProjects: ['Willow Project', 'Alaska LNG', 'Port expansion', 'Critical minerals']
-  },
-  'Minnesota': { 
-    projects: 5, 
-    jobsCreated: 38000, 
-    energySavings: 1200, 
-    investmentComing: 14.5,
-    keyProjects: ['DOE National Lab (CRAML)', 'Robotics hub (Twin Cities)', 'Iron Range mining control (post-6-9mo research)', 'Nuclear SMR deployment', 'Cleveland-Cliffs rare earth expansion']
-  },
-  'Illinois': { 
-    projects: 1, 
-    jobsCreated: 8000, 
-    energySavings: 400, 
-    investmentComing: 3,
-    keyProjects: ['Nuclear preservation (subsidized)']
-  },
-  'New Jersey': { 
-    projects: 2, 
-    jobsCreated: 5000, 
-    energySavings: -100, 
-    investmentComing: 2,
-    keyProjects: ['Offshore wind (troubled)', 'Port expansion']
-  },
-  'Massachusetts': { 
-    projects: 1, 
-    jobsCreated: 15000, 
-    energySavings: 200, 
-    investmentComing: 3,
-    keyProjects: ['Life sciences R&D']
-  },
-  'North Dakota': { 
-    projects: 3, 
-    jobsCreated: 8000, 
-    energySavings: 900, 
-    investmentComing: 5,
-    keyProjects: ['Bakken production', 'Wind expansion', 'Data centers']
-  },
-  'New Mexico': { 
-    projects: 4, 
-    jobsCreated: 20000, 
-    energySavings: 1000, 
-    investmentComing: 10,
-    keyProjects: ['Permian oil/gas', 'Los Alamos/Sandia', 'Solar expansion']
-  },
-  'Florida': { 
-    projects: 4, 
-    jobsCreated: 35000, 
-    energySavings: 700, 
-    investmentComing: 8,
-    keyProjects: ['SpaceX/Blue Origin expansion', 'Port expansion']
-  },
-  'Indiana': { 
-    projects: 5, 
-    jobsCreated: 40000, 
-    energySavings: 800, 
-    investmentComing: 10,
-    keyProjects: ['EV battery plants', 'Steel modernization', 'Logistics expansion']
-  },
-  'South Carolina': { 
-    projects: 4, 
-    jobsCreated: 35000, 
-    energySavings: 850, 
-    investmentComing: 8,
-    keyProjects: ['BMW expansion', 'Scout Motors EV', 'Port Charleston expansion']
-  },
-  'Kentucky': { 
-    projects: 4, 
-    jobsCreated: 45000, 
-    energySavings: 750, 
-    investmentComing: 12,
-    keyProjects: ['Ford battery plants', 'Toyota EV investment', 'Envision AESC battery']
-  },
-  'Louisiana': { 
-    projects: 5, 
-    jobsCreated: 35000, 
-    energySavings: 900, 
-    investmentComing: 28,
-    keyProjects: ['LNG export terminals', 'Petrochemical expansion', 'Port upgrades']
-  },
-  'Virginia': { 
-    projects: 4, 
-    jobsCreated: 50000, 
-    energySavings: 650, 
-    investmentComing: 28,
-    keyProjects: ['Data centers (Northern VA)', 'Newport News shipyard', 'Offshore wind']
-  },
-  'Washington': { 
-    projects: 3, 
-    jobsCreated: 25000, 
-    energySavings: 500, 
-    investmentComing: 6,
-    keyProjects: ['Boeing production', 'Data centers']
-  },
-  'Colorado': { 
-    projects: 2, 
-    jobsCreated: 18000, 
-    energySavings: 550, 
-    investmentComing: 4,
-    keyProjects: ['Aerospace R&D', 'Solar expansion']
-  },
-  'Wisconsin': { 
-    projects: 3, 
-    jobsCreated: 15000, 
-    energySavings: 600, 
-    investmentComing: 5,
-    keyProjects: ['Shipyard revival (Marinette)', 'Microsoft data center']
-  },
-  'Utah': { 
-    projects: 3, 
-    jobsCreated: 22000, 
-    energySavings: 700, 
-    investmentComing: 5,
-    keyProjects: ['Data centers', 'Tech expansion', 'Mining']
-  },
-  'West Virginia': { 
-    projects: 2, 
-    jobsCreated: 8000, 
-    energySavings: 500, 
-    investmentComing: 3,
-    keyProjects: ['Gas development', 'Data centers (proposed)']
-  },
-  'Missouri': { 
-    projects: 1, 
-    jobsCreated: 5000, 
-    energySavings: 400, 
-    investmentComing: 2,
-    keyProjects: ['No major projects']
-  },
-  'Alabama': { 
-    projects: 4, 
-    jobsCreated: 25000, 
-    energySavings: 800, 
-    investmentComing: 5,
-    keyProjects: ['Hyundai EV expansion', 'Airbus expansion', 'Browns Ferry nuclear']
-  },
-  'Mississippi': { 
-    projects: 2, 
-    jobsCreated: 20000, 
-    energySavings: 600, 
-    investmentComing: 4,
-    keyProjects: ['Ingalls Shipbuilding', 'Nissan (declining)']
-  },
-  'Maine': { 
-    projects: 2, 
-    jobsCreated: 8000, 
-    energySavings: 450, 
-    investmentComing: 2,
-    keyProjects: ['Bath Iron Works', 'Offshore wind (proposed)']
-  },
-  'Connecticut': { 
-    projects: 3, 
-    jobsCreated: 25000, 
-    energySavings: 500, 
-    investmentComing: 5,
-    keyProjects: ['Electric Boat submarines', 'Pratt & Whitney engines']
-  },
-  'Iowa': { 
-    projects: 4, 
-    jobsCreated: 20000, 
-    energySavings: 900, 
-    investmentComing: 5,
-    keyProjects: ['Wind expansion', 'Data centers', 'Ethanol/biofuels']
-  },
+const TOTAL_POLICY_INVESTMENT = POLICY_WAVES.reduce((sum, w) => sum + w.total, 0)
+
+// Sector pipeline - AUTO-CALCULATED from opportunities data
+// Updates automatically when opportunities change - single source of truth
+const SECTOR_PIPELINE = calculateSectorPipeline(opportunities)
+
+const getEconomicImpactLabel = (e: 'transformational' | 'catalytic' | 'significant' | 'direct-only'): string => ({
+  'transformational': '3-5x GDP',
+  'catalytic': '2-3x GDP',
+  'significant': '1-2x GDP',
+  'direct-only': '<1x GDP',
+}[e])
+
+// ============================================================================
+// THE CASE - Why we need to invest (competitive gaps, strategic needs)
+// ============================================================================
+// STRATEGIC GAPS - Ordered by relevance to pipeline sectors and OT requirements
+// These gaps drive the pipeline, which creates OT implementation demand
+// Calculate gaps dynamically from opportunities data
+const getStrategicGaps = () => {
+  const semis = opportunities.filter(o => o.sector === 'semiconductors')
+  const semisTotal = semis.reduce((sum, o) => sum + o.investmentSize, 0) / 1000
+  
+  const grid = opportunities.filter(o => o.sector === 'clean-energy')
+  const gridTotal = grid.reduce((sum, o) => sum + o.investmentSize, 0) / 1000
+  
+  const ev = opportunities.filter(o => o.sector === 'ev-battery')
+  const evTotal = ev.reduce((sum, o) => sum + o.investmentSize, 0) / 1000
+  
+  const nuclear = opportunities.filter(o => o.sector === 'nuclear')
+  const nuclearTotal = nuclear.reduce((sum, o) => sum + o.investmentSize, 0) / 1000
+  
+  return [
+    {
+      id: 'semiconductor',
+      category: 'Pipeline Sector',
+      title: 'Semiconductor Production',
+      us: '12%',
+      usLabel: 'U.S. share of global chip production',
+      them: '20%',
+      themLabel: 'CHIPS Act target by 2030',
+      gap: `$${Math.round(semisTotal)}B`,
+      gapNote: `Tracked pipeline: ${semis.length} fab projects requiring MES, SCADA, OT systems`,
+      source: 'SIA/BCG 2021 Report',
+      sourceUrl: 'https://www.semiconductors.org/strengthening-the-global-semiconductor-supply-chain-in-an-uncertain-era/',
+      icon: '🔬',
+      color: COLORS.blue,
+    },
+    {
+      id: 'grid-energy',
+      category: 'Enabling Infrastructure',
+      title: 'Grid & Energy Capacity',
+      us: '1.2 TW',
+      usLabel: 'Current U.S. grid capacity',
+      them: '2.0 TW',
+      themLabel: 'Needed by 2035 for factories + AI',
+      gap: `$${Math.round(gridTotal)}B`,
+      gapNote: `Tracked pipeline: ${grid.length} grid projects need SCADA, OT cyber, control systems`,
+      source: 'DOE, Princeton Net Zero',
+      sourceUrl: 'https://www.energy.gov/gdo/building-better-grid-initiative',
+      icon: '⚡',
+      color: COLORS.warning,
+    },
+    {
+      id: 'ev-battery',
+      category: 'Pipeline Sector',
+      title: 'EV & Battery Manufacturing',
+      us: `$${Math.round(evTotal)}B`,
+      usLabel: `Tracked pipeline: ${ev.length} battery/EV projects`,
+      them: 'IRA Target',
+      themLabel: 'Domestic EV supply chain by 2030',
+      gap: 'OT Required',
+      gapNote: 'Every gigafactory needs MES, quality systems, supply chain OT',
+      source: 'Opportunity Radar',
+      sourceUrl: '/opportunities',
+      icon: '🔋',
+      color: COLORS.accent,
+    },
+    {
+      id: 'nuclear',
+      category: 'Pipeline Sector',
+      title: 'Nuclear & Advanced Reactors',
+      us: `$${Math.round(nuclearTotal)}B`,
+      usLabel: `Tracked pipeline: ${nuclear.length} nuclear projects`,
+      them: 'AI Power Demand',
+      themLabel: 'Microsoft TMI restart, SMR deployments',
+      gap: 'OT Critical',
+      gapNote: 'Nuclear requires highest-grade SCADA, safety systems, digital twins',
+      source: 'DOE, Opportunity Radar',
+      sourceUrl: '/opportunities',
+      icon: '⚛️',
+      color: COLORS.warning,
+    },
+  ]
 }
 
-// Comprehensive State-Level Hamiltonian Analysis
-interface StateHamiltonianAnalysis {
-  state: string
-  stateGDP: number // billions
-  stateDebt: number // billions
-  stateCapitalInvestment: number // billions
-  population: number // millions (for per capita calculations)
-  hamiltonianShare: number // % of state spending on capital
-  buildRate: number // % of GDP
-  trend: 'rising' | 'flat' | 'declining' // is it getting better or worse?
-  naturalAdvantages: string[]
-  currentProjects: { name: string, category: string, status: string, investment: number }[]
-  capacityGaps: { category: string, need: string, current: string }[]
-  politicalFeasibility: 'high' | 'medium' | 'low'
-  nationalRole: string
-  energyProfile: string
-  workforceReadiness: 'high' | 'medium' | 'low'
-  assessment: string // honest assessment
-  corruptionEvidence?: string // proven fraud/corruption cases
-  pathToVictory?: string[] // how to unblock
-  blockedProjects?: { name: string, investment: number, jobs: number, yearsBlocked: number, blocker: string, status: string }[] // specific blocked projects with details
-  // Strategic Capacity Metrics (for AI/Digital/Energy analysis)
-  nuclearCapacity?: number // GW of nuclear power
-  chipInvestment?: number // $B in chip fab investments
-  dataCenterCapacity?: 'high' | 'medium' | 'low' | 'emerging' // data center / AI hosting capacity
-  gridReliability?: 'stable' | 'stressed' | 'vulnerable' // grid reliability for AI/industrial load
-  aiReadiness?: 'high' | 'medium' | 'low' // overall AI infrastructure readiness
-}
+const STRATEGIC_GAPS = getStrategicGaps()
 
-// ALL 50 STATES - Honest Hamiltonian Analysis
-const stateHamiltonianAnalysis: Record<string, StateHamiltonianAnalysis> = {
-  // === TIER 1: BUILDING STATES (High Hamiltonian Activity) ===
-  'Texas': {
-    state: 'Texas',
-    stateGDP: 2400,
-    stateDebt: 45,
-    stateCapitalInvestment: 18,
-    population: 30.5,
-    hamiltonianShare: 24,
-    buildRate: 0.75,
-    trend: 'rising',
-    naturalAdvantages: [
-      'Largest state economy ($2.4T GDP — would be 8th largest country)',
-      '#1 oil producer (5.5M bbl/day — 43% of US)',
-      '#1 natural gas producer',
-      '#1 wind power (40 GW installed — 28% of US total)',
-      'Gulf Coast ports (Houston, Corpus Christi, Freeport)',
-      'LNG export leader (largest US export capacity)',
-      'No state income tax',
-      'Business-friendly (tort reform, right-to-work)',
-      'Population boom (+1M in 3 years from CA/other states)',
-      'Land availability',
-      'Research universities (UT, A&M, Rice)'
-    ],
-    currentProjects: [
-      { name: 'Samsung fab (Taylor)', category: 'Chip Fabs', status: 'Building — delayed, $17B investment', investment: 17 },
-      { name: 'Texas Instruments fabs (Sherman)', category: 'Chip Fabs', status: 'Building — $30B for 4 fabs', investment: 30 },
-      { name: 'Tesla Gigafactory (Austin)', category: 'Manufacturing', status: 'Operational + expanding', investment: 10 },
-      { name: 'LNG export terminals (Freeport, Sabine, Corpus)', category: 'Energy', status: 'Active — largest US LNG export', investment: 25 },
-      { name: 'TxDOT infrastructure', category: 'Infrastructure', status: 'Active — $14B/year', investment: 14 },
-      { name: 'ERCOT grid hardening', category: 'Infrastructure', status: 'Post-2021 freeze upgrades', investment: 8 },
-      { name: 'Permian Basin production', category: 'Energy', status: 'Active — 6M+ bbl/day by 2025', investment: 15 },
-      { name: 'South Texas Project nuclear expansion', category: 'Energy', status: 'Exploring', investment: 0 }
-    ],
-    capacityGaps: [
-      { category: 'Grid Reliability', need: 'Dispatchable baseload for ERCOT', current: '2021 freeze killed 250+ people. Grid still vulnerable to extreme weather. Too dependent on wind/gas that failed in cold.' },
-      { category: 'Nuclear', need: '50 GW for baseload', current: 'Only 5 GW (Comanche Peak, South Texas). Need 10x more for grid stability.' },
-      { category: 'Water', need: 'Desal + conservation', current: 'Groundwater depleting. 2022 drought exposed vulnerability. Growing population + industry.' },
-      { category: 'Interconnection', need: 'HVDC to Eastern/Western grids', current: 'ERCOT isolated by design. Helps avoid federal regulation but limits emergency imports.' },
-      { category: 'Chip workforce', need: 'Semiconductor technicians', current: 'Attracting talent but Samsung fab delayed partly due to worker shortage' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'AMERICA\'S BUILDER. Largest energy producer (oil, gas, wind, LNG export). Chip manufacturing hub (Samsung, TI, $47B+ combined). Tesla HQ. Population magnet. BUT: ERCOT grid is Achilles heel — 2021 freeze exposed fatal flaw. Too much wind/gas, not enough nuclear. Grid isolated from national system.',
-    energyProfile: '#1 everything: oil (5.5M bbl/day), gas, wind (40 GW), LNG export. BUT only 5 GW nuclear. 2021 freeze showed wind + gas fail in extreme cold. Grid needs dispatchable baseload. ERCOT isolation means can\'t import in emergencies.',
-    workforceReadiness: 'high',
-    assessment: 'LEADING BY VOLUME BUT GRID IS FRAGILE. Texas builds more than any other state — $47B in chip fabs alone (Samsung, TI). #1 in oil, gas, wind, LNG export. Tesla, SpaceX, Oracle all moved HQs here. Population boom from CA exodus. BUT: 2021 freeze killed 250+ people, caused $195B in damage. ERCOT grid is still vulnerable. Too dependent on wind (fails in ice) and gas (froze in 2021). Only 5 GW nuclear vs 40 GW wind. Solution: 10x nuclear expansion + grid interconnection. Texas proves you can build in America, but also proves even builders can have fatal flaws.',
-    pathToVictory: [
-      '2021: Winter storm exposes ERCOT vulnerability — 250+ deaths, $195B damage',
-      '2022-24: Grid hardening underway but still insufficient',
-      '2024: Samsung Taylor fab delayed — workforce, supply chain issues',
-      '2025: TI Sherman fabs progressing — $30B for 4 fabs',
-      '2025-26: Data center boom straining grid — 10+ GW new demand',
-      '2026-27: Permian production peaks — 6M+ bbl/day',
-      '2027-28: Samsung Taylor operational (if completed)',
-      '2030: Full potential requires: 50 GW nuclear (currently 5 GW), grid interconnection, water security',
-      'RISK: Another 2021-style freeze before nuclear buildout could be catastrophic',
-      'OPPORTUNITY: If Texas adds nuclear + grid ties, it becomes unassailable energy/manufacturing leader',
-      'POLITICAL ADVANTAGE: No state income tax, tort reform, right-to-work — companies keep coming'
-    ],
-    // Strategic Capacity Metrics
-    nuclearCapacity: 5, // Only 5 GW (Comanche Peak + South Texas)
-    chipInvestment: 47, // Samsung $17B + TI $30B
-    dataCenterCapacity: 'high', // Large and growing
-    gridReliability: 'vulnerable', // ERCOT isolation, 2021 freeze
-    aiReadiness: 'medium' // High capacity but grid risk undermines it
-  },
-  'Ohio': {
-    state: 'Ohio',
-    stateGDP: 750,
-    stateDebt: 18,
-    stateCapitalInvestment: 5.2,
-    population: 11.8,
-    hamiltonianShare: 24,
-    buildRate: 0.7,
-    trend: 'rising',
-    naturalAdvantages: [
-      'Freshwater (Lake Erie, Ohio River)',
-      'Central location — within 600 miles of 60% of US/Canada population',
-      'Manufacturing legacy + workforce',
-      'Low cost of living',
-      'Major research universities (Ohio State, Case Western)',
-      'Existing auto supply chain (Honda legacy)',
-      'Natural gas (Utica Shale)',
-      'Pro-business governor (DeWine)'
-    ],
-    currentProjects: [
-      { name: 'Intel Ohio One (New Albany)', category: 'Chip Fabs', status: 'Building — $20B Phase 1, up to $100B total', investment: 20 },
-      { name: 'Honda-LG battery plant (Fayette County)', category: 'Manufacturing', status: 'Building — $4.4B, 2,200 jobs', investment: 4.4 },
-      { name: 'Honda EV hub (Marysville/East Liberty)', category: 'Manufacturing', status: 'Converting — $700M EV transition', investment: 0.7 },
-      { name: 'Ford battery JV (potential)', category: 'Manufacturing', status: 'Evaluating', investment: 0 },
-      { name: 'Davis-Besse nuclear', category: 'Energy', status: 'Operating — saved from closure by HB6', investment: 0 },
-      { name: 'Perry nuclear', category: 'Energy', status: 'Operating — saved from closure', investment: 0 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'Massive power for Intel fab', current: '3 GW nuclear (Davis-Besse, Perry). Coal closing. Need more baseload.' },
-      { category: 'Grid', need: 'HVDC to East Coast + fab power', current: 'Regional grid, needs expansion for data centers + fabs' },
-      { category: 'Workforce', need: 'Semiconductor technicians', current: 'Manufacturing base but needs retraining for chips' },
-      { category: 'Water', need: 'Fab water supply', current: 'Abundant (Lake Erie) but needs infrastructure' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'MIDWEST REVIVAL. Intel fab is second only to Micron in chip investment. Honda EV hub. If Intel fully builds out ($100B), Ohio becomes America\'s chip heartland. DeWine (R) made it happen with $2B in state incentives.',
-    energyProfile: 'Coal legacy but transitioning. Saved Davis-Besse and Perry nuclear from closure (HB6 scandal, but plants still running). Utica Shale gas. Need more baseload for Intel fab power demand.',
-    workforceReadiness: 'high',
-    assessment: 'RUST BELT REVIVAL. Intel\'s $20B fab (Phase 1) is transformational — could grow to $100B with 8 fabs. 3,000 Intel jobs + 7,000 construction + massive supply chain. Honda pivoting to EVs in Ohio (legacy relationship). Battery plants coming. DeWine (R) delivered with $2B incentives + site prep. HB6 scandal (FirstEnergy bribery) saved nuclear plants — corrupt but effective. KEY QUESTION: Can Ohio supply power for chip fabs? Need grid expansion + baseload. This is what bringing manufacturing back looks like.',
-    pathToVictory: [
-      '2022: Intel announces $20B fab — largest private investment in Ohio history',
-      '2022: DeWine provides $2B in state incentives + site prep',
-      '2023-24: Construction underway — 7,000+ construction jobs',
-      '2024: Honda-LG battery plant breaks ground — $4.4B',
-      '2025: Intel fab shell complete — equipment installation begins',
-      '2026: Intel Phase 1 operational — first chips produced in Ohio',
-      '2027-28: Honda EV production ramps up (Marysville/East Liberty)',
-      '2028-30: Intel expansion decision — Phase 2-8 would add $80B more',
-      '2030: Full potential — Ohio as chip + EV + battery hub. Rust belt revival complete.',
-      'RISK: Power supply. Fabs are energy-intensive. Need grid expansion + baseload.',
-      'LESSON: State incentives + governor leadership + existing workforce = success'
-    ],
-    // Strategic Capacity Metrics
-    nuclearCapacity: 2.1, // Davis-Besse + Perry (saved by HB6)
-    chipInvestment: 20, // Intel $20B Phase 1, up to $100B
-    dataCenterCapacity: 'emerging', // Growing with Intel
-    gridReliability: 'stressed', // Needs expansion for fab load
-    aiReadiness: 'medium' // Nuclear + freshwater but grid needs work
-  },
-  'Arizona': {
-    state: 'Arizona',
-    stateGDP: 450,
-    stateDebt: 12,
-    stateCapitalInvestment: 4.5,
-    population: 7.4,
-    hamiltonianShare: 28,
-    buildRate: 1.0,
-    trend: 'rising',
-    naturalAdvantages: [
-      'Palo Verde Nuclear — LARGEST nuclear plant in US (3.9 GW)',
-      'Solar potential (best in nation)',
-      'Land availability',
-      'Business-friendly (right-to-work, low taxes)',
-      'Tech talent (CA exodus)',
-      'ASU + UA research',
-      'Population growth (#3 fastest)',
-      'No water used for Palo Verde (treated sewage)',
-      'Proximity to CA markets'
-    ],
-    currentProjects: [
-      { name: 'TSMC Fab 21 (Fab 1)', category: 'Chip Fabs', status: 'Building — 4nm, operational 2025', investment: 12 },
-      { name: 'TSMC Fab 21 (Fab 2)', category: 'Chip Fabs', status: 'Building — 3nm/2nm, operational 2028', investment: 28 },
-      { name: 'TSMC Fab 21 (Fab 3)', category: 'Chip Fabs', status: 'Announced — most advanced, 2030+', investment: 25 },
-      { name: 'Intel Ocotillo expansion', category: 'Chip Fabs', status: 'Building — $20B+', investment: 20 },
-      { name: 'Taiwan Semiconductor ecosystem', category: 'Manufacturing', status: 'Forming — suppliers following TSMC', investment: 5 },
-      { name: 'Data centers (Phoenix)', category: 'Infrastructure', status: 'Building — Microsoft, Google', investment: 10 },
-      { name: 'Palo Verde operating', category: 'Nuclear', status: 'Active — 3.9 GW, largest US plant', investment: 0 }
-    ],
-    capacityGaps: [
-      { category: 'Water', need: 'Sustainable supply for growth', current: 'EXISTENTIAL CRISIS. Colorado River at historic lows. AZ taking Tier 2 cuts (21% reduction). Phoenix groundwater being mined. Ag uses 70%+ of water but fabs need reliability.' },
-      { category: 'Energy', need: 'More baseload for fabs', current: 'Palo Verde is asset (3.9 GW, uses no river water). But fabs + data centers adding massive demand. Need nuclear expansion.' },
-      { category: 'Workforce', need: 'Semiconductor technicians', current: 'TSMC delayed partly due to worker quality/training issues. Importing Taiwanese workers temporarily.' },
-      { category: 'Housing', need: 'Affordable housing for workers', current: 'Phoenix costs rising. Workers can\'t afford to live near fabs.' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'CHIP MANUFACTURING CAPITAL — but water is existential threat. TSMC ($65B for 3 fabs) + Intel ($20B+) = $85B+ in semiconductor investment. Most concentrated chip investment outside Taiwan. Palo Verde (3.9 GW) is secret weapon — uses recycled sewage, not river water. BUT: Colorado River crisis could halt growth. Arizona already taking 21% cuts. Can\'t build chips without water.',
-    energyProfile: 'BEST ENERGY POSITION IN SOUTHWEST. Palo Verde is largest US nuclear plant (3.9 GW) and uses ZERO river water (recycled Phoenix sewage). Solar leader. Gas backup. If water is solved, energy is not the constraint.',
-    workforceReadiness: 'medium',
-    assessment: 'BOOM VS WATER CRISIS. $85B+ in chip fabs (TSMC $65B, Intel $20B+) makes Arizona the chip capital of America. But Colorado River is at historic lows. Arizona taking 21% water cuts under Tier 2. Agriculture uses 70% of water — will chips compete with farms? TSMC delayed partly due to workforce issues (importing Taiwanese workers). SECRET WEAPON: Palo Verde nuclear uses recycled sewage, not river water. Fabs can use recycled/desal water too. The question: Will Arizona solve water fast enough to sustain the boom? If yes, it\'s the manufacturing capital of America. If no, $85B in investments become stranded assets.',
-    blockedProjects: [
-      { name: 'TSMC delays', investment: 0, jobs: 0, yearsBlocked: 1, blocker: 'Workforce quality issues, construction delays', status: 'Delayed 1-2 years, now on track for 2025' },
-      { name: 'Water-intensive growth', investment: 50, jobs: 100000, yearsBlocked: 0, blocker: 'Colorado River cuts, drought', status: 'EXISTENTIAL — need water solutions or growth stops' }
-    ],
-    pathToVictory: [
-      '2024: TSMC Fab 1 construction progressing — first 4nm chips in US',
-      '2025: TSMC Fab 1 operational — 20,000 wafers/month',
-      '2025-26: Intel Ocotillo expansion operational',
-      '2026: Colorado River negotiations — Arizona\'s water future decided',
-      '2027: TSMC ecosystem suppliers fully established',
-      '2028: TSMC Fab 2 operational — 3nm/2nm most advanced US chips',
-      '2029-30: TSMC Fab 3 construction — if water solved',
-      '2030: Full potential — Arizona as chip capital IF water is solved',
-      'WATER SOLUTIONS: Desal from Sea of Cortez? Recycled water expansion? Ag-to-urban transfers?',
-      'KEY ASSET: Palo Verde uses recycled sewage — proves water-independent energy is possible',
-      'RISK: If water fails, $85B becomes stranded. National security disaster — chips depend on Arizona.'
-    ],
-    // Strategic Capacity Metrics
-    nuclearCapacity: 3.9, // Palo Verde — largest US nuclear plant
-    chipInvestment: 85, // TSMC $65B + Intel $20B
-    dataCenterCapacity: 'high', // Microsoft, Google building
-    gridReliability: 'stable', // Palo Verde provides baseload
-    aiReadiness: 'high' // Nuclear + chips + data centers, IF water solved
-  },
-  'Tennessee': {
-    state: 'Tennessee',
-    stateGDP: 450,
-    stateDebt: 8,
-    stateCapitalInvestment: 3.2,
-    population: 7.1,
-    hamiltonianShare: 32,
-    buildRate: 0.7,
-    trend: 'rising',
-    naturalAdvantages: ['Freshwater', 'Low cost', 'Business-friendly', 'TVA power'],
-    currentProjects: [
-      { name: 'Ford BlueOval City', category: 'Manufacturing', status: 'Building', investment: 5.6 },
-      { name: 'SMR development (Oak Ridge)', category: 'Energy', status: 'Active', investment: 4 },
-      { name: 'Battery plants', category: 'Manufacturing', status: 'Building', investment: 3 }
-    ],
-    capacityGaps: [
-      { category: 'Nuclear', need: 'SMR fleet', current: '3 GW' },
-      { category: 'Workforce', need: '50K skilled workers', current: 'Training gap' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'EV manufacturing, nuclear R&D, low-cost production',
-    energyProfile: 'Nuclear + hydro via TVA. Best energy position in Southeast.',
-    workforceReadiness: 'high',
-    assessment: 'MODEL STATE. Low debt, high investment, pro-build politics. Watch this one.'
-  },
-  'Georgia': {
-    state: 'Georgia',
-    stateGDP: 700,
-    stateDebt: 15,
-    stateCapitalInvestment: 4.5,
-    population: 11.0,
-    hamiltonianShare: 25,
-    buildRate: 0.6,
-    trend: 'rising',
-    naturalAdvantages: [
-      'Savannah port — 4th largest US port, fastest growing',
-      'Land availability + low cost',
-      'Business-friendly (right-to-work, low taxes)',
-      'Southeast logistics hub (Atlanta)',
-      'Hartsfield-Jackson — busiest airport in world',
-      'Vogtle — ONLY new nuclear in US in 30+ years',
-      'Growing population (migration from CA/NY)',
-      'Georgia Tech + research universities',
-      'Film/TV industry ($4B+/year)'
-    ],
-    currentProjects: [
-      { name: 'Vogtle Unit 3', category: 'Nuclear', status: 'Commercial operation July 2023 — FIRST new US reactor since 2016', investment: 17 },
-      { name: 'Vogtle Unit 4', category: 'Nuclear', status: 'Commercial operation April 2024 — 2.2 GW total added', investment: 17 },
-      { name: 'Hyundai Metaplant (Bryan County)', category: 'Manufacturing', status: 'Building — 300K EVs/year by 2025', investment: 7.6 },
-      { name: 'SK Battery Georgia (Commerce)', category: 'Manufacturing', status: 'Operational — supplies Ford F-150 Lightning', investment: 2.6 },
-      { name: 'SK Battery Georgia 2', category: 'Manufacturing', status: 'Building', investment: 2.5 },
-      { name: 'Rivian expansion', category: 'Manufacturing', status: 'Paused (market conditions)', investment: 5 },
-      { name: 'Savannah port deepening + expansion', category: 'Infrastructure', status: 'Active', investment: 1.8 },
-      { name: 'Qcells solar manufacturing (Dalton)', category: 'Manufacturing', status: 'Expanding — largest solar panel factory in US', investment: 2.5 }
-    ],
-    capacityGaps: [
-      { category: 'Grid', need: 'Data center power demand exploding', current: 'Vogtle helps but demand growing faster' },
-      { category: 'Water', need: 'Reservoir expansion for manufacturing', current: 'Adequate but watch list' },
-      { category: 'Workforce', need: 'Skilled manufacturing labor', current: 'Good but competition for workers' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'THE SUCCESS STORY. Vogtle proves nuclear CAN be built in America (2.2 GW added). EV manufacturing hub (Hyundai, SK, Rivian). Port logistics leader (Savannah). Solar manufacturing (Qcells). This is what "building" looks like.',
-    energyProfile: 'NUCLEAR SUCCESS. Vogtle Units 3 & 4 are first new US nuclear in 30+ years. Combined 2.2 GW — enough for 1M homes. Yes, it was over budget ($35B vs $14B original) and delayed (7 years late). But IT GOT BUILT. That matters more than anything.',
-    workforceReadiness: 'high',
-    assessment: 'AMERICA\'S BUILDER. Georgia is doing what other states talk about: Vogtle — first new nuclear in 30 years, completed 2023-24 despite massive cost overruns ($35B). Hyundai Metaplant — $7.6B EV factory, first production 2025. SK Battery — already supplying Ford F-150 Lightning. Qcells — largest US solar panel factory. Savannah — fastest growing port. WHY IT WORKS: Pro-business governor (Kemp), regulated utility model (Georgia Power could absorb Vogtle costs), right-to-work state, land availability, population growth. LESSON FOR OTHER STATES: Georgia proves you CAN build nuclear in America. It just requires political will and regulatory certainty.',
-    pathToVictory: [
-      '2023 July: Vogtle Unit 3 commercial operation — FIRST new US reactor since Watts Bar 2 (2016)',
-      '2024 April: Vogtle Unit 4 commercial operation — 2.2 GW total new nuclear capacity',
-      '2024-25: Hyundai Metaplant construction completes — 300K EVs/year capacity',
-      '2025: SK Battery at full production — powering Ford/Hyundai EVs',
-      '2025-26: Qcells expansion — doubling US solar panel production',
-      '2026: Rivian decision — proceed or cancel based on EV market',
-      '2027+: Data center boom — Google, Microsoft, others expanding in Georgia',
-      '2030: Georgia as Southeast manufacturing hub — EV, battery, solar, logistics',
-      'KEY INSIGHT: Georgia proves the model works. Copy it: regulated utility, political will, business-friendly, build anyway despite costs.'
-    ],
-    // Strategic Capacity Metrics
-    nuclearCapacity: 6.2, // Vogtle (4.5 GW after expansion) + other Georgia Power units
-    chipInvestment: 0, // Not a chip state
-    dataCenterCapacity: 'high', // Google, Microsoft expanding
-    gridReliability: 'stable', // Vogtle + regulated utility model
-    aiReadiness: 'high' // Nuclear baseload + data center growth
-  },
+// Calculate GDP impact from pipeline investments
+// Sources:
+// - GDP: $29.2T (2024, BEA) - https://www.bea.gov/data/gdp/gross-domestic-product
+// - Multipliers: CBO estimates infrastructure multipliers 0.4-2.2x (midpoint 1.3x)
+//   Conservative approach: using 1.0-2.0x range based on CBO research
+//   Source: CBO, EPI analysis - https://www.epi.org/publication/methodology-estimating-jobs-impact/
+const calculateGDPImpact = () => {
+  const US_GDP = 29_200 // $29.2T in billions (2024, BEA)
+  // SECTOR_PIPELINE.pipeline is already in billions (from calculateSectorPipeline)
+  const totalPipeline = SECTOR_PIPELINE.reduce((sum, s) => sum + s.pipeline, 0) // Already in billions
   
-  // === TIER 2: MIXED POTENTIAL (Could Go Either Way) ===
-  'Michigan': {
-    state: 'Michigan',
-    stateGDP: 600,
-    stateDebt: 22,
-    stateCapitalInvestment: 4.8,
-    population: 10.0,
-    hamiltonianShare: 20,
-    buildRate: 0.8,
-    trend: 'flat',
-    naturalAdvantages: [
-      'Freshwater (Great Lakes — 20% of world\'s surface freshwater)',
-      'Manufacturing legacy (auto capital of America)',
-      'Auto supply chain (deepest in US)',
-      'Skilled workforce (UAW, engineering talent)',
-      'Research universities (U of M, Michigan State)',
-      'Port access (Great Lakes shipping)',
-      'Land availability for manufacturing'
-    ],
-    currentProjects: [
-      { name: 'GM Ultium battery plants', category: 'Manufacturing', status: 'Building', investment: 7 },
-      { name: 'Ford EV transition (Rouge, Flat Rock)', category: 'Manufacturing', status: 'Active', investment: 8 },
-      { name: 'Gotion battery plant (Big Rapids)', category: 'Manufacturing', status: 'Controversial — national security concerns', investment: 2.4 },
-      { name: 'Stellantis battery JV', category: 'Manufacturing', status: 'Building', investment: 4.5 },
-      { name: 'DTE coal-to-renewable transition', category: 'Energy', status: 'Underway — grid reliability concerns', investment: 3 },
-      { name: 'Consumers Energy clean energy plan', category: 'Energy', status: 'Active', investment: 2 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'Baseload replacement for coal', current: 'Closing coal plants with no clear replacement. Fermi 2 nuclear is only baseload. No new nuclear planned.' },
-      { category: 'Grid', need: 'Reliability + hardening', current: 'DTE/Consumers among worst utilities for outages. 2023 storms exposed failures. Aging infrastructure.' },
-      { category: 'Supply Chain', need: 'Domestic battery materials', current: 'Gotion controversy highlights China dependence. No domestic lithium/cobalt processing.' },
-      { category: 'Workforce', need: 'EV transition retraining', current: 'UAW strikes showed tension. ICE→EV means fewer jobs per vehicle. Retraining lagging.' },
-      { category: 'Chips', need: 'Semiconductor supply', current: 'Auto industry still chip-constrained. No major fab investment (unlike OH, AZ).' }
-    ],
-    politicalFeasibility: 'medium',
-    nationalRole: 'SHOULD BE: EV/battery manufacturing hub, auto innovation center, freshwater advantage. ACTUALLY: Gotion controversy exposes China dependence. Grid failing. Coal closing with no replacement. UAW tensions. Still #1 auto state but at risk.',
-    energyProfile: 'Closing coal (Belle River, others) with no clear replacement. Fermi 2 is only nuclear (1.1 GW). Wind/solar growing but intermittent. DTE/Consumers reliability among worst in nation.',
-    workforceReadiness: 'high',
-    assessment: 'AUTO TRANSITION AT RISK. World\'s best auto workforce, Great Lakes water advantage, deep supply chain. BUT: Gotion controversy (Chinese battery plant in Big Rapids) raises national security questions — is MI building for America or China? Grid is failing — DTE/Consumers among worst utilities. Coal closing with no baseload replacement (only Fermi 2 nuclear). EV transition means fewer jobs per vehicle. UAW 2023 strikes showed workforce anxiety. WIN: Still attracting billions in EV/battery investment. RISK: Energy policy incoherence could collapse the transition.',
-    blockedProjects: [
-      { name: 'Gotion Battery Plant (Big Rapids)', investment: 2.4, jobs: 2350, yearsBlocked: 1, blocker: 'National security concerns, local opposition, China ties', status: 'Controversial — construction ongoing amid protests' },
-      { name: 'New Nuclear (none proposed)', investment: 0, jobs: 0, yearsBlocked: 0, blocker: 'Political will, no utility interest', status: 'Not even proposed — Fermi 2 is only plant' },
-      { name: 'Grid Hardening (deferred)', investment: 5, jobs: 10000, yearsBlocked: 10, blocker: 'Utility underinvestment, rate cases', status: 'Chronic underinvestment' }
-    ],
-    pathToVictory: [
-      '2024-25: Gotion controversy tests whether MI will accept Chinese investment or demand domestic supply chain',
-      '2025: Grid reliability must improve — DTE/Consumers under pressure after storm failures',
-      '2025-26: Coal plant closures (Belle River, others) — need replacement baseload or risk blackouts',
-      '2026: UAW contract negotiations — EV jobs vs ICE jobs tension continues',
-      '2027: If grid stabilizes + domestic battery supply secured, MI leads EV transition',
-      '2028: Full EV production ramp-up — GM, Ford, Stellantis all producing EVs at scale',
-      '2030: Success scenario: MI is EV capital with reliable grid, domestic supply chain, retrained workforce',
-      'RISK scenario: Grid fails, China dependence deepens, workforce shrinks, auto moves to TX/TN/GA'
-    ]
-  },
-  'Pennsylvania': {
-    state: 'Pennsylvania',
-    stateGDP: 900,
-    stateDebt: 35,
-    stateCapitalInvestment: 6.5,
-    population: 13.0,
-    hamiltonianShare: 18,
-    buildRate: 0.7,
-    trend: 'rising',
-    naturalAdvantages: [
-      'Marcellus Shale (largest US gas reserve)',
-      '9 GW nuclear (2nd largest fleet)',
-      'Three Mile Island restart potential',
-      '83,000 miles of rivers (600+ MW hydro potential)',
-      'Manufacturing workforce',
-      'Strategic Northeast location',
-      'Data center boom (nuclear-powered)',
-      'Geothermal potential (could meet 100% of needs)'
-    ],
-    currentProjects: [
-      { name: 'Three Mile Island Unit 1 restart (Constellation/Microsoft)', category: 'Nuclear', status: 'Approved - restart 2028', investment: 1.6 },
-      { name: 'Data centers (nuclear-powered)', category: 'Infrastructure', status: 'Building', investment: 8 },
-      { name: 'Shale gas infrastructure', category: 'Energy', status: 'Active', investment: 2.5 },
-      { name: 'Great Cove Solar (150 MW)', category: 'Energy', status: 'Operational 2023', investment: 0.3 },
-      { name: 'Steel plant modernization', category: 'Manufacturing', status: 'Active', investment: 1.2 },
-      { name: 'US Steel Mon Valley Works', category: 'Manufacturing', status: 'Uncertain (Nippon deal blocked)', investment: 0 }
-    ],
-    capacityGaps: [
-      { category: 'Pipelines', need: 'Northeast gas delivery (NY/NJ markets)', current: 'PennEast cancelled (2021, $1B+, 12,000 jobs lost). Constitution Pipeline cancelled. NESE cancelled. Williams trying to revive.' },
-      { category: 'Nuclear', need: 'Preserve 9 GW + expand', current: 'TMI restart is win. Bell Bend (new plant) was cancelled.' },
-      { category: 'Hydro', need: '600+ MW potential', current: 'No new facilities since 2014. Existing plants avg 60 years old.' },
-      { category: 'Wind', need: '18,000-45,000 MW potential', current: 'Only 1,550 MW installed. Broad Mountain blocked by lawsuits.' },
-      { category: 'Manufacturing', need: 'Steel revival', current: 'US Steel sale to Nippon blocked. Cleveland-Cliffs bid rejected.' },
-      { category: 'Grid', need: 'Clean energy interconnection', current: 'Major delays connecting renewables to grid' }
-    ],
-    politicalFeasibility: 'medium',
-    nationalRole: 'SHOULD BE: Northeast energy hub (gas + nuclear), steel manufacturing, data center capital. ACTUALLY: Pipelines blocked by NY/NJ, wind blocked by lawsuits, steel ownership uncertain. TMI restart is major win.',
-    energyProfile: 'Major gas producer (#2 in US). 9 GW nuclear (#2 fleet). Ranks 49th in renewable growth despite huge potential. TMI restart shows nuclear future is possible.',
-    workforceReadiness: 'high',
-    assessment: 'MASSIVE UNTAPPED POTENTIAL. Has everything: Marcellus gas, 9 GW nuclear, hydro potential, wind potential, geothermal potential, manufacturing workforce. BLOCKED: PennEast pipeline ($1B, 12,000 jobs) cancelled. Constitution Pipeline cancelled. Broad Mountain wind blocked. Bell Bend nuclear cancelled. BUT: TMI restart is huge win — Microsoft deal proves nuclear has corporate backing. Shapiro (D) is pragmatic on energy. Key unlock: Federal pipeline approval + grid modernization. Could be #1 energy state if unblocked.',
-    blockedProjects: [
-      { name: 'PennEast Pipeline', investment: 1.0, jobs: 12000, yearsBlocked: 6, blocker: 'NJ regulators + environmental lawsuits', status: 'Cancelled 2021' },
-      { name: 'Constitution Pipeline', investment: 0.9, jobs: 8000, yearsBlocked: 10, blocker: 'NY DEC denied water permit', status: 'Cancelled, revival attempts ongoing' },
-      { name: 'Northeast Supply Enhancement (NESE)', investment: 1.0, jobs: 5000, yearsBlocked: 5, blocker: 'NY/NJ regulators', status: 'Cancelled, Williams reviving' },
-      { name: 'Broad Mountain Wind', investment: 0.2, jobs: 200, yearsBlocked: 5, blocker: 'Local lawsuits, permit revoked', status: 'Blocked' },
-      { name: 'Bell Bend Nuclear Plant', investment: 10.0, jobs: 3000, yearsBlocked: 0, blocker: 'Economics + regulatory uncertainty', status: 'Cancelled before construction' }
-    ],
-    pathToVictory: [
-      '2024-25: TMI restart approved — proves nuclear revival is possible with corporate backing (Microsoft)',
-      '2025: Williams working with federal regulators to revive PA→NY pipelines. Trump admin may expedite.',
-      '2025-26: Data center boom creates demand for reliable baseload (nuclear advantage)',
-      '2026: Grid modernization needed to connect 600+ MW hydro potential',
-      '2027: Geothermal study shows PA could meet 100% of energy needs — workforce from oil/gas can transition',
-      '2028: TMI Unit 1 restarts — first US nuclear restart in decades',
-      '2028-30: If pipelines revived, PA becomes Northeast energy hub. $3B+ investment unlocked, 25,000+ jobs',
-      '2030: Full potential — gas + nuclear + renewables makes PA energy exporter to entire Northeast'
-    ],
-    // Strategic Capacity Metrics
-    nuclearCapacity: 9.0, // 2nd largest nuclear fleet in US
-    chipInvestment: 0, // Not a chip state (Pittsburgh has AI, not fabs)
-    dataCenterCapacity: 'high', // Nuclear-powered data centers growing
-    gridReliability: 'stable', // Nuclear baseload
-    aiReadiness: 'high' // 9 GW nuclear + TMI restart = data center magnet
-  },
-  'Nevada': {
-    state: 'Nevada',
-    stateGDP: 200,
-    stateDebt: 3.5,
-    stateCapitalInvestment: 1.8,
-    population: 3.2,
-    hamiltonianShare: 35,
-    buildRate: 0.9,
-    trend: 'rising',
-    naturalAdvantages: ['Lithium deposits', 'Solar', 'Geothermal', 'Land'],
-    currentProjects: [
-      { name: 'Thacker Pass lithium', category: 'Mining', status: 'Construction', investment: 2.3 },
-      { name: 'Tesla Gigafactory expansion', category: 'Manufacturing', status: 'Active', investment: 3.6 },
-      { name: 'Data centers', category: 'Infrastructure', status: 'Building', investment: 5 }
-    ],
-    capacityGaps: [
-      { category: 'Water', need: 'Desalination', current: 'Colorado River (crisis)' },
-      { category: 'Energy', need: 'Nuclear', current: 'Solar + gas' }
-    ],
-    politicalFeasibility: 'medium',
-    nationalRole: 'Critical minerals (lithium), data centers, battery manufacturing',
-    energyProfile: 'Solar + geothermal. Water is the constraint.',
-    workforceReadiness: 'medium',
-    assessment: 'STRATEGIC. Lithium is critical. Water crisis shared with Arizona.'
-  },
-  'Minnesota': {
-    state: 'Minnesota',
-    stateGDP: 420,
-    stateDebt: 12,
-    stateCapitalInvestment: 2.5,
-    population: 5.7,
-    hamiltonianShare: 18,
-    buildRate: 0.6,
-    trend: 'flat',
-    naturalAdvantages: [
-      'Freshwater (11,842 lakes, Mississippi headwaters)',
-      'Iron Range minerals (copper, nickel, cobalt, rare earths, taconite)',
-      'Top 5 agricultural state (#1 turkeys, sugar beets)',
-      'Medical device powerhouse (Medtronic, Mayo Clinic)',
-      'Robotics/automation cluster (Twin Cities)',
-      'Great Lakes port access (Duluth-Superior)',
-      'Strong universities (U of M, Mayo)',
-      'Educated workforce',
-      'Wind potential',
-      'Strategic location (baseline state for national model)'
-    ],
-    currentProjects: [
-      { name: 'DOE National Lab (CRAML) - Critical Resources & Advanced Manufacturing', category: 'R&D', status: 'Proposed (post-Demuth, existing facilities 2027)', investment: 2.5 },
-      { name: 'Robotics employment hub (Twin Cities)', category: 'Manufacturing', status: 'Planned', investment: 2.5 },
-      { name: 'Iron Range mining control & expansion', category: 'Mining', status: 'Blocked (needs Demuth + 6-9mo accelerated research)', investment: 0 },
-      { name: 'Nuclear SMR deployment (Demuth plan)', category: 'Energy', status: 'Planned (post-Walz)', investment: 4 },
-      { name: 'Cleveland-Cliffs rare earth expansion', category: 'Mining', status: 'Exploration', investment: 0.3 },
-      { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 1.2 },
-      { name: 'Medical device manufacturing', category: 'Manufacturing', status: 'Active', investment: 2 },
-      { name: 'Ag processing (Cargill, General Mills)', category: 'Agriculture', status: 'Active', investment: 1.5 },
-      { name: 'Twin Metals copper-nickel', category: 'Mining', status: 'Blocked (20+ years, needs 6-9mo accelerated research validation)', investment: 0 },
-      { name: 'PolyMet/NewRange', category: 'Mining', status: 'Blocked (20+ years, needs 6-9mo accelerated research validation)', investment: 0 }
-    ],
-    capacityGaps: [
-      { category: 'National Lab', need: 'DOE real-world engineering lab: critical minerals, SMR R&D, advanced manufacturing, cold climate testing (Duluth + Twin Cities). Field testing in actual Minnesota climate. Company partnerships: Twin Metals/PolyMet/Cleveland-Cliffs volunteer equipment/machinery for accelerated 6-9 month validation', current: 'No national lab despite world-class workforce. Research needed before mining approval. Must be engineering-driven, real-world validation. Can accelerate with public-private partnerships' },
-      { category: 'Robotics/Automation', need: 'Twin Cities hub controlling Iron Range operations', current: 'Fragmented, no coordination' },
-      { category: 'Nuclear', need: 'SMR deployment for baseload (Demuth plan)', current: '0 GW, blocked by Walz' },
-      { category: 'Mining', need: '$10B+ copper-nickel-rare earth, Iron Range control (after 6-9mo accelerated research validation with company partnerships)', current: 'Blocked by Walz politics, needs science-first approach' },
-      { category: 'Defense minerals', need: 'Domestic rare earth supply from Iron Range', current: '90% from China' },
-      { category: 'Water infrastructure', need: 'Leverage surplus for industry', current: 'Underutilized' }
-    ],
-    politicalFeasibility: 'low',
-    nationalRole: 'BASELINE STATE FOR NATIONAL MODEL. SHOULD BE: Critical minerals hub (Iron Range), robotics/automation center (Twin Cities controlling Range), ag powerhouse, medical devices, water-rich industry magnet, nuclear energy exporter, national lab (real-world engineering, field testing in actual Minnesota climate). ACTUALLY: Blocked by Walz, fraud-ridden, declining. Demuth plan: National lab FIRST (6-9 month accelerated research + deregulation with company partnerships), then mining. Companies volunteer equipment/machinery to lab for faster validation. Real-world engineering validation in harsh winters, extreme cold - not just theoretical research. Science provides peace of mind, then we mine responsibly.',
-    energyProfile: 'Wind + imports. Anti-nuclear politics under Walz. Demuth plan: SMR deployment + Iron Range energy. Could be energy EXPORTER with nuclear but Walz blocks all development.',
-    workforceReadiness: 'high',
-    assessment: 'BLOCKED + CORRUPT. $250M+ Feeding Our Families fraud (largest COVID fraud in US). $1B+ total fraud exposure. Has EVERYTHING (water, minerals, workforce, infrastructure) but Walz blocks development. Lisa Demuth\'s plan: National lab FIRST (using existing facilities immediately), 6-9 month accelerated real-world engineering research + science-informed deregulation, then mining approval. Company partnerships accelerate validation: Twin Metals/PolyMet/Cleveland-Cliffs volunteer equipment/machinery to lab. Real-world field testing in actual Minnesota climate (harsh winters, extreme cold) - not just theoretical research. Engineering validation provides peace of mind, then we mine responsibly. FIRST: Attack Walz on fraud, stagnation, blocking jobs. THEN: Demuth wins 2026, unlocks Minnesota as national baseline.',
-    corruptionEvidence: 'Feeding Our Families: $250M+ stolen (70+ indicted). Largest pandemic fraud case in US history. Additional COVID relief fraud under investigation. Total exposure: $1B+. AG Ellison under federal scrutiny. Low build rate (0.6%) + high non-physical spending (82%) = predictable corruption. Walz enabled this.',
-    pathToVictory: [
-      '2025: Attack Walz relentlessly — fraud ($1B+ exposure), 8 years of stagnation, blocking 25,000+ Iron Range jobs, blocking nuclear energy',
-      '2025-26: DOJ investigation expands, Walz 3rd term campaign under pressure. Demuth builds coalition: Iron Range workers + Twin Cities robotics + nuclear advocates',
-      '2026: Demuth runs on "Build Minnesota" — National lab FIRST (prove we can mine responsibly), then mining jobs. Nuclear SMR deployment, robotics hub, accountability, anti-fraud',
-      '2026: Walz vulnerable (fraud, VP loss, 8 years of stagnation, blocking jobs) — 40-45% chance of defeat with strong Demuth campaign',
-      '2027: Demuth wins + legislature = IMMEDIATE action: National lab research begins using existing facilities (U of M, NRRI Duluth). Companies volunteer equipment/machinery for lab use (Twin Metals, PolyMet, Cleveland-Cliffs). Message: "Accelerated validation with public-private partnership, then we mine responsibly"',
-      '2027-28: 6-9 MONTH ACCELERATED RESEARCH & DEREGULATION PERIOD — Real-world engineering lab operational (existing buildings + field testing + company equipment). PARALLEL work streams: (1) Water treatment validation (winter testing), (2) Environmental monitoring protocols (cold weather), (3) Sustainable extraction methods (field testing), (4) Baseline environmental studies (air, water, soil), (5) Mitigation strategies (proven in real conditions). Company partnerships accelerate: Twin Metals/PolyMet provide equipment, Cleveland-Cliffs shares expertise, lab validates in actual climate. Simultaneously: Deregulation tied to research findings — modernize permitting based on real-world validation, streamline regulations that field testing proves are unnecessary, keep protections real-world testing validates as critical',
-      '2028 (6-9 months): Research complete + deregulation complete — Real-world lab validates: water treatment methods work in Minnesota winters, environmental monitoring protocols ready for extreme cold, sustainable extraction proven safe in actual climate, baseline studies complete, mitigation strategies proven. Regulations modernized based on real-world engineering validation: streamlined permitting (2yr→6mo), science-based standards proven in field, removed outdated barriers, kept essential protections validated by actual testing. Company partnerships enabled faster validation using existing equipment/expertise',
-      '2028: Mining permits approved WITH lab oversight — Twin Metals, PolyMet reinstated. Permits move quickly (6 months vs 20 years) because research validated safety, regulations modernized based on science',
-      '2028-30: Mining development begins with active lab guidance — 25,000+ jobs, $5B+ annual output. Lab ensures best practices, environmental protection, continuous monitoring. Permanent lab facility construction begins (Duluth + Twin Cities satellite)',
-      '2029-30: Permanent lab facility operational — Full capabilities, research continues to monitor and improve operations',
-      '2030-32: Nuclear SMR construction starts (powered by lab research). Robotics hub fully operational, controlling Iron Range operations remotely',
-      '2035: Minnesota transformed — energy exporter (nuclear), critical minerals hub (Iron Range), robotics center (Twin Cities), national lab (research leader), national baseline model for other states'
-    ],
-    // Strategic Capacity Metrics
-    nuclearCapacity: 0, // Blocked by Walz — Demuth plan: SMR deployment
-    chipInvestment: 0, // Not a chip state — focus is minerals + robotics
-    dataCenterCapacity: 'emerging', // Cold climate advantage, needs power
-    gridReliability: 'stable', // But no nuclear baseload
-    aiReadiness: 'medium' // Cold climate advantage but needs nuclear for baseload
-  },
+  // Apply GDP multipliers based on economic impact
+  // Based on CBO research: infrastructure multipliers range 0.4-2.2x, midpoint 1.3x
+  // Using conservative estimates within this range
+  const multiplierMap: Record<string, number> = {
+    'transformational': 2.0, // High-end of CBO range for transformative projects
+    'catalytic': 1.5, // Mid-high range for catalytic investments
+    'significant': 1.3, // CBO midpoint for infrastructure
+    'direct-only': 1.0, // Direct impact only
+  }
   
-  // === TIER 3: STAGNANT/DECLINING (Not Building) ===
-  'California': {
-    state: 'California',
-    stateGDP: 3800,
-    stateDebt: 95,
-    stateCapitalInvestment: 25,
-    population: 39.0,
-    hamiltonianShare: 14,
-    buildRate: 0.65,
-    trend: 'declining',
-    naturalAdvantages: [
-      'Largest state economy ($3.8T GDP)',
-      'Ports (LA/Long Beach handle 40% of US imports)',
-      'Tech talent (Silicon Valley)',
-      'Research universities (UC system, Stanford, Caltech)',
-      'Aerospace (SpaceX, Northrop, Lockheed)',
-      'Solar/wind potential',
-      'Agricultural powerhouse (#1 ag state)',
-      'Deep water ports for Pacific trade'
-    ],
-    currentProjects: [
-      { name: 'High-speed rail (Central Valley segment)', category: 'Infrastructure', status: 'Building (troubled) - $4B federal funding revoked 2025', investment: 10 },
-      { name: 'Caltrans infrastructure', category: 'Infrastructure', status: 'Active', investment: 15 },
-      { name: 'Port modernization (LA/Long Beach)', category: 'Infrastructure', status: 'Active', investment: 3 },
-      { name: 'Grid upgrades (fire prevention)', category: 'Energy', status: 'Active', investment: 8 },
-      { name: 'Diablo Canyon extension', category: 'Nuclear', status: 'Extended to 2030 (was closing 2025)', investment: 1.4 },
-      { name: 'Delta Conveyance Project (water tunnel)', category: 'Water', status: 'Delayed by litigation', investment: 16 }
-    ],
-    capacityGaps: [
-      { category: 'Nuclear', need: 'New baseload beyond Diablo', current: 'Diablo is ONLY nuclear. San Onofre closed 2013. Sundesert blocked 1978. Bodega Bay blocked 1964.' },
-      { category: 'Water', need: 'Desalination at scale', current: 'Poseidon Huntington Beach rejected 2022 after 20+ years. Carlsbad (50M gal/day) is only major plant.' },
-      { category: 'Housing', need: '3.5M+ units shortage', current: 'CEQA blocks most projects. Avg permit takes 2-3 years. 80% of land zoned single-family only.' },
-      { category: 'Manufacturing', need: 'Retention', current: 'Companies fleeing: Tesla (HQ→TX), Oracle (HQ→TX), HP (HQ→TX). High costs, regulations.' },
-      { category: 'Energy reliability', need: 'Baseload power', current: 'Rolling blackouts 2020. Grid stressed by EV mandates + nuclear closures.' },
-      { category: 'Carbon capture', need: 'Industrial decarbonization', current: 'DOE cancelled $3.7B for 24 clean energy projects including 3 in CA (2025)' }
-    ],
-    politicalFeasibility: 'low',
-    nationalRole: 'SHOULD BE: Manufacturing + tech + ag + energy powerhouse. Largest economy, best ports, best universities. ACTUALLY: Exporting companies, blocking housing, closing nuclear, failed rail project. Diablo extension is only recent win.',
-    energyProfile: 'Grid stressed. Extended Diablo Canyon (only nuclear, was closing). Solar leader but rolling blackouts in 2020. San Onofre closed. No new nuclear since 1985.',
-    workforceReadiness: 'high',
-    assessment: 'SELF-SABOTAGING despite having everything. Largest economy but: High-speed rail 20+ years, $100B+ and still not running. Poseidon desalination blocked after 20 years of permitting. Housing crisis (3.5M unit shortage) but CEQA blocks building. Companies fleeing to TX/AZ/NV. Only wins: Diablo extension, ports still operating. Path forward unclear — supermajority Dem legislature, no political check.',
-    blockedProjects: [
-      { name: 'Poseidon Huntington Beach Desalination', investment: 1.4, jobs: 2400, yearsBlocked: 24, blocker: 'California Coastal Commission', status: 'Rejected 2022' },
-      { name: 'High-Speed Rail (full SF-LA)', investment: 100, jobs: 200000, yearsBlocked: 16, blocker: 'Cost overruns, litigation, federal funding revoked', status: 'Partial construction only' },
-      { name: 'Sundesert Nuclear Power Plant', investment: 2.0, jobs: 3000, yearsBlocked: 47, blocker: 'Governor + state agency denial', status: 'Rejected 1978' },
-      { name: 'San Onofre (premature closure)', investment: -6.0, jobs: -1500, yearsBlocked: 0, blocker: 'Steam generator issues + regulatory burden', status: 'Closed 2013' },
-      { name: 'Housing (statewide CEQA delays)', investment: 50, jobs: 500000, yearsBlocked: 30, blocker: 'CEQA lawsuits, local zoning', status: 'Ongoing - 3.5M unit shortage' }
-    ],
-    pathToVictory: [
-      'UNLIKELY PATH — no political mechanism for change:',
-      '2024-25: Diablo Canyon extension is only win. Proves nuclear is needed but culture still anti-nuclear.',
-      '2025: Federal funding revoked for high-speed rail ($4B) — project may collapse entirely.',
-      '2025-26: Budget crisis as tech revenue falls. May force CEQA reform for economic reasons.',
-      '2026: No governor change possible (Newsom term-limited, likely replaced by similar Dem).',
-      '2027: Housing crisis may force state preemption of local zoning (SB 35 expansion).',
-      '2028: Delta Conveyance may break ground if litigation resolved (16+ years of delays).',
-      '2030+: Without political realignment, expect continued decline. Companies will keep leaving.',
-      'WILD CARD: Bankruptcy of major utility (PG&E precedent) could force restructuring.',
-      'ACTUAL PATH: Unlocking CA requires federal preemption or bankruptcy forcing reform. State politics cannot self-correct.'
-    ],
-    // Strategic Capacity Metrics
-    nuclearCapacity: 2.2, // Diablo Canyon only — San Onofre closed
-    chipInvestment: 0, // No fabs — companies leaving
-    dataCenterCapacity: 'low', // Grid stressed, high costs
-    gridReliability: 'vulnerable', // Rolling blackouts, fire risk, aging infrastructure
-    aiReadiness: 'low' // Grid can't support AI load, hostile to data centers
-  },
-  'New York': {
-    state: 'New York',
-    stateGDP: 1900,
-    stateDebt: 55,
-    stateCapitalInvestment: 8.5,
-    population: 19.5,
-    hamiltonianShare: 15,
-    buildRate: 0.45,
-    trend: 'flat',
-    naturalAdvantages: [
-      'Global financial capital (Wall Street)',
-      'Major ports (NYC, Long Island)',
-      'Research universities (Columbia, Cornell, NYU, RPI)',
-      'Tech talent (NYC tech scene)',
-      'Manufacturing history (upstate)',
-      'Hydropower (Niagara)',
-      'Strategic Northeast location'
-    ],
-    currentProjects: [
-      { name: 'Micron fab (Syracuse)', category: 'Chip Fabs', status: 'Building — $100B over 20 years, 50,000 jobs', investment: 100 },
-      { name: 'Micron power line (345 kV)', category: 'Infrastructure', status: 'Approved Oct 2025', investment: 0.5 },
-      { name: 'Offshore wind (Empire Wind, Sunrise)', category: 'Energy', status: 'Troubled — cost overruns, contracts cancelled', investment: 2 },
-      { name: 'Albany Nanotech Complex', category: 'R&D', status: 'Active', investment: 1 }
-    ],
-    capacityGaps: [
-      { category: 'Nuclear', need: 'Replace 2 GW Indian Point', current: 'CLOSED 2021. Now importing gas/electricity from PA + Canada. No replacement built.' },
-      { category: 'Pipelines', need: 'Natural gas delivery', current: 'Constitution Pipeline blocked (NY DEC). PennEast blocked. NESE blocked. Williams reviving. Highest gas prices in continental US.' },
-      { category: 'Energy reliability', need: 'Baseload power', current: 'Importing 25%+ of electricity. Grid stressed. Winter reliability concerns.' },
-      { category: 'Offshore wind', need: 'Planned 9 GW by 2035', current: 'Projects collapsing — Ørsted cancelled 2 projects (2023), cost overruns, supply chain issues.' },
-      { category: 'Housing', need: 'Millions of units', current: 'NYC housing crisis, upstate population declining' },
-      { category: 'Manufacturing', need: 'Revival beyond Micron', current: 'Decades of decline. Micron is exception.' }
-    ],
-    politicalFeasibility: 'low',
-    nationalRole: 'SHOULD BE: Finance + manufacturing + energy hub for Northeast. ACTUALLY: Closed nuclear, blocked pipelines, highest energy costs, population fleeing upstate. ONE EXCEPTION: Micron fab is largest private investment in state history — proves NY CAN build when it wants to.',
-    energyProfile: 'SELF-INFLICTED ENERGY CRISIS. Closed Indian Point (2 GW nuclear) in 2021 with no replacement. Blocked every pipeline from PA. Now imports 25%+ of electricity + gas from PA and Canada. Highest natural gas prices in continental US. Offshore wind failing (Ørsted cancellations). Only bright spot: Niagara hydro still operating.',
-    workforceReadiness: 'high',
-    assessment: 'THE MICRON EXCEPTION. NY has everything: ports, talent, capital, universities. But anti-energy politics created crisis. Indian Point closure (2 GW) was policy choice — plant was safe, profitable, carbon-free. Pipeline blocks (Constitution, PennEast, NESE) mean NY pays highest gas prices in continental US. Offshore wind projects collapsing. Population fleeing upstate. BUT: Micron fab proves NY can attract investment when it tries. $100B, 50,000 jobs, 25% of US chips by 2030. Question: Is Micron the start of revival or last gasp before full decline?',
-    blockedProjects: [
-      { name: 'Indian Point Nuclear (closed)', investment: -6, jobs: -1000, yearsBlocked: 0, blocker: 'Cuomo policy decision', status: 'Closed 2021 — 2 GW lost, no replacement' },
-      { name: 'Constitution Pipeline', investment: 0.9, jobs: 8000, yearsBlocked: 10, blocker: 'NY DEC denied water quality permit', status: 'Cancelled after decade of delays' },
-      { name: 'Northeast Supply Enhancement (NESE)', investment: 1.0, jobs: 5000, yearsBlocked: 5, blocker: 'NY/NJ regulators', status: 'Cancelled, Williams attempting revival' },
-      { name: 'Empire Wind 1 & 2, Sunrise Wind', investment: 8, jobs: 5000, yearsBlocked: 0, blocker: 'Economics, supply chain, cost overruns', status: 'Delayed/restructured, some cancelled' },
-      { name: 'Housing (statewide)', investment: 20, jobs: 100000, yearsBlocked: 20, blocker: 'Local zoning, NIMBYism, rent control politics', status: 'Chronic shortage' }
-    ],
-    pathToVictory: [
-      '2024-25: Micron construction progresses — proves NY can build when it wants to',
-      '2025: Williams attempts to revive PA→NY pipelines with federal support. Could lower gas prices 30%+',
-      '2025-26: Offshore wind crisis deepens OR projects stabilize with federal support',
-      '2026: Hochul term — will she continue Cuomo anti-energy legacy or pivot?',
-      '2027: Micron Phase 1 operational — first chips produced in Syracuse',
-      '2028: If pipelines revived + offshore wind stabilized, NY energy crisis eases',
-      '2030: Micron at scale — 25% of US chips. Upstate revival possible.',
-      'KEY QUESTION: Is Micron the exception that proves NY is hostile, or the start of policy change?',
-      'STRUCTURAL PROBLEM: No political mechanism to change — supermajority Dem, NYC dominates, upstate has no voice'
-    ],
-    // Strategic Capacity Metrics
-    nuclearCapacity: 0, // Closed Indian Point (2 GW) — self-inflicted
-    chipInvestment: 100, // Micron $100B over 20 years
-    dataCenterCapacity: 'medium', // Growing but energy constrained
-    gridReliability: 'stressed', // Imports 25%+, closed nuclear
-    aiReadiness: 'low' // Energy crisis undermines data center potential
-  },
-  'Illinois': {
-    state: 'Illinois',
-    stateGDP: 950,
-    stateDebt: 45,
-    stateCapitalInvestment: 4,
-    population: 12.5,
-    hamiltonianShare: 14,
-    buildRate: 0.4,
-    trend: 'declining',
-    naturalAdvantages: ['Freshwater', 'Rail hub', 'Nuclear fleet', 'Farmland'],
-    currentProjects: [
-      { name: 'No major new projects', category: 'Various', status: 'None', investment: 0 },
-      { name: 'Nuclear preservation', category: 'Energy', status: 'Subsidized', investment: 0 }
-    ],
-    capacityGaps: [
-      { category: 'Manufacturing', need: 'Any', current: 'Exiting' },
-      { category: 'Infrastructure', need: 'Road/bridge repair', current: 'Crumbling' }
-    ],
-    politicalFeasibility: 'low',
-    nationalRole: 'Agricultural, rail logistics. Declining industrial base.',
-    energyProfile: 'Largest nuclear fleet (11 GW) but no new investment.',
-    workforceReadiness: 'medium',
-    assessment: 'STAGNANT. High debt, high taxes, business exodus. Nuclear fleet aging with no replacement.'
-  },
-  'New Jersey': {
-    state: 'New Jersey',
-    stateGDP: 700,
-    stateDebt: 48,
-    stateCapitalInvestment: 2.5,
-    population: 9.3,
-    hamiltonianShare: 10,
-    buildRate: 0.35,
-    trend: 'declining',
-    naturalAdvantages: ['Ports', 'Pharma hub', 'Proximity to NYC'],
-    currentProjects: [
-      { name: 'Offshore wind (troubled)', category: 'Energy', status: 'Cancellations', investment: -5 },
-      { name: 'Port expansion', category: 'Infrastructure', status: 'Slow', investment: 1 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'Reliable power', current: 'Nuclear aging, wind failing' },
-      { category: 'Manufacturing', need: 'Retention', current: 'Exiting' }
-    ],
-    politicalFeasibility: 'low',
-    nationalRole: 'Pharma, ports. Declining otherwise.',
-    energyProfile: 'Nuclear aging. Offshore wind projects collapsing. High costs.',
-    workforceReadiness: 'high',
-    assessment: 'STRUGGLING. High debt, high costs, business unfriendly. Offshore wind disasters.'
-  },
-  'Massachusetts': {
-    state: 'Massachusetts',
-    stateGDP: 650,
-    stateDebt: 35,
-    stateCapitalInvestment: 2,
-    population: 7.0,
-    hamiltonianShare: 12,
-    buildRate: 0.3,
-    trend: 'flat',
-    naturalAdvantages: ['Biotech hub', 'Universities', 'Tech talent'],
-    currentProjects: [
-      { name: 'No major infrastructure', category: 'Infrastructure', status: 'None', investment: 0 },
-      { name: 'Life sciences R&D', category: 'R&D', status: 'Active', investment: 3 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'Any generation', current: 'Imports from NH, Canada' },
-      { category: 'Housing', need: 'Building', current: 'Blocked by zoning' }
-    ],
-    politicalFeasibility: 'low',
-    nationalRole: 'Biotech R&D. No physical capacity building.',
-    energyProfile: 'Energy importer. No generation. High costs.',
-    workforceReadiness: 'high',
-    assessment: 'R&D ONLY. Great for biotech research, zero physical capacity building.'
-  },
+  let totalGDPImpact = 0
+  SECTOR_PIPELINE.forEach(sector => {
+    const multiplier = multiplierMap[sector.economicImpact] || 1.3
+    totalGDPImpact += sector.pipeline * multiplier // pipeline already in billions
+  })
   
-  // === TIER 4: ENERGY/RESOURCE STATES ===
-  'Wyoming': {
-    state: 'Wyoming',
-    stateGDP: 45,
-    stateDebt: 1.2,
-    stateCapitalInvestment: 0.8,
-    population: 0.58,
-    hamiltonianShare: 55,
-    buildRate: 1.8,
-    trend: 'rising',
-    naturalAdvantages: [
-      'Lowest population in US (580,000) — highest per-capita everything',
-      '#1 coal producer (40% of US coal)',
-      '#1 uranium producer (potential for fuel supply)',
-      'Massive wind potential (Class 6-7 winds)',
-      'Land availability (97,000 sq mi)',
-      'No state income tax',
-      'Most pro-energy state',
-      'Water rights (Colorado River headwaters)',
-      'Trona (soda ash) — 90% of US production'
-    ],
-    currentProjects: [
-      { name: 'TerraPower Natrium SMR (Kemmerer)', category: 'Nuclear', status: 'Construction started 2024 — FIRST advanced reactor in US', investment: 4 },
-      { name: 'Chokecherry/Sierra Madre Wind', category: 'Energy', status: 'Building — one of world\'s largest wind farms', investment: 5 },
-      { name: 'TransWest Express HVDC', category: 'Infrastructure', status: 'Approved — 730 miles to CA/NV', investment: 3 },
-      { name: 'Rare earth exploration', category: 'Mining', status: 'Active', investment: 0.5 },
-      { name: 'Carbon capture pilots', category: 'Energy', status: 'Active', investment: 0.3 }
-    ],
-    capacityGaps: [
-      { category: 'Grid', need: 'HVDC to West Coast markets', current: 'TransWest Express approved — unlocks wind export' },
-      { category: 'Workforce', need: 'Population', current: 'Only 580,000 — smallest state. Limits growth.' },
-      { category: 'Diversification', need: 'Beyond energy', current: 'Energy-dependent, vulnerable to transitions' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'NUCLEAR PIONEER + ENERGY EXPORTER. TerraPower Natrium is FIRST advanced reactor to break ground in US — Bill Gates-backed, 345 MW sodium-cooled. Coal-to-nuclear transition at Kemmerer. Massive wind export potential to CA via TransWest HVDC.',
-    energyProfile: '#1 coal producer but transitioning. TerraPower Natrium (2024 construction start) is first advanced reactor. Wind potential enormous. TransWest HVDC unlocks export to CA/NV.',
-    workforceReadiness: 'medium',
-    assessment: 'SMALL BUT PIONEERING. 55% Hamiltonian Share (highest in US) because small economy + big investments = high percentage. TerraPower Natrium at Kemmerer — replacing coal with advanced nuclear. This is THE test case for coal-to-nuclear transition. Bill Gates personally invested. If it works, model for 100+ US coal plants. Chokecherry wind + TransWest HVDC = export clean energy to California. Wyoming proves small states can lead.',
-    pathToVictory: [
-      '2024: TerraPower Natrium construction begins — FIRST advanced reactor groundbreaking in US',
-      '2025: Chokecherry/Sierra Madre wind construction continues',
-      '2026-27: Wind farm phases operational — exporting to California',
-      '2028: TransWest Express HVDC operational',
-      '2030: TerraPower Natrium operational — proves coal-to-nuclear transition',
-      '2030+: If Natrium works, model for 100+ US coal plant sites',
-      'NATIONAL SIGNIFICANCE: TerraPower is most important energy project in America'
-    ],
-    // Strategic Capacity Metrics
-    nuclearCapacity: 0, // TerraPower Natrium SMR coming 2030 — PIONEER
-    chipInvestment: 0, // Not a chip state
-    dataCenterCapacity: 'emerging', // Cold climate + cheap power potential
-    gridReliability: 'stable', // Small but stable, HVDC to CA coming
-    aiReadiness: 'medium' // Cheap power, cold, but small population limits scale
-  },
-  'Alaska': {
-    state: 'Alaska',
-    stateGDP: 60,
-    stateDebt: 2.5,
-    stateCapitalInvestment: 1.2,
-    population: 0.73,
-    hamiltonianShare: 40,
-    buildRate: 2.0,
-    trend: 'rising',
-    naturalAdvantages: [
-      'Prudhoe Bay — largest oil field in North America (25B barrels original)',
-      '14.5B barrels undiscovered oil (USGS estimate)',
-      '111 trillion cubic feet natural gas (North Slope)',
-      'ANWR Coastal Plain — 1.56M acres reopened Dec 2025',
-      'Red Dog Mine — world\'s largest zinc producer (10% global)',
-      'Critical minerals (rare earths, copper, gold, silver)',
-      '160+ billion tons coal reserves (half of US total)',
-      'Fisheries — 50%+ of US catch, $4.5B/year wholesale',
-      'Tongass National Forest — 17M acres, largest in US',
-      'Strategic Pacific location (defense, Arctic access)',
-      'Ports (Anchorage, Dutch Harbor)',
-      'LNG export potential (Asia markets)'
-    ],
-    currentProjects: [
-      { name: 'Willow Project (ConocoPhillips)', category: 'Energy', status: 'Approved 2023, construction underway', investment: 8 },
-      { name: 'Alaska LNG (North Slope→Nikiski)', category: 'Energy', status: 'Proposed — $38B, could supply Asia', investment: 38 },
-      { name: 'ANWR oil/gas leasing', category: 'Energy', status: 'Reopened Dec 2025 (Trump admin)', investment: 5 },
-      { name: 'NPR-A expansion (10.6M acres)', category: 'Energy', status: 'Reopened Nov 2025', investment: 3 },
-      { name: 'Red Dog Mine expansion', category: 'Mining', status: 'Active — zinc, lead, silver', investment: 0.5 },
-      { name: 'Ambler Mining District road', category: 'Infrastructure', status: 'Proposed — opens copper/zinc/gold', investment: 0.5 },
-      { name: 'Arctic Project (copper, zinc, gold)', category: 'Mining', status: 'Permitting', investment: 2 }
-    ],
-    capacityGaps: [
-      { category: 'Infrastructure', need: 'Roads to resources', current: 'Extremely limited. Ambler road blocked. Most resources landlocked.' },
-      { category: 'Grid', need: 'Interconnection', current: 'Isolated grids. No connection to lower 48. Diesel-dependent villages.' },
-      { category: 'Workforce', need: 'Population', current: 'Only 730,000 people. Harsh conditions limit labor pool.' },
-      { category: 'LNG', need: 'Export terminal', current: 'No LNG export capacity. $38B Alaska LNG project stalled for decades.' },
-      { category: 'Mining', need: 'Permitting acceleration', current: 'Pebble Mine blocked (EPA 2023). Other projects face long timelines.' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'AMERICA\'S RESOURCE VAULT. Largest oil field (Prudhoe), largest zinc mine (Red Dog), half of US fish catch, half of US coal reserves, massive rare earth potential. Strategic Arctic access. LNG export to Asia could rival Qatar. Defense installations (Eielson, Elmendorf, Clear Space Force). UNLOCKING NOW: Trump admin reopened ANWR (Dec 2025), NPR-A (Nov 2025), Willow proceeding.',
-    energyProfile: 'Oil production down from 2M bbl/day peak (1988) to ~450K bbl/day. Willow adds 180K bbl/day. ANWR could add 1M+ bbl/day if developed. Alaska LNG would be game-changer for Asia exports. Trans-Alaska Pipeline has capacity for more oil.',
-    workforceReadiness: 'medium',
-    assessment: 'UNLOCKING AFTER DECADES. Trump admin actions in 2025 are game-changing: ANWR reopened (1.56M acres), NPR-A protections removed (10.6M acres), Willow proceeding. BUT: Pebble Mine still blocked (EPA 2023 — copper/gold in Bristol Bay). Alaska LNG stalled for decades despite massive potential. Infrastructure is the constraint — resources exist but roads/ports don\'t. Small population limits workforce. KEY: Federal action can unlock Alaska; state politics already favorable. This is the fastest-unlocking state if momentum continues.',
-    blockedProjects: [
-      { name: 'Pebble Mine (copper, gold, molybdenum)', investment: 6, jobs: 2000, yearsBlocked: 20, blocker: 'EPA blocked (Jan 2023) — Bristol Bay salmon concerns', status: 'Blocked — one of world\'s largest copper/gold deposits' },
-      { name: 'Alaska LNG', investment: 38, jobs: 15000, yearsBlocked: 10, blocker: 'Economics, permitting, financing', status: 'Stalled — reviving with Asian demand' },
-      { name: 'Ambler Mining District Road', investment: 0.5, jobs: 3000, blocker: 'Environmental review, tribal concerns', yearsBlocked: 5, status: 'Proposed — would unlock copper/zinc/gold region' },
-      { name: 'ANWR (until Dec 2025)', investment: 10, jobs: 5000, yearsBlocked: 40, blocker: 'Biden admin blocked leasing', status: 'UNBLOCKED Dec 2025 — Congress repealed restrictions' }
-    ],
-    pathToVictory: [
-      '2023: Willow Project approved — 180K bbl/day, $8B investment, construction underway',
-      '2025 Oct: ANWR Coastal Plain reopened to oil/gas development (Trump admin)',
-      '2025 Nov: NPR-A protections removed — 10.6M acres opened',
-      '2025 Dec: Congress repeals Biden-era ANWR restrictions — fully unlocked',
-      '2026: First ANWR lease sales since 2021. Major oil companies bid.',
-      '2027: Willow Phase 1 production begins — first new North Slope field in decades',
-      '2027-28: Ambler Road decision — if approved, unlocks major mining district',
-      '2028-30: ANWR exploration/development ramps up. 100K-500K bbl/day potential by 2035.',
-      '2030+: Alaska LNG financing secured? Would transform state into LNG exporter to Asia.',
-      'REMAINING BLOCK: Pebble Mine (EPA block) — world-class copper/gold, needs new administration push',
-      'STRUCTURAL ADVANTAGE: State politics aligned, federal action unlocking, Asian demand for LNG/resources'
-    ]
-  },
-  'North Dakota': {
-    state: 'North Dakota',
-    stateGDP: 65,
-    stateDebt: 1.5,
-    stateCapitalInvestment: 1,
-    population: 0.78,
-    hamiltonianShare: 45,
-    buildRate: 1.5,
-    trend: 'rising',
-    naturalAdvantages: [
-      'Bakken Shale — made ND an oil powerhouse',
-      '$10.7B Legacy Fund (sovereign wealth fund)',
-      'Wind potential (Great Plains corridor)',
-      'Farmland (#1 spring wheat, sunflowers, honey)',
-      'No state income tax',
-      'Low cost of living',
-      'Business-friendly',
-      'Governor Burgum — now Trump Energy Secretary',
-      'Data center growth (low power costs)',
-      'Carbon storage potential (deep geology)'
-    ],
-    currentProjects: [
-      { name: 'Bakken oil production', category: 'Energy', status: 'Active — ~1M bbl/day', investment: 3 },
-      { name: 'Two 350-mile gas pipelines (proposed)', category: 'Infrastructure', status: 'Evaluating — would reduce flaring, power industry', investment: 2 },
-      { name: 'Applied Digital data centers (Jamestown/Ellendale)', category: 'Infrastructure', status: 'Building — $2.2B over 10 years', investment: 2.2 },
-      { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 1 },
-      { name: 'Green Bison soybean processing (Spiritwood)', category: 'Agriculture', status: 'Operational 2023 — renewable diesel', investment: 0.5 },
-      { name: 'Carbon capture projects', category: 'Energy', status: 'Piloting — Red Trail Energy', investment: 0.3 }
-    ],
-    capacityGaps: [
-      { category: 'Pipeline', need: 'Gas pipeline to eastern ND', current: 'Flaring gas, wasting resource. Two 350-mile pipelines proposed.' },
-      { category: 'Workforce', need: 'Population stability', current: 'Boom/bust oil cycles cause worker migration' },
-      { category: 'Diversification', need: 'Beyond oil/ag', current: 'Data centers + renewable diesel starting to diversify' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'DOING IT RIGHT. Bakken oil, wind energy, $10.7B Legacy Fund saved for future. Led nation in GDP growth (12.4% Q1 2023). Carbon neutrality goal by 2030. Burgum now Energy Secretary — ND model could go national. Data centers attracted by low power costs. Agriculture powerhouse. Small population but wealthy and well-managed.',
-    energyProfile: 'Bakken produces ~1M bbl/day. Flaring gas is waste — two 350-mile pipelines would fix. Wind growing. Carbon capture piloting. Carbon neutrality goal by 2030 (Burgum). Could be model for responsible energy production.',
-    workforceReadiness: 'medium',
-    assessment: 'WEALTHY + WELL-MANAGED. $10.7B Legacy Fund (30% of oil tax goes to savings — could hit $75-100B by 2039). Led nation in GDP growth 2023. Burgum as Energy Secretary brings ND model to national stage. DATA CENTERS: Applied Digital investing $2.2B — attracted by low power costs and cold climate. AGRICULTURE: #1 spring wheat, sunflowers, honey. Green Bison makes renewable diesel from soybeans. CHALLENGE: Small population (780,000) limits diversification. Boom/bust oil cycles cause instability. But for energy production, ND is doing it right.',
-    pathToVictory: [
-      '2023: Led nation in GDP growth (12.4%) — Bakken + ag',
-      '2023: Green Bison operational — renewable diesel from soybeans',
-      '2024: Applied Digital data centers expanding — $2.2B investment',
-      '2024: Burgum selected as Trump Energy Secretary — ND model goes national',
-      '2025-26: Gas pipeline decisions — would reduce flaring, power eastern ND',
-      '2027+: Legacy Fund grows toward $75-100B',
-      '2030: Carbon neutrality goal (Burgum)',
-      'STRENGTH: Sovereign wealth fund model — saving for future, not just spending',
-      'RISK: Oil price volatility, small population limits growth',
-      'NATIONAL IMPACT: Burgum as Energy Secretary brings ND approach to federal policy'
-    ],
-    // Strategic Capacity Metrics
-    nuclearCapacity: 0, // No nuclear
-    chipInvestment: 0, // Not a chip state
-    dataCenterCapacity: 'high', // Applied Digital $2.2B — cold + cheap power
-    gridReliability: 'stable', // Small grid but reliable
-    aiReadiness: 'high' // Cold climate, cheap power, data center magnet
-  },
-  'New Mexico': {
-    state: 'New Mexico',
-    stateGDP: 115,
-    stateDebt: 5,
-    stateCapitalInvestment: 1.2,
-    population: 2.1,
-    hamiltonianShare: 25,
-    buildRate: 1.0,
-    trend: 'flat',
-    naturalAdvantages: ['Permian Basin', 'Solar', 'Nuclear labs', 'Land'],
-    currentProjects: [
-      { name: 'Permian oil/gas', category: 'Energy', status: 'Active', investment: 5 },
-      { name: 'Los Alamos/Sandia', category: 'R&D', status: 'Active', investment: 4 },
-      { name: 'Solar expansion', category: 'Energy', status: 'Active', investment: 1 }
-    ],
-    capacityGaps: [
-      { category: 'Water', need: 'Conservation', current: 'Stressed' },
-      { category: 'Grid', need: 'HVDC export', current: 'Limited' }
-    ],
-    politicalFeasibility: 'medium',
-    nationalRole: 'Energy production, nuclear R&D',
-    energyProfile: 'Major oil/gas producer. Nuclear labs. Mixed political environment.',
-    workforceReadiness: 'medium',
-    assessment: 'PRODUCTIVE. Oil/gas strong. Nuclear labs critical. Politics unpredictable.'
-  },
+  // Annual investment (spread over 5 years)
+  const annualInvestment = totalPipeline / 5 // Spread over 5 years (in billions)
   
-  // === TIER 5: OTHER NOTABLE STATES ===
-  'Florida': {
-    state: 'Florida',
-    stateGDP: 1400,
-    stateDebt: 25,
-    stateCapitalInvestment: 5,
-    population: 22.6,
-    hamiltonianShare: 15,
-    buildRate: 0.35,
-    trend: 'flat',
-    naturalAdvantages: ['Ports', 'Space Coast', 'Population growth', 'Business-friendly'],
-    currentProjects: [
-      { name: 'SpaceX/Blue Origin expansion', category: 'Aerospace', status: 'Active', investment: 3 },
-      { name: 'Port expansion', category: 'Infrastructure', status: 'Active', investment: 2 },
-      { name: 'No major manufacturing', category: 'Manufacturing', status: 'None', investment: 0 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'Nuclear expansion', current: '4 GW' },
-      { category: 'Manufacturing', need: 'Industrial base', current: 'Minimal' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'Aerospace, ports, population magnet',
-    energyProfile: 'Gas + nuclear. Some solar. Hurricane vulnerability.',
-    workforceReadiness: 'medium',
-    assessment: 'SERVICES ECONOMY. Great for business HQs, weak on manufacturing.'
-  },
-  'Indiana': {
-    state: 'Indiana',
-    stateGDP: 425,
-    stateDebt: 8,
-    stateCapitalInvestment: 3,
-    population: 6.8,
-    hamiltonianShare: 22,
-    buildRate: 0.7,
-    trend: 'rising',
-    naturalAdvantages: ['Central location', 'Low cost', 'Manufacturing base', 'Workforce'],
-    currentProjects: [
-      { name: 'EV battery plants', category: 'Manufacturing', status: 'Building', investment: 4 },
-      { name: 'Steel modernization', category: 'Manufacturing', status: 'Active', investment: 1.5 },
-      { name: 'Logistics expansion', category: 'Infrastructure', status: 'Active', investment: 2 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'Nuclear', current: 'Coal-heavy' },
-      { category: 'Grid', need: 'Modernization', current: 'Adequate' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'Manufacturing, logistics hub',
-    energyProfile: 'Coal-heavy. Needs transition plan.',
-    workforceReadiness: 'high',
-    assessment: 'SOLID. Quiet performer. Manufacturing friendly. Energy transition needed.'
-  },
-  'South Carolina': {
-    state: 'South Carolina',
-    stateGDP: 280,
-    stateDebt: 8,
-    stateCapitalInvestment: 2.5,
-    population: 5.3,
-    hamiltonianShare: 28,
-    buildRate: 0.9,
-    trend: 'rising',
-    naturalAdvantages: ['Ports (Charleston)', 'Low cost', 'Business-friendly', 'BMW/Volvo cluster'],
-    currentProjects: [
-      { name: 'BMW expansion', category: 'Manufacturing', status: 'Active', investment: 2 },
-      { name: 'Scout Motors EV', category: 'Manufacturing', status: 'Building', investment: 2 },
-      { name: 'Port Charleston expansion', category: 'Infrastructure', status: 'Active', investment: 1 }
-    ],
-    capacityGaps: [
-      { category: 'Nuclear', need: 'Expansion', current: '7 GW (V.C. Summer abandoned)' },
-      { category: 'Workforce', need: 'Technical training', current: 'Growing' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'Auto manufacturing (BMW, Volvo, Scout), ports',
-    energyProfile: 'Nuclear + gas. V.C. Summer failure was setback.',
-    workforceReadiness: 'high',
-    assessment: 'GROWING. Auto cluster strong. Need to recover from V.C. Summer nuclear failure.'
-  },
-  'Kentucky': {
-    state: 'Kentucky',
-    stateGDP: 230,
-    stateDebt: 12,
-    stateCapitalInvestment: 2,
-    population: 4.5,
-    hamiltonianShare: 22,
-    buildRate: 0.85,
-    trend: 'rising',
-    naturalAdvantages: ['Low cost', 'Central location', 'Coal reserves', 'Toyota cluster'],
-    currentProjects: [
-      { name: 'Ford battery plants', category: 'Manufacturing', status: 'Building', investment: 5.8 },
-      { name: 'Toyota EV investment', category: 'Manufacturing', status: 'Active', investment: 1.3 },
-      { name: 'Envision AESC battery', category: 'Manufacturing', status: 'Building', investment: 2 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'Coal transition', current: 'Coal-dependent' },
-      { category: 'Grid', need: 'Modernization', current: 'Coal-based' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'EV battery production, auto manufacturing',
-    energyProfile: 'Coal-heavy. Energy transition is key challenge.',
-    workforceReadiness: 'medium',
-    assessment: 'TRANSITIONING. Major battery investments. Coal transition is the challenge.'
-  },
-  'Louisiana': {
-    state: 'Louisiana',
-    stateGDP: 280,
-    stateDebt: 10,
-    stateCapitalInvestment: 3,
-    population: 4.6,
-    hamiltonianShare: 30,
-    buildRate: 1.1,
-    trend: 'flat',
-    naturalAdvantages: ['Petrochemical hub', 'Ports', 'LNG export', 'Mississippi River'],
-    currentProjects: [
-      { name: 'LNG export terminals', category: 'Energy', status: 'Active', investment: 20 },
-      { name: 'Petrochemical expansion', category: 'Manufacturing', status: 'Active', investment: 5 },
-      { name: 'Port upgrades', category: 'Infrastructure', status: 'Active', investment: 2 }
-    ],
-    capacityGaps: [
-      { category: 'Infrastructure', need: 'Hurricane resilience', current: 'Vulnerable' },
-      { category: 'Grid', need: 'Hardening', current: 'Frequent outages' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'LNG export, petrochemicals, port logistics',
-    energyProfile: 'Energy hub. LNG is nationally critical.',
-    workforceReadiness: 'medium',
-    assessment: 'ENERGY HUB. LNG exports crucial. Hurricane vulnerability is major risk.'
-  },
-  'Virginia': {
-    state: 'Virginia',
-    stateGDP: 600,
-    stateDebt: 18,
-    stateCapitalInvestment: 3,
-    population: 8.6,
-    hamiltonianShare: 18,
-    buildRate: 0.5,
-    trend: 'flat',
-    naturalAdvantages: ['Data center hub (NoVA)', 'Ports (Hampton Roads)', 'Shipyards', 'Federal proximity'],
-    currentProjects: [
-      { name: 'Data centers (Northern VA)', category: 'Infrastructure', status: 'Building', investment: 15 },
-      { name: 'Newport News shipyard', category: 'Defense', status: 'Active', investment: 3 },
-      { name: 'Offshore wind', category: 'Energy', status: 'Building', investment: 9 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'Baseload for data centers', current: 'Gas + nuclear' },
-      { category: 'Shipbuilding', need: 'Capacity expansion', current: 'At max' }
-    ],
-    politicalFeasibility: 'medium',
-    nationalRole: 'Data centers, naval shipbuilding, federal hub',
-    energyProfile: 'Data center demand outpacing supply. Nuclear needed.',
-    workforceReadiness: 'high',
-    assessment: 'MIXED. Data center boom, shipyards critical. Energy supply lagging demand.',
-    // Strategic Capacity Metrics
-    nuclearCapacity: 3.4, // North Anna + Surry
-    chipInvestment: 0, // Not a chip state
-    dataCenterCapacity: 'high', // #1 in US — Ashburn hub
-    gridReliability: 'stressed', // Demand outpacing supply
-    aiReadiness: 'high' // But hitting capacity limits, need nuclear expansion
-  },
-  'Washington': {
-    state: 'Washington',
-    stateGDP: 700,
-    stateDebt: 22,
-    stateCapitalInvestment: 3.5,
-    population: 7.8,
-    hamiltonianShare: 16,
-    buildRate: 0.5,
-    trend: 'flat',
-    naturalAdvantages: ['Hydro power', 'Tech hub (Seattle)', 'Ports', 'Boeing'],
-    currentProjects: [
-      { name: 'Boeing production', category: 'Aerospace', status: 'Active', investment: 2 },
-      { name: 'Data centers', category: 'Infrastructure', status: 'Building', investment: 3 },
-      { name: 'No new energy', category: 'Energy', status: 'None', investment: 0 }
-    ],
-    capacityGaps: [
-      { category: 'Nuclear', need: 'Baseload backup', current: '1 GW (Columbia)' },
-      { category: 'Manufacturing', need: 'Diversification', current: 'Boeing-dependent' }
-    ],
-    politicalFeasibility: 'low',
-    nationalRole: 'Tech, aerospace (Boeing), ports',
-    energyProfile: 'Hydro-blessed. But anti-nuclear. Boeing troubles hurt.',
-    workforceReadiness: 'high',
-    assessment: 'COASTING. Hydro advantage but not building. Boeing problems are drag.'
-  },
-  'Colorado': {
-    state: 'Colorado',
-    stateGDP: 450,
-    stateDebt: 12,
-    stateCapitalInvestment: 2,
-    population: 5.8,
-    hamiltonianShare: 14,
-    buildRate: 0.45,
-    trend: 'flat',
-    naturalAdvantages: ['Tech hub', 'Aerospace', 'Solar/wind', 'NREL'],
-    currentProjects: [
-      { name: 'Aerospace R&D', category: 'R&D', status: 'Active', investment: 1.5 },
-      { name: 'Solar expansion', category: 'Energy', status: 'Active', investment: 1 },
-      { name: 'No major manufacturing', category: 'Manufacturing', status: 'None', investment: 0 }
-    ],
-    capacityGaps: [
-      { category: 'Nuclear', need: 'Any', current: '0 GW' },
-      { category: 'Manufacturing', need: 'Industrial base', current: 'Minimal' }
-    ],
-    politicalFeasibility: 'low',
-    nationalRole: 'Tech, aerospace, renewable R&D',
-    energyProfile: 'Closing coal with no nuclear. Wind/solar only.',
-    workforceReadiness: 'high',
-    assessment: 'R&D STATE. Good for tech/aerospace. Not building physical capacity.'
-  },
-  'Wisconsin': {
-    state: 'Wisconsin',
-    stateGDP: 370,
-    stateDebt: 15,
-    stateCapitalInvestment: 2,
-    population: 5.9,
-    hamiltonianShare: 16,
-    buildRate: 0.55,
-    trend: 'flat',
-    naturalAdvantages: ['Freshwater', 'Manufacturing base', 'Shipbuilding potential', 'Dairy'],
-    currentProjects: [
-      { name: 'Shipyard revival (Marinette)', category: 'Defense', status: 'Active', investment: 1 },
-      { name: 'Microsoft data center', category: 'Infrastructure', status: 'Building', investment: 3.3 },
-      { name: 'Foxconn (failed)', category: 'Manufacturing', status: 'Failed', investment: -10 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'Nuclear', current: '0 GW (closed)' },
-      { category: 'Manufacturing', need: 'Revival', current: 'Declining' }
-    ],
-    politicalFeasibility: 'medium',
-    nationalRole: 'Potential shipbuilding, manufacturing',
-    energyProfile: 'Closed nuclear. Now dependent on imports.',
-    workforceReadiness: 'high',
-    assessment: 'RECOVERING. Foxconn failure hurt. Shipyards and data centers are bright spots.'
-  },
-  'Utah': {
-    state: 'Utah',
-    stateGDP: 240,
-    stateDebt: 5,
-    stateCapitalInvestment: 2,
-    population: 3.4,
-    hamiltonianShare: 25,
-    buildRate: 0.8,
-    trend: 'rising',
-    naturalAdvantages: ['Business-friendly', 'Tech hub', 'Minerals', 'Low cost'],
-    currentProjects: [
-      { name: 'Data centers', category: 'Infrastructure', status: 'Building', investment: 2 },
-      { name: 'Tech expansion', category: 'Infrastructure', status: 'Active', investment: 1.5 },
-      { name: 'Mining', category: 'Mining', status: 'Active', investment: 0.5 }
-    ],
-    capacityGaps: [
-      { category: 'Water', need: 'Great Salt Lake crisis', current: 'Crisis' },
-      { category: 'Energy', need: 'Nuclear', current: 'Coal transition' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'Tech hub, potential mining',
-    energyProfile: 'Coal transitioning. Water crisis is serious.',
-    workforceReadiness: 'high',
-    assessment: 'GROWING but water crisis could limit. Business-friendly but resource-constrained.'
-  },
-  'West Virginia': {
-    state: 'West Virginia',
-    stateGDP: 85,
-    stateDebt: 6,
-    stateCapitalInvestment: 0.8,
-    population: 1.8,
-    hamiltonianShare: 20,
-    buildRate: 0.9,
-    trend: 'flat',
-    naturalAdvantages: ['Coal', 'Gas (Marcellus)', 'Cheap land', 'Water'],
-    currentProjects: [
-      { name: 'Gas development', category: 'Energy', status: 'Active', investment: 2 },
-      { name: 'Data centers (proposed)', category: 'Infrastructure', status: 'Proposed', investment: 1 },
-      { name: 'No major manufacturing', category: 'Manufacturing', status: 'None', investment: 0 }
-    ],
-    capacityGaps: [
-      { category: 'Diversification', need: 'Beyond coal', current: 'Coal-dependent' },
-      { category: 'Workforce', need: 'Retraining', current: 'Coal skills' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'Energy production (coal, gas)',
-    energyProfile: 'Coal state trying to transition. Gas is the bridge.',
-    workforceReadiness: 'medium',
-    assessment: 'TRANSITIONING. Coal declining. Gas is lifeline. Needs diversification.'
-  },
-  'Missouri': {
-    state: 'Missouri',
-    stateGDP: 380,
-    stateDebt: 12,
-    stateCapitalInvestment: 2,
-    population: 6.2,
-    hamiltonianShare: 15,
-    buildRate: 0.5,
-    trend: 'flat',
-    naturalAdvantages: ['Central location', 'Low cost', 'Workforce'],
-    currentProjects: [
-      { name: 'No major projects', category: 'Various', status: 'None', investment: 0 }
-    ],
-    capacityGaps: [
-      { category: 'Manufacturing', need: 'Attraction', current: 'Stagnant' },
-      { category: 'Energy', need: 'Nuclear', current: '1 GW' }
-    ],
-    politicalFeasibility: 'medium',
-    nationalRole: 'Agricultural, logistics',
-    energyProfile: 'Mix of sources. Not leading in any.',
-    workforceReadiness: 'medium',
-    assessment: 'STAGNANT. Has potential but not attracting investment.'
-  },
-  'Alabama': {
-    state: 'Alabama',
-    stateGDP: 280,
-    stateDebt: 8,
-    stateCapitalInvestment: 2.5,
-    population: 5.1,
-    hamiltonianShare: 24,
-    buildRate: 0.9,
-    trend: 'rising',
-    naturalAdvantages: ['Low cost', 'Port (Mobile)', 'Auto cluster', 'Nuclear'],
-    currentProjects: [
-      { name: 'Hyundai EV expansion', category: 'Manufacturing', status: 'Active', investment: 1 },
-      { name: 'Airbus expansion', category: 'Aerospace', status: 'Active', investment: 1 },
-      { name: 'Browns Ferry nuclear', category: 'Energy', status: 'Operating', investment: 0.5 }
-    ],
-    capacityGaps: [
-      { category: 'Education', need: 'Workforce skills', current: 'Lagging' },
-      { category: 'Infrastructure', need: 'Modernization', current: 'Adequate' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'Auto manufacturing, aerospace, nuclear',
-    energyProfile: 'Strong nuclear + hydro. Good energy position.',
-    workforceReadiness: 'medium',
-    assessment: 'QUIETLY BUILDING. Auto and aerospace clusters. Workforce skills gap.'
-  },
-  'Mississippi': {
-    state: 'Mississippi',
-    stateGDP: 130,
-    stateDebt: 5,
-    stateCapitalInvestment: 1,
-    population: 2.9,
-    hamiltonianShare: 20,
-    buildRate: 0.75,
-    trend: 'flat',
-    naturalAdvantages: ['Low cost', 'Shipbuilding (Ingalls)', 'Port (Gulfport)'],
-    currentProjects: [
-      { name: 'Ingalls Shipbuilding', category: 'Defense', status: 'Active', investment: 2 },
-      { name: 'Nissan (declining)', category: 'Manufacturing', status: 'Declining', investment: -0.5 }
-    ],
-    capacityGaps: [
-      { category: 'Diversification', need: 'Beyond shipbuilding', current: 'Limited' },
-      { category: 'Workforce', need: 'Skills training', current: 'Lagging' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'Naval shipbuilding (critical)',
-    energyProfile: 'Gas + nuclear (Grand Gulf). Adequate.',
-    workforceReadiness: 'medium',
-    assessment: 'SHIPBUILDING STATE. Ingalls is nationally critical. Needs diversification.'
-  },
-  'Maine': {
-    state: 'Maine',
-    stateGDP: 85,
-    stateDebt: 4,
-    stateCapitalInvestment: 0.5,
-    population: 1.4,
-    hamiltonianShare: 18,
-    buildRate: 0.6,
-    trend: 'flat',
-    naturalAdvantages: ['Shipyard (Bath)', 'Forestry', 'Wind potential'],
-    currentProjects: [
-      { name: 'Bath Iron Works', category: 'Defense', status: 'Active', investment: 1 },
-      { name: 'Offshore wind (proposed)', category: 'Energy', status: 'Proposed', investment: 1 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'Baseload', current: 'Imports' },
-      { category: 'Manufacturing', need: 'Any', current: 'Minimal' }
-    ],
-    politicalFeasibility: 'medium',
-    nationalRole: 'Naval shipbuilding (destroyers)',
-    energyProfile: 'Energy importer. Closed nuclear. Wind potential.',
-    workforceReadiness: 'high',
-    assessment: 'SHIPBUILDING. Bath Iron Works is critical. Rest of economy stagnant.'
-  },
-  'Connecticut': {
-    state: 'Connecticut',
-    stateGDP: 300,
-    stateDebt: 35,
-    stateCapitalInvestment: 1.5,
-    population: 3.6,
-    hamiltonianShare: 14,
-    buildRate: 0.5,
-    trend: 'declining',
-    naturalAdvantages: ['Submarine base (Groton)', 'Aerospace (P&W)', 'Educated workforce'],
-    currentProjects: [
-      { name: 'Electric Boat submarines', category: 'Defense', status: 'Active', investment: 3 },
-      { name: 'Pratt & Whitney engines', category: 'Aerospace', status: 'Active', investment: 1 }
-    ],
-    capacityGaps: [
-      { category: 'Workforce', need: 'Skilled trades', current: 'Aging' },
-      { category: 'Cost', need: 'Competitiveness', current: 'High cost state' }
-    ],
-    politicalFeasibility: 'medium',
-    nationalRole: 'Submarines (critical), jet engines',
-    energyProfile: 'Nuclear (Millstone) + gas. Adequate.',
-    workforceReadiness: 'high',
-    assessment: 'DEFENSE CRITICAL. Submarine production is irreplaceable. High costs are drag.'
-  },
-  'Iowa': {
-    state: 'Iowa',
-    stateGDP: 210,
-    stateDebt: 5,
-    stateCapitalInvestment: 1.5,
-    population: 3.2,
-    hamiltonianShare: 20,
-    buildRate: 0.7,
-    trend: 'flat',
-    naturalAdvantages: ['Wind', 'Farmland', 'Low cost', 'Workforce'],
-    currentProjects: [
-      { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 2 },
-      { name: 'Data centers', category: 'Infrastructure', status: 'Building', investment: 2 },
-      { name: 'Ethanol/biofuels', category: 'Energy', status: 'Active', investment: 0.5 }
-    ],
-    capacityGaps: [
-      { category: 'Manufacturing', need: 'Diversification', current: 'Ag-focused' },
-      { category: 'Nuclear', need: 'Baseload', current: '0 GW' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'Wind energy, agriculture, data centers',
-    energyProfile: 'Wind leader. 60%+ renewable. Good example.',
-    workforceReadiness: 'high',
-    assessment: 'WIND MODEL. Shows renewable can work. Need diversification beyond ag.'
-  },
-  
-  // === ADDITIONAL STATES (Completing All 50) ===
-  'North Carolina': {
-    state: 'North Carolina',
-    stateGDP: 730,
-    stateDebt: 15,
-    stateCapitalInvestment: 8,
-    population: 10.8,
-    hamiltonianShare: 28,
-    buildRate: 1.1,
-    trend: 'rising',
-    naturalAdvantages: ['Research Triangle', 'Ports', 'Low cost', 'Growing workforce', 'Business-friendly'],
-    currentProjects: [
-      { name: 'Wolfspeed SiC fab', category: 'Chip Fabs', status: 'Building', investment: 5 },
-      { name: 'VinFast EV plant', category: 'Manufacturing', status: 'Building', investment: 4 },
-      { name: 'Toyota battery plant', category: 'Manufacturing', status: 'Building', investment: 3.8 },
-      { name: 'Boom Supersonic', category: 'Aerospace', status: 'Building', investment: 0.5 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'Grid expansion for fabs', current: 'Nuclear + gas' },
-      { category: 'Water', need: 'Industrial supply', current: 'Adequate' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'Chip manufacturing (SiC), EV batteries, biotech, finance',
-    energyProfile: 'Nuclear (4 plants) + gas. Duke Energy dominant. Good baseload.',
-    workforceReadiness: 'high',
-    assessment: 'RISING STAR. Major chip/EV investment. Research Triangle talent. Watch closely.'
-  },
-  'Oklahoma': {
-    state: 'Oklahoma',
-    stateGDP: 220,
-    stateDebt: 8,
-    stateCapitalInvestment: 2.5,
-    population: 4.0,
-    hamiltonianShare: 26,
-    buildRate: 1.1,
-    trend: 'rising',
-    naturalAdvantages: ['Oil/gas', 'Wind', 'Low cost', 'Aerospace (Tinker AFB)', 'Central location'],
-    currentProjects: [
-      { name: 'Oil/gas production', category: 'Energy', status: 'Active', investment: 3 },
-      { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 1.5 },
-      { name: 'Tinker AFB modernization', category: 'Defense', status: 'Active', investment: 1 }
-    ],
-    capacityGaps: [
-      { category: 'Diversification', need: 'Beyond oil/gas', current: 'Energy-dependent' },
-      { category: 'Workforce', need: 'Tech skills', current: 'Oil/gas focused' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'Oil/gas production, wind energy, aerospace maintenance',
-    energyProfile: 'Major oil/gas producer. Growing wind. Good energy position.',
-    workforceReadiness: 'medium',
-    assessment: 'ENERGY STATE. Oil/gas strong but needs diversification. Wind growing.'
-  },
-  'Oregon': {
-    state: 'Oregon',
-    stateGDP: 280,
-    stateDebt: 12,
-    stateCapitalInvestment: 2,
-    population: 4.2,
-    hamiltonianShare: 16,
-    buildRate: 0.7,
-    trend: 'flat',
-    naturalAdvantages: ['Ports', 'Timber', 'Tech (Intel)', 'Hydropower', 'No sales tax'],
-    currentProjects: [
-      { name: 'Intel expansion', category: 'Chip Fabs', status: 'Delayed', investment: 5 },
-      { name: 'Port modernization', category: 'Infrastructure', status: 'Planned', investment: 0.5 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'Baseload', current: 'Hydro + imports' },
-      { category: 'Manufacturing', need: 'Beyond Intel', current: 'Limited' }
-    ],
-    politicalFeasibility: 'low',
-    nationalRole: 'Chip manufacturing (Intel), timber, ports',
-    energyProfile: 'Hydro-dependent. Anti-nuclear. Limited expansion.',
-    workforceReadiness: 'high',
-    assessment: 'INTEL-DEPENDENT. Good tech talent but politics blocking growth. Portland decline.'
-  },
-  'Idaho': {
-    state: 'Idaho',
-    stateGDP: 105,
-    stateDebt: 3,
-    stateCapitalInvestment: 1.5,
-    population: 2.0,
-    hamiltonianShare: 28,
-    buildRate: 1.4,
-    trend: 'rising',
-    naturalAdvantages: ['Low cost', 'Business-friendly', 'Tech growth (Boise)', 'Agriculture', 'Hydropower'],
-    currentProjects: [
-      { name: 'Micron expansion', category: 'Chip Fabs', status: 'Building', investment: 15 },
-      { name: 'Data centers', category: 'Infrastructure', status: 'Building', investment: 2 },
-      { name: 'INL nuclear research', category: 'R&D', status: 'Active', investment: 1 }
-    ],
-    capacityGaps: [
-      { category: 'Workforce', need: 'Skilled labor', current: 'Growing but limited' },
-      { category: 'Infrastructure', need: 'Roads/utilities', current: 'Strained by growth' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'Chip manufacturing (Micron), nuclear R&D (INL), agriculture',
-    energyProfile: 'Hydro + nuclear research (INL). Good baseload.',
-    workforceReadiness: 'medium',
-    assessment: 'FAST GROWTH. Micron fab is huge. INL is nuclear innovation center. Infrastructure straining.'
-  },
-  'Montana': {
-    state: 'Montana',
-    stateGDP: 65,
-    stateDebt: 2,
-    stateCapitalInvestment: 0.6,
-    population: 1.1,
-    hamiltonianShare: 22,
-    buildRate: 0.9,
-    trend: 'flat',
-    naturalAdvantages: ['Mining', 'Agriculture', 'Hydropower', 'Land', 'Wind potential'],
-    currentProjects: [
-      { name: 'Mining operations', category: 'Mining', status: 'Active', investment: 0.5 },
-      { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 0.3 }
-    ],
-    capacityGaps: [
-      { category: 'Infrastructure', need: 'Roads/rail', current: 'Limited' },
-      { category: 'Workforce', need: 'Population', current: 'Small, aging' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'Mining, agriculture, energy export potential',
-    energyProfile: 'Coal + hydro. Wind potential. Energy exporter.',
-    workforceReadiness: 'medium',
-    assessment: 'RESOURCE STATE. Mining and energy potential. Small population limits growth.'
-  },
-  'Nebraska': {
-    state: 'Nebraska',
-    stateGDP: 150,
-    stateDebt: 2,
-    stateCapitalInvestment: 2,
-    population: 2.0,
-    hamiltonianShare: 24,
-    buildRate: 1.3,
-    trend: 'rising',
-    naturalAdvantages: ['Agriculture', 'Central location', 'Low cost', 'Wind', 'Data center growth'],
-    currentProjects: [
-      { name: 'Data centers (Facebook/Google)', category: 'Infrastructure', status: 'Building', investment: 3 },
-      { name: 'Beef processing', category: 'Agriculture', status: 'Active', investment: 0.5 },
-      { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 0.5 }
-    ],
-    capacityGaps: [
-      { category: 'Diversification', need: 'Beyond agriculture', current: 'Ag-focused' },
-      { category: 'Workforce', need: 'Tech skills', current: 'Agricultural skills' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'Agriculture, data centers, wind energy',
-    energyProfile: 'Coal transitioning to wind. Nuclear (Cooper). Good position.',
-    workforceReadiness: 'high',
-    assessment: 'DATA CENTER HUB. Ag base + growing tech infrastructure. Low debt, stable.'
-  },
-  'Kansas': {
-    state: 'Kansas',
-    stateGDP: 190,
-    stateDebt: 6,
-    stateCapitalInvestment: 1.5,
-    population: 2.9,
-    hamiltonianShare: 18,
-    buildRate: 0.8,
-    trend: 'flat',
-    naturalAdvantages: ['Central location', 'Aerospace (Wichita)', 'Agriculture', 'Wind', 'Low cost'],
-    currentProjects: [
-      { name: 'Spirit AeroSystems', category: 'Aerospace', status: 'Active (troubled)', investment: 0.5 },
-      { name: 'Wind expansion', category: 'Energy', status: 'Active', investment: 1 },
-      { name: 'Panasonic battery (nearby KS)', category: 'Manufacturing', status: 'Building', investment: 4 }
-    ],
-    capacityGaps: [
-      { category: 'Aerospace', need: 'Boeing supply chain', current: 'Spirit struggling' },
-      { category: 'Diversification', need: 'Beyond ag/aerospace', current: 'Limited' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'Aerospace manufacturing, agriculture, wind energy',
-    energyProfile: 'Wind leader. Coal declining. Good renewable position.',
-    workforceReadiness: 'high',
-    assessment: 'AEROSPACE HUB. Spirit troubles hurt but Panasonic battery nearby helps. Wind strong.'
-  },
-  'Arkansas': {
-    state: 'Arkansas',
-    stateGDP: 160,
-    stateDebt: 5,
-    stateCapitalInvestment: 1.5,
-    population: 3.0,
-    hamiltonianShare: 20,
-    buildRate: 0.9,
-    trend: 'rising',
-    naturalAdvantages: ['Low cost', 'Central location', 'Walmart/Tyson HQs', 'Agriculture', 'Natural gas'],
-    currentProjects: [
-      { name: 'Steel production (Big River)', category: 'Manufacturing', status: 'Building', investment: 1.5 },
-      { name: 'Walmart logistics expansion', category: 'Infrastructure', status: 'Active', investment: 1 },
-      { name: 'Tyson automation', category: 'Manufacturing', status: 'Active', investment: 0.5 }
-    ],
-    capacityGaps: [
-      { category: 'Workforce', need: 'Skilled labor', current: 'Education lagging' },
-      { category: 'Infrastructure', need: 'Modernization', current: 'Rural gaps' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'Retail logistics (Walmart), agriculture, steel',
-    energyProfile: 'Nuclear (ANO) + gas. Adequate baseload.',
-    workforceReadiness: 'medium',
-    assessment: 'LOGISTICS HUB. Walmart effect drives investment. Steel revival promising.'
-  },
-  'Hawaii': {
-    state: 'Hawaii',
-    stateGDP: 95,
-    stateDebt: 12,
-    stateCapitalInvestment: 0.8,
-    population: 1.4,
-    hamiltonianShare: 12,
-    buildRate: 0.8,
-    trend: 'declining',
-    naturalAdvantages: ['Strategic Pacific location', 'Military bases', 'Tourism', 'Renewable potential'],
-    currentProjects: [
-      { name: 'Military base modernization', category: 'Defense', status: 'Active', investment: 1 },
-      { name: 'Renewable energy transition', category: 'Energy', status: 'Active', investment: 0.5 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'End oil dependence', current: '80% oil imports' },
-      { category: 'Cost', need: 'Affordability', current: 'Highest costs in US' }
-    ],
-    politicalFeasibility: 'medium',
-    nationalRole: 'Pacific defense hub, strategic military location',
-    energyProfile: 'Oil-dependent. Transitioning to renewables. 100% renewable goal by 2045.',
-    workforceReadiness: 'medium',
-    assessment: 'STRATEGIC but struggling. Maui fires devastated economy. High costs, tourism-dependent.'
-  },
-  'New Hampshire': {
-    state: 'New Hampshire',
-    stateGDP: 105,
-    stateDebt: 8,
-    stateCapitalInvestment: 0.8,
-    population: 1.4,
-    hamiltonianShare: 16,
-    buildRate: 0.75,
-    trend: 'flat',
-    naturalAdvantages: ['No income/sales tax', 'Tech growth', 'Defense (shipyard)', 'Educated workforce'],
-    currentProjects: [
-      { name: 'Portsmouth Naval Shipyard', category: 'Defense', status: 'Active', investment: 0.5 },
-      { name: 'Tech sector growth', category: 'Infrastructure', status: 'Active', investment: 0.3 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'Baseload', current: 'Nuclear (Seabrook) + imports' },
-      { category: 'Housing', need: 'Affordability', current: 'Boston spillover prices' }
-    ],
-    politicalFeasibility: 'medium',
-    nationalRole: 'Submarine repair (Portsmouth), defense, tech',
-    energyProfile: 'Nuclear (Seabrook) is major asset. Low-carbon grid.',
-    workforceReadiness: 'high',
-    assessment: 'STABLE. No income tax attracts business. Shipyard critical. Housing shortage.'
-  },
-  'Vermont': {
-    state: 'Vermont',
-    stateGDP: 40,
-    stateDebt: 3,
-    stateCapitalInvestment: 0.3,
-    population: 0.65,
-    hamiltonianShare: 14,
-    buildRate: 0.75,
-    trend: 'flat',
-    naturalAdvantages: ['Quality of life', 'Educated population', 'Dairy/agriculture', 'Hydro'],
-    currentProjects: [
-      { name: 'Renewable energy', category: 'Energy', status: 'Active', investment: 0.2 },
-      { name: 'Broadband expansion', category: 'Infrastructure', status: 'Active', investment: 0.1 }
-    ],
-    capacityGaps: [
-      { category: 'Manufacturing', need: 'Any', current: 'Minimal' },
-      { category: 'Energy', need: 'Baseload (closed Vermont Yankee)', current: 'Imports' }
-    ],
-    politicalFeasibility: 'low',
-    nationalRole: 'Limited national role. Small, rural economy.',
-    energyProfile: 'Closed nuclear (Vermont Yankee). Now imports energy. Hydro + renewables.',
-    workforceReadiness: 'high',
-    assessment: 'SMALL ECONOMY. Closed only nuclear plant. Anti-development politics. Aging population.'
-  },
-  'Rhode Island': {
-    state: 'Rhode Island',
-    stateGDP: 70,
-    stateDebt: 10,
-    stateCapitalInvestment: 0.5,
-    population: 1.1,
-    hamiltonianShare: 12,
-    buildRate: 0.7,
-    trend: 'flat',
-    naturalAdvantages: ['Ports', 'Naval Station Newport', 'Offshore wind potential', 'Universities'],
-    currentProjects: [
-      { name: 'Offshore wind (Block Island)', category: 'Energy', status: 'Active', investment: 0.3 },
-      { name: 'Naval Station Newport', category: 'Defense', status: 'Active', investment: 0.2 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'Diversification', current: 'Gas-dependent' },
-      { category: 'Manufacturing', need: 'Revival', current: 'Declined' }
-    ],
-    politicalFeasibility: 'medium',
-    nationalRole: 'Naval training (Newport), offshore wind pilot',
-    energyProfile: 'Gas + first US offshore wind farm. Limited baseload.',
-    workforceReadiness: 'high',
-    assessment: 'SMALL but strategic. Naval Station Newport. Offshore wind pioneer. High costs.'
-  },
-  'Delaware': {
-    state: 'Delaware',
-    stateGDP: 85,
-    stateDebt: 5,
-    stateCapitalInvestment: 0.6,
-    population: 1.0,
-    hamiltonianShare: 14,
-    buildRate: 0.7,
-    trend: 'flat',
-    naturalAdvantages: ['Corporate haven', 'Port access', 'Pharma/finance', 'Location (I-95 corridor)'],
-    currentProjects: [
-      { name: 'Port of Wilmington', category: 'Infrastructure', status: 'Active', investment: 0.3 },
-      { name: 'Pharma manufacturing', category: 'Manufacturing', status: 'Active', investment: 0.2 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'Nuclear/gas', current: 'Imports from PA/NJ' },
-      { category: 'Diversification', need: 'Beyond finance', current: 'Corporate-focused' }
-    ],
-    politicalFeasibility: 'medium',
-    nationalRole: 'Corporate headquarters, pharma, finance, port',
-    energyProfile: 'Energy importer. Some offshore wind potential.',
-    workforceReadiness: 'high',
-    assessment: 'CORPORATE HAVEN. Finance/pharma but little manufacturing. Port is asset.'
-  },
-  'Maryland': {
-    state: 'Maryland',
-    stateGDP: 450,
-    stateDebt: 28,
-    stateCapitalInvestment: 3.5,
-    population: 6.2,
-    hamiltonianShare: 16,
-    buildRate: 0.8,
-    trend: 'flat',
-    naturalAdvantages: ['Federal presence (DC metro)', 'Biotech', 'Ports (Baltimore)', 'Universities', 'Cybersecurity hub'],
-    currentProjects: [
-      { name: 'Port of Baltimore rebuild (Key Bridge)', category: 'Infrastructure', status: 'Rebuilding', investment: 2 },
-      { name: 'Fort Meade/NSA expansion', category: 'Defense', status: 'Active', investment: 1 },
-      { name: 'Biotech expansion', category: 'R&D', status: 'Active', investment: 0.5 }
-    ],
-    capacityGaps: [
-      { category: 'Energy', need: 'Baseload', current: 'Nuclear (Calvert Cliffs) + gas' },
-      { category: 'Fiscal', need: 'Debt control', current: 'Credit downgrade (Moody\'s Aa1)' }
-    ],
-    politicalFeasibility: 'medium',
-    nationalRole: 'Federal hub, cybersecurity (NSA/Fort Meade), biotech, ports',
-    energyProfile: 'Nuclear (Calvert Cliffs) + gas. Offshore wind planned.',
-    workforceReadiness: 'high',
-    assessment: 'FEDERAL DEPENDENT. Key Bridge collapse hurt. Credit downgrade in 2025. Strong biotech/cyber.'
-  },
-  'South Dakota': {
-    state: 'South Dakota',
-    stateGDP: 65,
-    stateDebt: 2,
-    stateCapitalInvestment: 0.5,
-    population: 0.91,
-    hamiltonianShare: 18,
-    buildRate: 0.8,
-    trend: 'flat',
-    naturalAdvantages: ['No income tax', 'Low cost', 'Agriculture', 'Business-friendly', 'Trust industry'],
-    currentProjects: [
-      { name: 'Data centers', category: 'Infrastructure', status: 'Building', investment: 0.3 },
-      { name: 'Ag processing', category: 'Agriculture', status: 'Active', investment: 0.2 }
-    ],
-    capacityGaps: [
-      { category: 'Workforce', need: 'Population', current: 'Small, rural' },
-      { category: 'Diversification', need: 'Beyond agriculture', current: 'Ag-dependent' }
-    ],
-    politicalFeasibility: 'high',
-    nationalRole: 'Agriculture, trust/banking industry',
-    energyProfile: 'Wind + hydro. Low energy costs.',
-    workforceReadiness: 'medium',
-    assessment: 'STABLE but small. No income tax attracts financial services. Limited manufacturing.'
+  return {
+    totalPipeline,
+    totalGDPImpact,
+    annualInvestment,
+    usGDP: US_GDP,
   }
 }
 
-// Historical data
-const historicalData = [
-  { year: 1960, hamiltonianShare: 35, label: 'Interstates + Apollo' },
-  { year: 1970, hamiltonianShare: 33, label: 'Nuclear fleet built' },
-  { year: 1980, hamiltonianShare: 28, label: 'Last major builds' },
-  { year: 1990, hamiltonianShare: 24, label: 'NAFTA begins' },
-  { year: 2000, hamiltonianShare: 22, label: 'Offshoring accelerates' },
-  { year: 2010, hamiltonianShare: 19, label: 'Financial crisis' },
-  { year: 2020, hamiltonianShare: 17, label: 'COVID + awareness' },
-  { year: 2024, hamiltonianShare: 18, label: 'Genesis + CHIPS' },
-]
+// Calculate federal spending composition impact
+// Sources:
+// - Current: 8% of federal spending on physical investment (FEDERAL_SPENDING breakdown)
+// - Target: 12-15% (fiscal sustainability goal)
+// - Public Investment Rate: 3.5% of GDP (BEA/FRED - RESHORING_METRICS)
+const calculateFederalSpendingImpact = () => {
+  const currentInvestmentPercent = FEDERAL_SPENDING.breakdown.find(b => b.category === 'investment')?.percent || 8
+  const targetMin = 12
+  const targetMax = 15
+  
+  // Pipeline investment as % of federal spending (annualized over 5 years)
+  const annualPipelineInvestment = calculateGDPImpact().annualInvestment
+  const federalSpendingTotal = FEDERAL_SPENDING.total // $6.1T in billions
+  const pipelineAsPercentOfFederal = (annualPipelineInvestment / federalSpendingTotal) * 100
+  
+  // This shows how much the pipeline contributes to federal investment spending
+  // Note: Most pipeline is private investment, not federal spending
+  // This metric shows the scale relative to federal budget
+  
+  return {
+    currentInvestmentPercent,
+    targetMin,
+    targetMax,
+    pipelineAsPercentOfFederal,
+    annualPipelineInvestment,
+  }
+}
 
-// Colors
-const COLORS = {
-  hamiltonian: '#00ff88',
-  other: '#ff4455',
-  accent: '#00aaff',
-  gold: '#ffd700',
-  warning: '#ffaa00',
-  bg: '#05050a',
-  bgCard: '#0a0a12',
-  bgCardAlt: '#0f0f18',
-  border: '#1a1a25',
-  text: '#e8e8e8',
-  textMuted: '#888899',
-  textDim: '#555566',
+const GDP_IMPACT = calculateGDPImpact()
+const FEDERAL_SPENDING_IMPACT = calculateFederalSpendingImpact()
+
+interface DebtData {
+  totalDebt: number
+  lastUpdated: string
+  isLoading: boolean
+  error: string | null
 }
 
 // ============================================================================
-// COMPONENTS
+// TICKING COUNTER COMPONENT
 // ============================================================================
-
-function TickingDebt({ 
-  baseValue, 
+function TickingValue({ 
+  value, 
   prefix = '', 
   suffix = '', 
-  decimals = 4, 
-  color = COLORS.text, 
-  size = '2rem',
-  tickRate = DEBT_INCREASE_PER_SECOND
+  decimals = 2,
+  color = COLORS.text,
+  size = '2rem'
 }: { 
-  baseValue: number
+  value: number
   prefix?: string
   suffix?: string
   decimals?: number
   color?: string
   size?: string
-  tickRate?: number
 }) {
-  const [displayValue, setDisplayValue] = useState(baseValue)
+  const [displayValue, setDisplayValue] = useState(value)
   
   useEffect(() => {
-    setDisplayValue(baseValue)
-  }, [baseValue])
-  
-  useEffect(() => {
+    setDisplayValue(value)
+    // Simulate live ticking for debt (roughly $1T/year deficit = ~$31,709/second)
+    const tickRate = value * 0.000000001 // tiny increment per tick
     const interval = setInterval(() => {
-      // Add realistic debt increase per tick (100ms = 0.1 seconds)
-      setDisplayValue(prev => prev + (tickRate * 0.1 / 1_000_000_000_000))
+      setDisplayValue(v => v + tickRate)
     }, 100)
     return () => clearInterval(interval)
-  }, [tickRate])
-  
+  }, [value])
+
   return (
-    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: size, fontWeight: 700, color, textShadow: `0 0 20px ${color}44` }}>
-      {prefix}{displayValue.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}
+    <span style={{ 
+      fontSize: size, 
+      fontWeight: 700, 
+      color,
+      fontVariantNumeric: 'tabular-nums',
+      fontFamily: "'JetBrains Mono', monospace"
+    }}>
+      {prefix}{displayValue.toFixed(decimals)}{suffix}
     </span>
   )
 }
 
 // ============================================================================
-// MAIN PAGE
+// MAIN COMPONENT
 // ============================================================================
-
-export default function Home() {
-  const [selectedState, setSelectedState] = useState('Texas')
-  const [leaderboardSort, setLeaderboardSort] = useState<'hamiltonianShare' | 'perCapita' | 'nationalShare' | 'buildRate'>('hamiltonianShare')
-  const [householdSize, setHouseholdSize] = useState(3)
-  const [buildScenario, setBuildScenario] = useState(4)
-  
-  // Real debt data from Treasury API
+export default function BuildClockPage() {
   const [debtData, setDebtData] = useState<DebtData>({
-    totalDebt: 36.1,  // fallback value in trillions
+    totalDebt: 36.1,
     lastUpdated: '',
     isLoading: true,
     error: null
   })
 
-  // Economic data from FRED API
-  const [econData, setEconData] = useState<EconomicData>({
-    gdp: 28.3,              // fallback: ~$28.3T GDP
-    debtToGdp: 123,         // fallback: ~123%
-    grossInvestment: 4800,  // fallback: ~$4.8T gross private domestic investment (not used for Build Rate)
-    govInvestment: 570,     // fallback: ~$570B government capital investment (~2% of GDP)
-    lastUpdated: '',
-    isLoading: true,
-    error: null
-  })
-
-  // Fetch real debt data from Treasury
   const fetchDebtData = useCallback(async () => {
     try {
-      const response = await fetch(TREASURY_API)
-      const data = await response.json()
-      
-      if (data.data && data.data.length > 0) {
-        const latestRecord = data.data[0]
-        const totalDebtInTrillions = parseFloat(latestRecord.tot_pub_debt_out_amt) / 1_000_000_000_000
-        
+      const res = await fetch(TREASURY_API)
+      const json = await res.json()
+      const record = json.data?.[0]
+      if (record) {
+        const totalDebt = parseFloat(record.tot_pub_debt_out_amt) / 1_000_000_000_000
         setDebtData({
-          totalDebt: totalDebtInTrillions,
-          lastUpdated: latestRecord.record_date,
+          totalDebt,
+          lastUpdated: record.record_date,
           isLoading: false,
           error: null
         })
       }
-    } catch (err) {
-      console.error('Failed to fetch debt data:', err)
-      setDebtData(prev => ({
-        ...prev,
-        isLoading: false,
-        error: 'Failed to fetch live data. Using estimate.'
-      }))
+    } catch {
+      setDebtData(prev => ({ ...prev, isLoading: false, error: 'Using estimate' }))
     }
   }, [])
-
-  // Fetch economic data from FRED API
-  const fetchFredData = useCallback(async (seriesId: string): Promise<number | null> => {
-    if (!FRED_API_KEY) return null
-    
-    try {
-      const url = `${FRED_BASE_URL}?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=1`
-      const response = await fetch(url)
-      const data = await response.json()
-      
-      if (data.observations && data.observations.length > 0) {
-        return parseFloat(data.observations[0].value)
-      }
-    } catch (err) {
-      console.error(`Failed to fetch FRED series ${seriesId}:`, err)
-    }
-    return null
-  }, [])
-
-  const fetchEconomicData = useCallback(async () => {
-    if (!FRED_API_KEY) {
-      setEconData(prev => ({
-        ...prev,
-        isLoading: false,
-        error: 'FRED API key not configured. Using estimates.'
-      }))
-      return
-    }
-
-    try {
-      const [gdp, debtToGdp, grossInvestment, govInvestment] = await Promise.all([
-        fetchFredData(FRED_SERIES.GDP),
-        fetchFredData(FRED_SERIES.DEBT_TO_GDP),
-        fetchFredData(FRED_SERIES.GROSS_INVESTMENT),
-        fetchFredData(FRED_SERIES.GOV_INVESTMENT),
-      ])
-
-      setEconData({
-        gdp: gdp ? gdp / 1000 : 28.3,  // Convert billions to trillions
-        debtToGdp: debtToGdp || 123,
-        grossInvestment: grossInvestment || 4800,
-        govInvestment: govInvestment || 570,  // ~$570B = ~2% of GDP
-        lastUpdated: new Date().toISOString().split('T')[0],
-        isLoading: false,
-        error: null
-      })
-    } catch (err) {
-      console.error('Failed to fetch economic data:', err)
-      setEconData(prev => ({
-        ...prev,
-        isLoading: false,
-        error: 'Failed to fetch FRED data. Using estimates.'
-      }))
-    }
-  }, [fetchFredData])
 
   useEffect(() => {
     fetchDebtData()
-    fetchEconomicData()
-    // Refresh every 5 minutes
-    const interval = setInterval(() => {
-      fetchDebtData()
-      fetchEconomicData()
-    }, 5 * 60 * 1000)
+    const interval = setInterval(fetchDebtData, 5 * 60 * 1000)
     return () => clearInterval(interval)
-  }, [fetchDebtData, fetchEconomicData])
+  }, [fetchDebtData])
 
-  // Calculated values based on real debt
   const totalDebt = debtData.totalDebt
-  const hamiltonianDebt = totalDebt * HAMILTONIAN_SHARE
-  const otherDebt = totalDebt * (1 - HAMILTONIAN_SHARE)
   const debtPerCitizen = (totalDebt * 1_000_000_000_000) / US_POPULATION
-  const hamiltonianPerCitizen = debtPerCitizen * HAMILTONIAN_SHARE
-  
-  // Calculate build rate (government investment as % of GDP)
-  // Only government investment, NOT gross private domestic investment
-  const buildRate = econData.gdp > 0 
-    ? (econData.govInvestment / (econData.gdp * 1000)) * 100 
-    : 2.0
-  
-  // Cap at realistic range (currently ~2% of GDP goes to public infrastructure)
-  const displayBuildRate = Math.min(buildRate, 25)
-  
-  // Calculate actual debt-to-GDP
-  const actualDebtToGdp = econData.debtToGdp || (totalDebt / econData.gdp * 100)
-  
-  const stateInfo = stateData[selectedState]
-  const multiplier = buildScenario >= 4 ? 2.2 : buildScenario >= 3 ? 1.8 : 1.4
 
   return (
     <main style={styles.main}>
       <div style={styles.container}>
         
         {/* ================================================================ */}
-        {/* HERO - The Debt Problem */}
+        {/* HEADER */}
         {/* ================================================================ */}
-        <header style={styles.hero}>
-          <div style={styles.heroLeft}>
-            <div style={styles.trustBadge}>IN GOD WE TRUST</div>
-            <h1 style={styles.heroTitle}>
-              <span style={{ color: COLORS.hamiltonian }}>HAMILTONIAN</span>
-              <br />BUILD CLOCK
+        <header style={styles.header}>
+          <div>
+            <h1 style={styles.title}>
+              <span style={{ color: COLORS.accent }}>BUILD</span> CLOCK
             </h1>
-            <p style={styles.heroTagline}>The American System Dashboard</p>
-            <p style={styles.heroSubtitle}>
-              Not just how much we owe —<br />
-              <strong style={{ color: COLORS.hamiltonian }}>how much of it is building America</strong>
+            <p style={styles.subtitle}>
+              U.S. Industrial Capacity Tracker
             </p>
           </div>
-          
-          <div style={styles.heroRight}>
-            <div style={styles.debtBox}>
-              <div style={styles.debtLabel}>
-                TOTAL FEDERAL DEBT
-                {debtData.isLoading && <span style={styles.liveIndicator}> ⟳</span>}
-                {!debtData.isLoading && !debtData.error && <span style={styles.liveIndicatorLive}> ● LIVE</span>}
-              </div>
-              <TickingDebt baseValue={totalDebt} prefix="$" suffix=" TRILLION" decimals={4} size="2.2rem" />
-              {debtData.lastUpdated && (
-                <div style={styles.dataSource}>
-                  Source: Treasury Dept • Updated: {debtData.lastUpdated}
-                </div>
-              )}
-            </div>
-            
-            <div style={styles.debtSplit}>
-              <div style={{ ...styles.debtSplitBox, borderColor: COLORS.hamiltonian }}>
-                <div style={styles.splitLabel}>BUILDING AMERICA</div>
-                <TickingDebt baseValue={hamiltonianDebt} prefix="$" suffix="T" decimals={2} color={COLORS.hamiltonian} size="1.5rem" tickRate={DEBT_INCREASE_PER_SECOND * HAMILTONIAN_SHARE} />
-                <div style={{ ...styles.splitPercent, color: COLORS.hamiltonian }}>{(HAMILTONIAN_SHARE * 100).toFixed(0)}%</div>
-              </div>
-              
-              <div style={{ ...styles.debtSplitBox, borderColor: COLORS.other }}>
-                <div style={styles.splitLabel}>ALREADY SPENT</div>
-                <TickingDebt baseValue={otherDebt} prefix="$" suffix="T" decimals={2} color={COLORS.other} size="1.5rem" tickRate={DEBT_INCREASE_PER_SECOND * (1 - HAMILTONIAN_SHARE)} />
-                <div style={{ ...styles.splitPercent, color: COLORS.other }}>{((1 - HAMILTONIAN_SHARE) * 100).toFixed(0)}%</div>
-              </div>
-            </div>
-            
-            <div style={styles.perCitizen}>
-              Your share: <strong>${Math.round(debtPerCitizen).toLocaleString()}</strong> — 
-              but only <span style={{ color: COLORS.hamiltonian }}>${Math.round(hamiltonianPerCitizen).toLocaleString()}</span> is invested in assets
-            </div>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <Link href="/opportunities" style={styles.radarLink}>
+              Opportunity Radar →
+            </Link>
+            <Link href="/sectors" style={styles.radarLink}>
+              Sectors →
+            </Link>
+            <Link href="/policy-gaps" style={styles.radarLink}>
+              Policy Gaps →
+            </Link>
+            <Link href="/references" style={styles.radarLink}>
+              References →
+            </Link>
           </div>
         </header>
 
         {/* ================================================================ */}
-        {/* KEY METRICS - Economic Dashboard */}
+        {/* THE PROBLEM - Only 8% Builds */}
         {/* ================================================================ */}
-        <section style={styles.kpiSection}>
-          <div style={styles.kpiGrid}>
-            <div style={styles.kpiCard}>
-              <div style={styles.kpiLabel}>
-                U.S. GDP
-                {econData.isLoading && <span style={styles.liveIndicator}> ⟳</span>}
-                {!econData.isLoading && !econData.error && FRED_API_KEY && <span style={styles.liveIndicatorLive}> ● FRED</span>}
-              </div>
-              <div style={styles.kpiValue}>${econData.gdp.toFixed(1)}T</div>
-              <div style={styles.kpiSubtext}>Gross Domestic Product</div>
-            </div>
-            
-            <div style={styles.kpiCard}>
-              <div style={styles.kpiLabel}>DEBT-TO-GDP</div>
-              <div style={{ ...styles.kpiValue, color: actualDebtToGdp > 100 ? COLORS.warning : COLORS.text }}>
-                {actualDebtToGdp.toFixed(1)}%
-              </div>
-              <div style={styles.kpiSubtext}>
-                {actualDebtToGdp > 120 ? '⚠️ High — Fix: grow GDP, not cut' : actualDebtToGdp > 100 ? '⚠️ Elevated' : '✓ Manageable'}
-              </div>
-            </div>
-            
-            <div style={styles.kpiCard}>
-              <div style={styles.kpiLabel}>BUILD RATE</div>
-              <div style={{ ...styles.kpiValue, color: displayBuildRate >= 3 ? COLORS.hamiltonian : COLORS.warning }}>
-                {displayBuildRate.toFixed(1)}%
-              </div>
-              <div style={styles.kpiSubtext}>
-                Public investment as % of GDP {displayBuildRate < 3 && '(Target: 3-4%)'}
-              </div>
-            </div>
-            
-            <div style={styles.kpiCard}>
-              <div style={styles.kpiLabel}>HAMILTONIAN SHARE</div>
-              <div style={{ ...styles.kpiValue, color: COLORS.hamiltonian }}>
-                {(HAMILTONIAN_SHARE * 100).toFixed(0)}%
-              </div>
-              <div style={styles.kpiSubtext}>
-                Target: 30%+ (was 35% in 1960)
-              </div>
-            </div>
+        <section style={styles.heroNew}>
+          <div style={styles.narrativeHeader}>
+            <span style={styles.narrativeStep}>01</span>
+            <span style={styles.narrativeLabel}>THE PROBLEM</span>
           </div>
           
-          {econData.error && (
-            <div style={styles.apiNote}>
-              {econData.error} {!FRED_API_KEY && (
-                <span>Get a free key at <a href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.accent }}>fred.stlouisfed.org</a></span>
+          {/* The Big Number */}
+          <div style={styles.debtHero}>
+            <div style={styles.debtHeroMain}>
+              <div style={styles.debtHeroLabel}>
+                FEDERAL DEBT
+                {debtData.isLoading && <span style={{ marginLeft: '0.5rem', opacity: 0.5 }}>⟳</span>}
+                {!debtData.isLoading && !debtData.error && (
+                  <span style={{ marginLeft: '0.5rem', color: COLORS.accent, fontSize: '0.7rem' }}>● LIVE</span>
+                )}
+              </div>
+              <div style={styles.debtHeroValue}>
+                <TickingValue value={totalDebt} prefix="$" suffix="" decimals={4} size="4rem" color={COLORS.text} />
+                <span style={styles.debtHeroUnit}>TRILLION</span>
+              </div>
+              {debtData.lastUpdated && (
+                <div style={styles.debtHeroSource}>
+                  Source: U.S. Treasury • Updated: {debtData.lastUpdated}
+                </div>
               )}
             </div>
-          )}
-        </section>
-
-        {/* ================================================================ */}
-        {/* THE HAMILTONIAN GAUGE - Hero Metric */}
-        {/* ================================================================ */}
-        <section style={styles.hamiltonianSection}>
-          <div style={styles.hamiltonianHero}>
-            <div style={styles.gaugeContainer}>
-              <div style={styles.gaugeLabel}>THE HAMILTONIAN SHARE</div>
-              <div style={styles.gaugeWrapper}>
-                {/* Gauge scale: 0-50% (not 0-100%) because 30%+ is the ambitious target */}
-                <svg viewBox="0 0 200 120" style={{ width: '100%', maxWidth: '300px' }}>
-                  {/* Background arc (full semi-circle = 50% on our scale) */}
-                  <path
-                    d="M 20 100 A 80 80 0 0 1 180 100"
-                    fill="none"
-                    stroke={COLORS.border}
-                    strokeWidth="14"
-                    strokeLinecap="round"
-                  />
-                  {/* Filled arc - 18% on 0-50% scale = 36% of arc */}
-                  <path
-                    d="M 20 100 A 80 80 0 0 1 180 100"
-                    fill="none"
-                    stroke={COLORS.hamiltonian}
-                    strokeWidth="14"
-                    strokeLinecap="round"
-                    strokeDasharray={`${251.3 * (HAMILTONIAN_SHARE / 0.50)} 251.3`}
-                    style={{ filter: `drop-shadow(0 0 10px ${COLORS.hamiltonian}88)` }}
-                  />
-                  {/* Target marker at 30% (which is 60% of the 0-50% arc) */}
-                  <path
-                    d="M 20 100 A 80 80 0 0 1 180 100"
-                    fill="none"
-                    stroke={COLORS.gold}
-                    strokeWidth="20"
-                    strokeLinecap="butt"
-                    strokeDasharray="4 247.3"
-                    strokeDashoffset={-251.3 * (0.30 / 0.50) + 2}
-                  />
-                  {/* Center text */}
-                  <text x="100" y="75" textAnchor="middle" fill={COLORS.hamiltonian} fontSize="42" fontWeight="700" fontFamily="'JetBrains Mono', monospace" style={{ textShadow: `0 0 20px ${COLORS.hamiltonian}66` }}>
-                    {(HAMILTONIAN_SHARE * 100).toFixed(0)}%
-                  </text>
-                  <text x="100" y="95" textAnchor="middle" fill={COLORS.textMuted} fontSize="11">
-                    Target: 30%+
-                  </text>
-                  {/* Scale labels (0-50% scale) */}
-                  <text x="15" y="115" textAnchor="start" fill={COLORS.textDim} fontSize="9">0%</text>
-                  <text x="100" y="115" textAnchor="middle" fill={COLORS.textDim} fontSize="9">25%</text>
-                  <text x="185" y="115" textAnchor="end" fill={COLORS.textDim} fontSize="9">50%</text>
-                </svg>
+            <div style={styles.debtHeroQuestion}>
+              <div style={styles.hamiltonQuestion}>The Core Question:</div>
+              <div style={styles.hamiltonText}>
+                Not <em>how much</em> we spend — but <em>what portion builds lasting capacity</em>?
               </div>
-              <div style={styles.gaugeTagline}>
-                Only <strong style={{ color: COLORS.hamiltonian }}>{(HAMILTONIAN_SHARE * 100).toFixed(0)}¢</strong> of every dollar borrowed is building something.
-                <br />The rest is already spent.
+              <div style={{ fontSize: '0.65rem', color: COLORS.textDim, marginTop: '0.5rem' }}>
+                Framework: Distinguishing capital investment from current consumption
+              </div>
+            </div>
+          </div>
+
+          {/* The Breakdown - Where Federal Spending Goes */}
+          <div style={styles.breakdownSection}>
+            <div style={styles.breakdownHeader}>
+              <h3 style={styles.breakdownTitle}>Where Federal Spending Goes</h3>
+              <div style={styles.breakdownSubtitle}>
+                ${(FEDERAL_SPENDING.total / 1000).toFixed(1)}T annual spending • FY2024 • 
+                <a 
+                  href={FEDERAL_SPENDING.sourceUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ color: COLORS.blue, marginLeft: '0.25rem' }}
+                >
+                  {FEDERAL_SPENDING.source} ↗
+                </a>
               </div>
             </div>
             
-            <div style={styles.breakdownContainer}>
-              <div style={styles.breakdownTitle}>Where Hamiltonian Spending Goes</div>
-              <div style={styles.breakdownGrid}>
-                {Object.entries(HAMILTONIAN_BREAKDOWN).map(([key, cat]) => (
-                  <div key={key} style={styles.breakdownItem}>
-                    <div style={styles.breakdownIcon}>{cat.icon}</div>
-                    <div style={styles.breakdownInfo}>
-                      <div style={styles.breakdownLabel}>{cat.label}</div>
-                      <div style={styles.breakdownBar}>
-                        <div style={{ 
-                          ...styles.breakdownBarFill, 
-                          width: `${(cat.share / HAMILTONIAN_SHARE) * 100}%` 
-                        }} />
+            {/* Visual Bar */}
+            <div style={styles.breakdownBar}>
+              {FEDERAL_SPENDING.breakdown.map(item => (
+                <div 
+                  key={item.category}
+                  style={{
+                    ...styles.breakdownBarSegment,
+                    width: `${item.percent}%`,
+                    backgroundColor: item.color,
+                  }}
+                  title={`${item.label}: ${item.percent}%`}
+                />
+              ))}
+            </div>
+            
+            {/* Legend Cards */}
+            <div style={styles.breakdownCards}>
+              {FEDERAL_SPENDING.breakdown.map(item => (
+                <div 
+                  key={item.category} 
+                  style={{
+                    ...styles.breakdownCard,
+                    borderLeftColor: item.color,
+                  }}
+                >
+                  <div style={styles.breakdownCardHeader}>
+                    <span style={{ ...styles.breakdownCardPercent, color: item.color }}>
+                      {item.percent}%
+                    </span>
+                    <span style={styles.breakdownCardLabel}>{item.label}</span>
+                  </div>
+                  <div style={styles.breakdownCardAmount}>
+                    ${item.amount}B/year
+                  </div>
+                  <div style={styles.breakdownCardDesc}>{item.description}</div>
+                  <div style={styles.breakdownCardSublabel}>{item.sublabel}</div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Need-Based Context */}
+            <div style={styles.historicalNote}>
+              <strong style={{ color: COLORS.accent }}>The Gap:</strong> At 8%, we're not investing enough to meet actual needs — 
+              <strong>$2.6T</strong> infrastructure gap (ASCE), <strong>20%</strong> chip production target (CHIPS Act), 
+              grid capacity for AI/EV demand, critical mineral security. The policy waves aren't about restoring 
+              the past — they're about building what the next economy requires.
+            </div>
+          </div>
+
+          {/* Per Citizen Context */}
+          <div style={styles.citizenContext}>
+            <div style={styles.citizenStat}>
+              <span style={styles.citizenLabel}>Your share of the debt:</span>
+              <span style={styles.citizenValue}>${Math.round(debtPerCitizen).toLocaleString()}</span>
+            </div>
+            <div style={styles.citizenStat}>
+              <span style={styles.citizenLabel}>Portion that built assets:</span>
+              <span style={{ ...styles.citizenValue, color: COLORS.accent }}>
+                ${Math.round(debtPerCitizen * 0.08).toLocaleString()}
+              </span>
+              <span style={styles.citizenNote}>(~8%)</span>
+            </div>
+            <div style={styles.citizenStat}>
+              <span style={styles.citizenLabel}>Already consumed:</span>
+              <span style={{ ...styles.citizenValue, color: COLORS.danger }}>
+                ${Math.round(debtPerCitizen * 0.92).toLocaleString()}
+              </span>
+              <span style={styles.citizenNote}>(~92%)</span>
+            </div>
+          </div>
+
+          {/* Fiscal Target - moved from section 04 */}
+          <div style={styles.fiscalCard}>
+            <div style={styles.fiscalHeader}>
+              <span style={styles.fiscalIcon}>⚖️</span>
+              <div>
+                <div style={styles.fiscalTitle}>Fiscal Sustainability Target</div>
+                <div style={styles.fiscalSubtitle}>Current trajectory vs. stabilization goal</div>
+              </div>
+            </div>
+            <div style={styles.fiscalContent}>
+              <div style={styles.fiscalStat}>
+                <div style={styles.fiscalStatValue}>124%</div>
+                <div style={styles.fiscalStatLabel}>
+                  <a href="https://fred.stlouisfed.org/series/GFDEGDQ188S" target="_blank" rel="noreferrer" style={{ color: COLORS.blue, textDecoration: 'none' }}>
+                    Current Debt/GDP (FRED) ↗
+                  </a>
+                </div>
+              </div>
+              <div style={styles.fiscalLogic}>
+                <div style={styles.logicRow}>
+                  <span style={{ color: COLORS.danger }}>→</span>
+                  <span>CBO baseline: 166% by 2054 (unsustainable trajectory)</span>
+                </div>
+                <div style={styles.logicRow}>
+                  <span style={{ color: COLORS.warning }}>→</span>
+                  <span>Stabilization target: ~100% by 2030 (requires GDP growth faster than debt growth)</span>
+                </div>
+                <div style={styles.logicRow}>
+                  <span style={{ color: COLORS.accent }}>→</span>
+                  <span>Path: Increase productive investment share from 8% to 12-15% of spending</span>
+                </div>
+              </div>
+              <div style={styles.fiscalNote}>
+                <strong>The math:</strong> To stabilize debt/GDP at ~100% by 2030, GDP must grow faster than debt. 
+                Productive investment (infrastructure, R&D, manufacturing capacity) has higher GDP multipliers 
+                than transfers. Shifting spending composition toward investment can improve fiscal sustainability 
+                without cutting total spending.
+                <a href="https://www.cbo.gov/publication/59014" target="_blank" rel="noreferrer" style={{ color: COLORS.blue, marginLeft: '0.5rem' }}>
+                  CBO analysis ↗
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* THE RESPONSE - Policy Waves */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <div style={styles.narrativeHeader}>
+            <span style={styles.narrativeStep}>02</span>
+            <span style={styles.narrativeLabel}>THE RESPONSE</span>
+          </div>
+          <h2 style={styles.sectionTitle}>The Policy Response</h2>
+          <p style={styles.sectionSubtitle}>
+            Three waves of policy designed to increase productive investment — the path from 8% toward 12-15% needed for fiscal sustainability
+          </p>
+          
+          <div style={styles.wavesContainer}>
+            {POLICY_WAVES.map(wave => (
+              <div key={wave.wave} style={styles.waveCard}>
+                <div style={styles.waveHeader}>
+                  <div style={styles.waveNumber}>Wave {wave.wave}</div>
+                  <div style={styles.waveLabel}>{wave.label}</div>
+                  <div style={styles.wavePeriod}>{wave.period}</div>
+                </div>
+                <div style={styles.waveDesc}>{wave.description}</div>
+                <div style={styles.wavePolicies}>
+                  {wave.policies.map(p => (
+                    <div key={p.name} style={styles.wavePolicy}>
+                      <span style={styles.wavePolicyIcon}>{p.icon}</span>
+                      <div style={styles.wavePolicyContent}>
+                        <div style={styles.wavePolicyName}>{p.name}</div>
+                        {p.amount && <span style={styles.wavePolicyAmount}>${p.amount}B</span>}
+                        {p.note && <div style={styles.wavePolicyNote}>{p.note}</div>}
                       </div>
-                      <div style={styles.breakdownValue}>{(cat.share * 100).toFixed(0)}%</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          
-          <div style={styles.methodologyNote}>
-            <strong>Methodology:</strong> Hamiltonian Share = Federal spending on capital assets (infrastructure, energy, manufacturing, R&D, defense capital) 
-            as a percentage of total federal outlays. Based on OMB Budget Object Class data and BEA fixed investment series.
-            <br /><em>1960: 35% → 2024: 18%. Target: 30%+</em>
-          </div>
-        </section>
-
-        {/* ================================================================ */}
-        {/* STRATEGIC CALLOUTS - Quick-Glance Metrics */}
-        {/* ================================================================ */}
-        <section style={{ 
-          ...styles.section, 
-          paddingTop: '1rem', 
-          paddingBottom: '1rem',
-          background: `linear-gradient(180deg, ${COLORS.bg} 0%, rgba(0,255,136,0.02) 100%)`
-        }}>
-          {(() => {
-            const states = Object.values(stateHamiltonianAnalysis)
-            const totalBlockedInvestment = states.reduce((sum, s) => {
-              if (s.blockedProjects) {
-                return sum + s.blockedProjects.reduce((projSum, p) => projSum + Math.max(0, p.investment), 0)
-              }
-              return sum
-            }, 0)
-            const totalChipInvestment = states.reduce((sum, s) => sum + (s.chipInvestment || 0), 0)
-            const totalNuclearCapacity = states.reduce((sum, s) => sum + (s.nuclearCapacity || 0), 0)
-            
-            return (
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                gap: '2rem', 
-                flexWrap: 'wrap',
-                fontSize: '0.9rem'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '1.2rem' }}>🚫</span>
-                  <span style={{ color: COLORS.other, fontWeight: 700 }}>${totalBlockedInvestment.toFixed(0)}B</span>
-                  <span style={{ color: COLORS.textMuted }}>Blocked</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '1.2rem' }}>🔧</span>
-                  <span style={{ color: COLORS.accent, fontWeight: 700 }}>${totalChipInvestment}B</span>
-                  <span style={{ color: COLORS.textMuted }}>Chip Fabs</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '1.2rem' }}>⚛️</span>
-                  <span style={{ color: COLORS.gold, fontWeight: 700 }}>{totalNuclearCapacity.toFixed(0)} GW</span>
-                  <span style={{ color: COLORS.textMuted }}>Nuclear (need 95)</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '1.2rem' }}>🇹🇼</span>
-                  <span style={{ color: COLORS.warning, fontWeight: 700 }}>25%</span>
-                  <span style={{ color: COLORS.textMuted }}>Chip Independent by 2030</span>
-                </div>
-              </div>
-            )
-          })()}
-        </section>
-
-        {/* ================================================================ */}
-        {/* NATIONAL BUILD RATE - The Real Picture */}
-        {/* ================================================================ */}
-          <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>
-            <span style={{ color: COLORS.gold }}>NATIONAL BUILD RATE</span> — The Complete Picture
-          </h2>
-          <p style={styles.sectionSubtitle}>
-            How much of America's economy is being invested in building? This combines federal AND state capital spending.
-          </p>
-          
-          {(() => {
-            // Calculate totals
-            const totalStateCapitalInvestment = Object.values(stateHamiltonianAnalysis).reduce((sum, state) => sum + state.stateCapitalInvestment, 0)
-            const nationalGDP = econData.gdp * 1000 // Convert trillions to billions
-            
-            // Federal capital spending estimates (from OMB data)
-            // Defense capital (~$150B) + Infrastructure (~$140B) + Energy (~$80B) + R&D facilities (~$50B) + Other (~$80B)
-            const federalDirectCapital = 500 // ~$500B federal direct capital
-            const federalGrantsForCapital = 90 // ~$90B federal grants that flow to states for capital (highways, transit, airports)
-            const totalFederalCapital = federalDirectCapital + federalGrantsForCapital
-            
-            // State own-source capital (subtract federal pass-through to avoid double-counting)
-            // Roughly 35-40% of state capital comes from federal grants
-            const federalPassThroughPct = 0.35
-            const stateOwnSourceCapital = totalStateCapitalInvestment * (1 - federalPassThroughPct)
-            
-            // Local government capital (~$150-200B from Census data)
-            const localCapital = 175
-            
-            // Total public capital (no double-counting)
-            const totalPublicCapital = federalDirectCapital + federalGrantsForCapital + stateOwnSourceCapital + localCapital
-            
-            // National Build Rate = Total public capital / GDP
-            const nationalBuildRate = (totalPublicCapital / nationalGDP) * 100
-            const targetBuildRate = 5.0 // 5% of GDP target
-            
-            return (
-              <div style={styles.nationalBuildContainer}>
-                {/* Main National Build Rate Display */}
-                <div style={styles.nationalBuildMain}>
-                  <div style={styles.buildRateGauge}>
-                    <div style={styles.buildRateLabel}>NATIONAL BUILD RATE</div>
-                    <div style={styles.buildRateValue}>
-                      <span style={{ color: nationalBuildRate >= targetBuildRate ? COLORS.hamiltonian : COLORS.warning }}>
-                        {nationalBuildRate.toFixed(1)}%
+                      <span style={{
+                        ...styles.wavePolicyStatus,
+                        backgroundColor: p.status === 'enacted' ? COLORS.accent + '22' :
+                                        p.status === 'disbursing' ? COLORS.blue + '22' :
+                                        p.status === 'active' ? COLORS.warning + '22' :
+                                        p.status === 'incoming' ? COLORS.danger + '22' :
+                                        COLORS.purple + '22',
+                        color: p.status === 'enacted' ? COLORS.accent :
+                               p.status === 'disbursing' ? COLORS.blue :
+                               p.status === 'active' ? COLORS.warning :
+                               p.status === 'incoming' ? COLORS.danger :
+                               COLORS.purple,
+                      }}>
+                        {p.status}
                       </span>
-                      <span style={styles.buildRateOf}> of GDP</span>
-              </div>
-                    <div style={styles.buildRateTarget}>Target: {targetBuildRate}%+ of GDP</div>
-                    <div style={styles.buildRateBar}>
-                      <div style={{
-                        width: `${Math.min((nationalBuildRate / 8) * 100, 100)}%`,
-                        height: '100%',
-                        backgroundColor: nationalBuildRate >= targetBuildRate ? COLORS.hamiltonian : COLORS.warning,
-                        borderRadius: '4px',
-                        transition: 'width 0.3s ease'
-                      }} />
-              </div>
-            </div>
-            
-                  {/* Breakdown */}
-                  <div style={styles.buildBreakdown}>
-                    <div style={styles.buildBreakdownTitle}>Where Public Capital Comes From</div>
-                    <div style={styles.buildBreakdownGrid}>
-                      <div style={styles.buildBreakdownItem}>
-                        <div style={styles.buildBreakdownIcon}>🏛️</div>
-                        <div style={styles.buildBreakdownLabel}>Federal Direct</div>
-                        <div style={styles.buildBreakdownValue}>${federalDirectCapital}B</div>
-                        <div style={styles.buildBreakdownPct}>{((federalDirectCapital / totalPublicCapital) * 100).toFixed(0)}%</div>
-              </div>
-                      <div style={styles.buildBreakdownItem}>
-                        <div style={styles.buildBreakdownIcon}>🛣️</div>
-                        <div style={styles.buildBreakdownLabel}>Federal→State Grants</div>
-                        <div style={styles.buildBreakdownValue}>${federalGrantsForCapital}B</div>
-                        <div style={styles.buildBreakdownPct}>{((federalGrantsForCapital / totalPublicCapital) * 100).toFixed(0)}%</div>
-              </div>
-                      <div style={styles.buildBreakdownItem}>
-                        <div style={styles.buildBreakdownIcon}>🏗️</div>
-                        <div style={styles.buildBreakdownLabel}>State Own-Source</div>
-                        <div style={styles.buildBreakdownValue}>${stateOwnSourceCapital.toFixed(0)}B</div>
-                        <div style={styles.buildBreakdownPct}>{((stateOwnSourceCapital / totalPublicCapital) * 100).toFixed(0)}%</div>
-            </div>
-                      <div style={styles.buildBreakdownItem}>
-                        <div style={styles.buildBreakdownIcon}>🏘️</div>
-                        <div style={styles.buildBreakdownLabel}>Local Government</div>
-                        <div style={styles.buildBreakdownValue}>${localCapital}B</div>
-                        <div style={styles.buildBreakdownPct}>{((localCapital / totalPublicCapital) * 100).toFixed(0)}%</div>
-          </div>
-                </div>
-                    <div style={styles.buildBreakdownTotal}>
-                      <strong>Total Public Capital:</strong> ${totalPublicCapital.toFixed(0)}B / year → {nationalBuildRate.toFixed(1)}% of ${nationalGDP.toFixed(0)}B GDP
-              </div>
-            </div>
-          </div>
-          
-                <div style={styles.buildMethodology}>
-                  <strong>⚠️ No Double-Counting:</strong> Federal grants to states (~$90B for highways, transit, airports) are counted ONCE at federal level. 
-                  State "own-source" capital is state bonds + state-funded projects (not federal pass-through). 
-                  This gives the true picture of total public investment.
-                  </div>
-                </div>
-              )
-          })()}
-        </section>
-
-        {/* ================================================================ */}
-        {/* STRATEGIC CAPACITY - AI, Chips, Energy */}
-        {/* ================================================================ */}
-        <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>
-            <span style={{ color: COLORS.gold }}>STRATEGIC CAPACITY</span> — AI, Chips, Energy Independence
-          </h2>
-          <p style={styles.sectionSubtitle}>
-            Monroe Doctrine 2.0 requires domestic capacity. Current gaps threaten national security.
-          </p>
-          
-          {(() => {
-            // Calculate strategic metrics from state data
-            const states = Object.values(stateHamiltonianAnalysis)
-            
-            // Blocked Potential
-            const totalBlockedInvestment = states.reduce((sum, s) => {
-              if (s.blockedProjects) {
-                return sum + s.blockedProjects.reduce((projSum, p) => projSum + Math.max(0, p.investment), 0)
-              }
-              return sum
-            }, 0)
-            
-            const totalBlockedJobs = states.reduce((sum, s) => {
-              if (s.blockedProjects) {
-                return sum + s.blockedProjects.reduce((projSum, p) => projSum + Math.max(0, p.jobs), 0)
-              }
-              return sum
-            }, 0)
-            
-            // Chip Investment
-            const totalChipInvestment = states.reduce((sum, s) => sum + (s.chipInvestment || 0), 0)
-            
-            // Nuclear Capacity
-            const totalNuclearCapacity = states.reduce((sum, s) => sum + (s.nuclearCapacity || 0), 0)
-            const nuclearTarget = 95 // GW needed
-            
-            // AI Readiness
-            const aiHighStates = states.filter(s => s.aiReadiness === 'high').length
-            const aiMediumStates = states.filter(s => s.aiReadiness === 'medium').length
-            const aiLowStates = states.filter(s => s.aiReadiness === 'low').length
-            
-            // Grid Status
-            const vulnerableGrids = states.filter(s => s.gridReliability === 'vulnerable').length
-            const stressedGrids = states.filter(s => s.gridReliability === 'stressed').length
-            
-            return (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                {/* Blocked Potential Card */}
-                <div style={{
-                  ...styles.card,
-                  background: `linear-gradient(135deg, ${COLORS.bgCard} 0%, rgba(255,68,85,0.1) 100%)`,
-                  borderColor: COLORS.other
-                }}>
-                  <div style={{ fontSize: '0.85rem', color: COLORS.textMuted, marginBottom: '0.5rem' }}>
-                    🚫 BLOCKED POTENTIAL
-                  </div>
-                  <div style={{ fontSize: '2.5rem', fontWeight: 700, color: COLORS.other }}>
-                    ${totalBlockedInvestment.toFixed(0)}B+
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: COLORS.textMuted }}>
-                    {(totalBlockedJobs / 1000).toFixed(0)}K+ jobs stuck in permitting
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: COLORS.textDim, marginTop: '0.75rem' }}>
-                    Top blockers: CA, NY, PA pipelines, AK mining
-                  </div>
-                </div>
-                
-                {/* Chip Independence Card */}
-                <div style={{
-                  ...styles.card,
-                  background: `linear-gradient(135deg, ${COLORS.bgCard} 0%, rgba(0,170,255,0.1) 100%)`,
-                  borderColor: COLORS.accent
-                }}>
-                  <div style={{ fontSize: '0.85rem', color: COLORS.textMuted, marginBottom: '0.5rem' }}>
-                    🔧 CHIP INDEPENDENCE
-                  </div>
-                  <div style={{ fontSize: '2.5rem', fontWeight: 700, color: COLORS.accent }}>
-                    ${totalChipInvestment}B
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: COLORS.textMuted }}>
-                    Committed fab investment (TSMC, Intel, Samsung, Micron)
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: COLORS.textDim, marginTop: '0.75rem' }}>
-                    Timeline: 25% independent by 2030, 60% by 2035
-                  </div>
-                  <div style={{ 
-                    marginTop: '0.5rem', 
-                    height: 6, 
-                    background: COLORS.bgCardAlt, 
-                    borderRadius: 3,
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{ 
-                      width: '25%', 
-                      height: '100%', 
-                      background: COLORS.accent,
-                      borderRadius: 3
-                    }} />
-                  </div>
-                </div>
-                
-                {/* Nuclear Capacity Card */}
-                <div style={{
-                  ...styles.card,
-                  background: `linear-gradient(135deg, ${COLORS.bgCard} 0%, rgba(255,215,0,0.1) 100%)`,
-                  borderColor: COLORS.gold
-                }}>
-                  <div style={{ fontSize: '0.85rem', color: COLORS.textMuted, marginBottom: '0.5rem' }}>
-                    ⚛️ NUCLEAR CAPACITY
-                  </div>
-                  <div style={{ fontSize: '2.5rem', fontWeight: 700, color: COLORS.gold }}>
-                    {totalNuclearCapacity.toFixed(0)} GW
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: COLORS.textMuted }}>
-                    of {nuclearTarget} GW needed for AI + industrial load
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: COLORS.textDim, marginTop: '0.75rem' }}>
-                    Shortfall: {(nuclearTarget - totalNuclearCapacity).toFixed(0)} GW — need 10x more SMRs
-                  </div>
-                  <div style={{ 
-                    marginTop: '0.5rem', 
-                    height: 6, 
-                    background: COLORS.bgCardAlt, 
-                    borderRadius: 3,
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{ 
-                      width: `${Math.min(100, (totalNuclearCapacity / nuclearTarget) * 100)}%`, 
-                      height: '100%', 
-                      background: COLORS.gold,
-                      borderRadius: 3
-                    }} />
-                  </div>
-                </div>
-                
-                {/* AI/Data Center Readiness Card */}
-                <div style={{
-                  ...styles.card,
-                  background: `linear-gradient(135deg, ${COLORS.bgCard} 0%, rgba(0,255,136,0.1) 100%)`,
-                  borderColor: COLORS.hamiltonian
-                }}>
-                  <div style={{ fontSize: '0.85rem', color: COLORS.textMuted, marginBottom: '0.5rem' }}>
-                    🤖 AI INFRASTRUCTURE READINESS
-                  </div>
-                  <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.8rem', fontWeight: 700, color: COLORS.hamiltonian }}>{aiHighStates}</div>
-                      <div style={{ fontSize: '0.75rem', color: COLORS.textMuted }}>HIGH</div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.8rem', fontWeight: 700, color: COLORS.warning }}>{aiMediumStates}</div>
-                      <div style={{ fontSize: '0.75rem', color: COLORS.textMuted }}>MEDIUM</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.8rem', fontWeight: 700, color: COLORS.other }}>{aiLowStates}</div>
-                      <div style={{ fontSize: '0.75rem', color: COLORS.textMuted }}>LOW</div>
-                    </div>
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: COLORS.textDim, marginTop: '0.75rem' }}>
-                    High: Nuclear + cold climate + stable grid
-                  </div>
-                </div>
-                
-                {/* Grid Vulnerability Card */}
-                <div style={{
-                  ...styles.card,
-                  background: `linear-gradient(135deg, ${COLORS.bgCard} 0%, rgba(255,170,0,0.1) 100%)`,
-                  borderColor: COLORS.warning
-                }}>
-                  <div style={{ fontSize: '0.85rem', color: COLORS.textMuted, marginBottom: '0.5rem' }}>
-                    ⚡ GRID VULNERABILITY
-                  </div>
-                  <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem' }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.8rem', fontWeight: 700, color: COLORS.other }}>{vulnerableGrids}</div>
-                      <div style={{ fontSize: '0.75rem', color: COLORS.textMuted }}>VULNERABLE</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.8rem', fontWeight: 700, color: COLORS.warning }}>{stressedGrids}</div>
-                      <div style={{ fontSize: '0.75rem', color: COLORS.textMuted }}>STRESSED</div>
-                    </div>
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: COLORS.textDim, marginTop: '0.75rem' }}>
-                    TX (ERCOT), CA (rolling blackouts), NY (closed nuclear)
-                  </div>
-                </div>
-                
-                {/* Taiwan Scenario Card */}
-                <div style={{
-                  ...styles.card,
-                  background: `linear-gradient(135deg, ${COLORS.bgCard} 0%, rgba(255,68,85,0.15) 100%)`,
-                  borderColor: COLORS.other
-                }}>
-                  <div style={{ fontSize: '0.85rem', color: COLORS.textMuted, marginBottom: '0.5rem' }}>
-                    🇹🇼 TAIWAN SCENARIO RISK
-                  </div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 600, color: COLORS.other, marginTop: '0.5rem' }}>
-                    2025-2028: CRITICAL WINDOW
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: COLORS.textMuted, marginTop: '0.5rem' }}>
-                    If Taiwan blocked before US fabs scale:
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: COLORS.textDim, marginTop: '0.5rem' }}>
-                    • 90% advanced chip supply cut<br/>
-                    • Defense systems lose replacements<br/>
-                    • AI training halts (GPU shortage)
-                  </div>
-                </div>
-              </div>
-            )
-          })()}
-        </section>
-
-        {/* ================================================================ */}
-        {/* STATE LEADERBOARD - Build Rate Rankings */}
-        {/* ================================================================ */}
-        <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>
-            <span style={{ color: COLORS.gold }}>STATE LEADERBOARD</span> — Build Rate Rankings
-          </h2>
-          <p style={styles.sectionSubtitle}>
-            States ranked by Hamiltonian Share (% of state spending on capital assets). 
-            <strong> Build Rate</strong> shows how aggressively each state invests in capital relative to their economy.
-          </p>
-          
-          {(() => {
-            const totalStateCapitalInvestment = Object.values(stateHamiltonianAnalysis).reduce((sum, state) => sum + state.stateCapitalInvestment, 0)
-            const totalPopulation = Object.values(stateHamiltonianAnalysis).reduce((sum, state) => sum + (state.population || 1), 0)
-            
-            // Sorting options for the leaderboard
-            const sortOptions = [
-              { key: 'hamiltonianShare', label: 'Hamiltonian %' },
-              { key: 'perCapita', label: 'Per Capita $' },
-              { key: 'nationalShare', label: 'National Share' },
-              { key: 'buildRate', label: 'Build Rate' }
-            ]
-            
-            const getSortedStates = () => {
-              return Object.values(stateHamiltonianAnalysis)
-                .map(state => ({
-                  ...state,
-                  perCapitaInvestment: (state.stateCapitalInvestment * 1000) / (state.population || 1), // $ per person (billions to millions)
-                  nationalShare: (state.stateCapitalInvestment / totalStateCapitalInvestment) * 100,
-                  stateBuildRate: (state.stateCapitalInvestment / state.stateGDP) * 100
-                }))
-                .sort((a, b) => {
-                  switch (leaderboardSort) {
-                    case 'perCapita': return b.perCapitaInvestment - a.perCapitaInvestment
-                    case 'nationalShare': return b.nationalShare - a.nationalShare
-                    case 'buildRate': return b.stateBuildRate - a.stateBuildRate
-                    default: return b.hamiltonianShare - a.hamiltonianShare
-                  }
-                })
-                .slice(0, 15)
-            }
-            
-            return (
-              <div style={styles.leaderboardContainer}>
-                {/* Sort Toggle */}
-                <div style={{
-                  display: 'flex',
-                  gap: '0.5rem',
-                  marginBottom: '1rem',
-                  flexWrap: 'wrap',
-                  justifyContent: 'center'
-                }}>
-                  <span style={{ color: COLORS.textMuted, fontSize: '0.85rem', marginRight: '0.5rem' }}>Sort by:</span>
-                  {sortOptions.map(opt => (
-                    <button
-                      key={opt.key}
-                      onClick={() => setLeaderboardSort(opt.key as any)}
-                      style={{
-                        padding: '0.35rem 0.75rem',
-                        fontSize: '0.75rem',
-                        fontWeight: leaderboardSort === opt.key ? 700 : 400,
-                        backgroundColor: leaderboardSort === opt.key ? COLORS.hamiltonian : COLORS.bgCard,
-                        color: leaderboardSort === opt.key ? '#000' : COLORS.text,
-                        border: `1px solid ${leaderboardSort === opt.key ? COLORS.hamiltonian : COLORS.border}`,
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      {opt.label}
-                    </button>
                   ))}
                 </div>
-                
-                {getSortedStates()
-                  .map((state, index) => {
-                const rank = index + 1
-                const isTop3 = rank <= 3
-                const isTop10 = rank <= 10
-                const meetsTarget = state.hamiltonianShare >= 25
-                
-                // State Build Rate = Capital investment / State GDP (how aggressively they're building)
-                const stateBuildRate = state.stateBuildRate
-                const buildRateMeetsTarget = stateBuildRate >= 1.0
-                
-                // Per Capita Investment ($ per person)
-                const perCapitaInvestment = state.perCapitaInvestment
-                const perCapitaMeetsTarget = perCapitaInvestment >= 400 // $400+ per person is good
-                
-                // Share of total state building (what % of state-level capital this state represents)
-                const shareOfStateBuilding = state.nationalShare
-                
-                return (
-                  <div 
-                    key={state.state}
-                      style={{
-                      ...styles.leaderboardRow,
-                      backgroundColor: isTop3 ? `${COLORS.hamiltonian}15` : isTop10 ? `${COLORS.gold}10` : COLORS.bgCard,
-                      borderLeft: `4px solid ${isTop3 ? COLORS.hamiltonian : isTop10 ? COLORS.gold : COLORS.border}`,
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => setSelectedState(state.state)}
-                  >
-                    <div style={styles.leaderboardRank}>
-                      {isTop3 ? (
-                        <span style={{ fontSize: '1.2rem' }}>
-                          {rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}
-                        </span>
-                      ) : (
-                        <span style={{ 
-                          color: isTop10 ? COLORS.text : COLORS.textMuted,
-                          fontWeight: isTop10 ? 700 : 400
-                        }}>
-                          #{rank}
-                        </span>
-                      )}
-                </div>
-                    <div style={styles.leaderboardState}>
-                      <div style={{ 
-                        fontWeight: 700, 
-                        fontSize: '1rem',
-                        color: COLORS.text
-                      }}>
-                        {state.state}
-                      </div>
-                  <div style={{ 
-                        fontSize: '0.75rem', 
-                        color: COLORS.textMuted,
-                        marginTop: '2px'
-                      }}>
-                        {state.trend === 'rising' ? '📈 Rising' : state.trend === 'declining' ? '📉 Declining' : '➡️ Flat'}
-                        {' • '}
-                        ${state.stateGDP}B GDP
-                  </div>
-                </div>
-                    <div style={styles.leaderboardScore}>
-                  <div style={{ 
-                        fontSize: '1.5rem',
-                        fontWeight: 800,
-                        color: meetsTarget ? COLORS.hamiltonian : isTop10 ? COLORS.gold : COLORS.text,
-                        lineHeight: 1
-                      }}>
-                        {state.hamiltonianShare}%
-                  </div>
-                  <div style={{ 
-                        fontSize: '0.65rem',
-                        color: COLORS.textMuted,
-                        marginTop: '2px'
-                  }}>
-                        Hamiltonian Share
-                  </div>
-                </div>
-                    <div style={styles.leaderboardContribution}>
-                  <div style={{ 
-                        fontSize: '0.85rem',
-                        fontWeight: 700,
-                        color: perCapitaMeetsTarget ? COLORS.hamiltonian : COLORS.warning,
-                        marginBottom: '2px'
-                      }}>
-                        ${perCapitaInvestment.toFixed(0)}
-                  </div>
-              <div style={{ 
-                        fontSize: '0.55rem',
-                        color: COLORS.textMuted
-                      }}>
-                        Per Capita
-              </div>
-                    </div>
-                    <div style={{
-                      textAlign: 'center',
-                      minWidth: '55px'
-                    }}>
-                      <div style={{ 
-                        fontSize: '0.85rem',
-                        fontWeight: 700,
-                        color: shareOfStateBuilding >= 5 ? COLORS.hamiltonian : COLORS.text,
-                        marginBottom: '2px'
-                      }}>
-                        {shareOfStateBuilding.toFixed(1)}%
-                      </div>
-                      <div style={{ 
-                        fontSize: '0.55rem',
-                        color: COLORS.textMuted
-                      }}>
-                        US Share
-                      </div>
-                    </div>
-                    <div style={{
-                      textAlign: 'center',
-                      minWidth: '50px'
-                    }}>
-                      <div style={{ 
-                        fontSize: '0.85rem',
-                        fontWeight: 700,
-                        color: buildRateMeetsTarget ? COLORS.hamiltonian : COLORS.warning,
-                        marginBottom: '2px'
-                      }}>
-                        {stateBuildRate.toFixed(1)}%
-                      </div>
-                      <div style={{ 
-                        fontSize: '0.55rem',
-                        color: COLORS.textMuted
-                      }}>
-                        Build Rate
-                      </div>
-                    </div>
-                    {/* AI Readiness Indicator */}
-                    <div style={{
-                      textAlign: 'center',
-                      minWidth: '40px'
-                    }}>
-                      <div style={{ 
-                        fontSize: '1rem',
-                        marginBottom: '2px'
-                      }}>
-                        {state.aiReadiness === 'high' ? '🟢' : state.aiReadiness === 'medium' ? '🟡' : state.aiReadiness === 'low' ? '🔴' : '⚪'}
-                      </div>
-                      <div style={{ 
-                        fontSize: '0.55rem',
-                        color: COLORS.textMuted
-                      }}>
-                        AI
-                      </div>
-                    </div>
-                    <div style={{...styles.leaderboardBar, minWidth: '80px'}}>
-                      <div style={{
-                        width: `${Math.min((state.hamiltonianShare / 50) * 100, 100)}%`,
-                        height: '100%',
-                        backgroundColor: meetsTarget ? COLORS.hamiltonian : isTop10 ? COLORS.gold : COLORS.warning,
-                        borderRadius: '4px',
-                        transition: 'width 0.3s ease'
-                      }} />
-                    </div>
-                    </div>
-                )
-              })}
-                    </div>
-            )
-          })()}
-          
-          <div style={styles.leaderboardNote}>
-            <strong>Metrics Explained (click sort buttons to rerank):</strong><br />
-            • <strong>Hamiltonian Share:</strong> % of state spending on capital assets — measures efficiency (Wyoming 55% vs NY 14%)<br />
-            • <strong>Per Capita:</strong> $ invested per person — measures impact on citizens (small states can lead here)<br />
-            • <strong>US Share:</strong> What % of total US state capital this state represents — measures absolute contribution to national capacity<br />
-            • <strong>Build Rate:</strong> Capital investment ÷ State GDP — how aggressively they're building relative to their economy<br />
-            • <strong>AI:</strong> 🟢 High (nuclear + stable grid), 🟡 Medium (potential), 🔴 Low (grid issues), ⚪ Not rated<br />
-            <strong>Click any state</strong> to view details. Targets: 25%+ Hamiltonian, $400+ per capita, 1%+ Build Rate.
-          </div>
-          </section>
-
-        {/* ================================================================ */}
-        {/* STATE REVIEW - Hamiltonian Analysis by State */}
-        {/* ================================================================ */}
-          <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>
-            <span style={{ color: COLORS.gold }}>STATE REVIEW</span> — Hamiltonian Analysis
-          </h2>
-          <p style={styles.sectionSubtitle}>
-            Every state evaluated through the Hamiltonian lens: What are they building? What should they build? How do they serve national capacity?
-          </p>
-          
-          <div style={{
-            ...styles.stateReviewSelector,
-            backgroundColor: COLORS.bgCard,
-            border: `2px solid ${COLORS.hamiltonian}`,
-            borderRadius: '12px',
-            padding: '1.5rem',
-            marginBottom: '2rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem',
-            justifyContent: 'center'
-          }}>
-            <label style={{
-              ...styles.stateReviewLabel,
-              fontSize: '1.1rem',
-              fontWeight: 700,
-              color: COLORS.hamiltonian
-            }}>Select State:</label>
-            <select 
-              value={selectedState}
-              onChange={(e) => setSelectedState(e.target.value)}
-              style={{
-                ...styles.stateReviewSelect,
-                fontSize: '1.1rem',
-                padding: '0.75rem 1.5rem',
-                fontWeight: 600,
-                border: `2px solid ${COLORS.border}`,
-                borderRadius: '8px',
-                backgroundColor: COLORS.bg,
-                color: COLORS.text,
-                cursor: 'pointer',
-                minWidth: '250px'
-              }}
-            >
-              {Object.keys(stateHamiltonianAnalysis).map(state => (
-                <option key={state} value={state}>{state}</option>
-              ))}
-            </select>
-          </div>
-          
-          {(() => {
-            const analysis = stateHamiltonianAnalysis[selectedState]
-            if (!analysis) return null
-            
-            return (
-              <div style={styles.stateReviewContent}>
-                {/* Baseline State Badge for Minnesota */}
-                {selectedState === 'Minnesota' && (
-                  <div style={{
-                    background: `linear-gradient(135deg, ${COLORS.hamiltonian}22, ${COLORS.gold}22)`,
-                    border: `2px solid ${COLORS.hamiltonian}`,
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    marginBottom: '1.5rem',
-                    textAlign: 'center'
-                  }}>
-                    <div style={{ color: COLORS.gold, fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                      🎯 BASELINE STATE FOR NATIONAL MODEL
-                    </div>
-                    <div style={{ color: COLORS.hamiltonian, fontSize: '0.85rem' }}>
-                      Minnesota serves as the template for other states: Robotics hub (Twin Cities) controlling Iron Range operations, 
-                      nuclear SMR deployment, critical minerals development. Demuth plan unlocks this potential.
-                    </div>
+                {wave.total > 0 && (
+                  <div style={styles.waveTotal}>
+                    ${wave.total}B+ authorized/active
                   </div>
                 )}
-                {/* State Metrics */}
-                <div style={styles.stateMetricsGrid}>
-                  <div style={styles.stateMetricCard}>
-                    <div style={styles.stateMetricLabel}>STATE GDP</div>
-                    <div style={styles.stateMetricValue}>${analysis.stateGDP}B</div>
-                  </div>
-                  <div style={styles.stateMetricCard}>
-                    <div style={styles.stateMetricLabel}>STATE DEBT</div>
-                    <div style={styles.stateMetricValue}>${analysis.stateDebt}B</div>
-                  </div>
-                  <div style={styles.stateMetricCard}>
-                    <div style={styles.stateMetricLabel}>CAPITAL INVESTMENT</div>
-                    <div style={styles.stateMetricValue}>${analysis.stateCapitalInvestment}B</div>
-                  </div>
-                  <div style={styles.stateMetricCard}>
-                    <div style={styles.stateMetricLabel}>HAMILTONIAN SHARE</div>
-                    <div style={{ ...styles.stateMetricValue, color: analysis.hamiltonianShare >= 25 ? COLORS.hamiltonian : analysis.hamiltonianShare >= 18 ? COLORS.warning : COLORS.other }}>
-                      {analysis.hamiltonianShare}%
-                    </div>
-                    <div style={styles.stateMetricTarget}>Target: 25%+</div>
-                  </div>
-                  <div style={styles.stateMetricCard}>
-                    <div style={styles.stateMetricLabel}>BUILD RATE</div>
-                    <div style={{ ...styles.stateMetricValue, color: analysis.buildRate >= 1.0 ? COLORS.hamiltonian : analysis.buildRate >= 0.6 ? COLORS.warning : COLORS.other }}>
-                      {analysis.buildRate}%
-                    </div>
-                    <div style={styles.stateMetricTarget}>Target: 1%+ of GDP</div>
-                  </div>
-                  <div style={styles.stateMetricCard}>
-                    <div style={styles.stateMetricLabel}>POLITICAL FEASIBILITY</div>
-                    <div style={{
-                      ...styles.stateMetricValue,
-                      fontSize: '1rem',
-                      color: analysis.politicalFeasibility === 'high' ? COLORS.hamiltonian :
-                        analysis.politicalFeasibility === 'medium' ? COLORS.warning : COLORS.other
-                    }}>
-                      {analysis.politicalFeasibility.toUpperCase()}
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Natural Advantages */}
-                <div style={styles.stateAdvantages}>
-                  <h3 style={styles.stateSubtitle}>🎯 Natural Advantages</h3>
-                  <div style={styles.advantagesList}>
-                    {analysis.naturalAdvantages.map((adv, i) => (
-                      <span key={i} style={styles.advantageTag}>{adv}</span>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Current Projects */}
-                <div style={styles.stateProjectsSection}>
-                  <h3 style={styles.stateSubtitle}>🔨 Current Projects</h3>
-                  <div style={styles.projectsTable}>
-                    {analysis.currentProjects.map((project, i) => (
-                      <div key={i} style={styles.projectRow}>
-                        <div style={styles.projectName}>{project.name}</div>
-                        <div style={styles.projectCategory}>{project.category}</div>
-                        <div style={{
-                          ...styles.projectStatus,
-                          color: project.status === 'Building' || project.status === 'Active' ? COLORS.hamiltonian :
-                            project.status === 'Planned' ? COLORS.warning : COLORS.textMuted
-                        }}>{project.status}</div>
-                        <div style={styles.projectInvestment}>${project.investment}B</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Capacity Gaps */}
-                <div style={styles.stateGaps}>
-                  <h3 style={styles.stateSubtitle}>⚠️ Capacity Gaps</h3>
-                  <div style={styles.gapsList}>
-                    {analysis.capacityGaps.map((gap, i) => (
-                      <div key={i} style={styles.gapItem}>
-                        <span style={styles.gapCategory}>{gap.category}:</span>
-                        <span style={styles.gapNeed}>Need {gap.need}</span>
-                        <span style={styles.gapCurrent}>Now {gap.current}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* National Role & Energy Profile */}
-                <div style={styles.stateInfoGrid}>
-                  <div style={styles.stateInfoCard}>
-                    <h4 style={styles.stateInfoTitle}>🇺🇸 National Role</h4>
-                    <p style={styles.stateInfoText}>{analysis.nationalRole}</p>
-                  </div>
-                  <div style={styles.stateInfoCard}>
-                    <h4 style={styles.stateInfoTitle}>⚡ Energy Profile</h4>
-                    <p style={styles.stateInfoText}>{analysis.energyProfile}</p>
-                  </div>
-                  <div style={styles.stateInfoCard}>
-                    <h4 style={styles.stateInfoTitle}>👷 Workforce Readiness</h4>
-                    <div style={{
-                      ...styles.workforceBadge,
-                      backgroundColor: analysis.workforceReadiness === 'high' ? COLORS.hamiltonian + '33' :
-                        analysis.workforceReadiness === 'medium' ? COLORS.warning + '33' : COLORS.other + '33',
-                      color: analysis.workforceReadiness === 'high' ? COLORS.hamiltonian :
-                        analysis.workforceReadiness === 'medium' ? COLORS.warning : COLORS.other
-                    }}>
-                      {analysis.workforceReadiness.toUpperCase()}
-                    </div>
-                    <p style={styles.stateInfoText}>
-                      {analysis.workforceReadiness === 'high' ? 'Strong technical workforce, training programs in place' :
-                        analysis.workforceReadiness === 'medium' ? 'Workforce available, needs training investment' :
-                        'Workforce gaps, significant training needed'}
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Hamiltonian Assessment */}
-                <div style={styles.stateAssessment}>
-                  <h3 style={styles.stateSubtitle}>📊 Hamiltonian Assessment</h3>
-                  
-                  {/* Overall Assessment Banner */}
-                  <div style={{
-                    padding: '1rem',
-                    marginBottom: '1rem',
-                    backgroundColor: analysis.trend === 'rising' ? COLORS.hamiltonian + '22' :
-                      analysis.trend === 'flat' ? COLORS.warning + '22' : COLORS.other + '22',
-                    borderRadius: '8px',
-                    border: `2px solid ${analysis.trend === 'rising' ? COLORS.hamiltonian :
-                      analysis.trend === 'flat' ? COLORS.warning : COLORS.other}`,
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                      <span style={{ fontSize: '1.5rem' }}>
-                        {analysis.trend === 'rising' ? '📈' : analysis.trend === 'flat' ? '➡️' : '📉'}
-                      </span>
-                      <span style={{
-                        fontSize: '1.1rem',
-                        fontWeight: 700,
-                        color: analysis.trend === 'rising' ? COLORS.hamiltonian :
-                          analysis.trend === 'flat' ? COLORS.warning : COLORS.other,
-                        textTransform: 'uppercase',
-                      }}>
-                        {analysis.trend === 'rising' ? 'Building' : analysis.trend === 'flat' ? 'Stagnant' : 'Declining'}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: '0.9rem', color: COLORS.text, margin: 0, lineHeight: 1.5 }}>
-                      {analysis.assessment}
-                    </p>
-                  </div>
-                  
-                  <div style={styles.assessmentContent}>
-                    <div style={styles.assessmentItem}>
-                      <span style={styles.assessmentLabel}>Trend:</span>
-                      <span style={{
-                        color: analysis.trend === 'rising' ? COLORS.hamiltonian :
-                          analysis.trend === 'flat' ? COLORS.warning : COLORS.other
-                      }}>
-                        {analysis.trend === 'rising' ? '📈 Rising' : analysis.trend === 'flat' ? '➡️ Flat' : '📉 Declining'}
-                      </span>
-                    </div>
-                    <div style={styles.assessmentItem}>
-                      <span style={styles.assessmentLabel}>Hamiltonian Share:</span>
-                      <span style={{
-                        color: analysis.hamiltonianShare >= 25 ? COLORS.hamiltonian :
-                          analysis.hamiltonianShare >= 18 ? COLORS.warning : COLORS.other
-                      }}>
-                        {analysis.hamiltonianShare >= 25 ? '✅ Strong' : analysis.hamiltonianShare >= 18 ? '⚠️ Moderate' : '❌ Weak'} ({analysis.hamiltonianShare}%)
-                      </span>
-                    </div>
-                    <div style={styles.assessmentItem}>
-                      <span style={styles.assessmentLabel}>Build Rate:</span>
-                      <span style={{
-                        color: analysis.buildRate >= 1.0 ? COLORS.hamiltonian :
-                          analysis.buildRate >= 0.6 ? COLORS.warning : COLORS.other
-                      }}>
-                        {analysis.buildRate >= 1.0 ? '✅ Above Target' : analysis.buildRate >= 0.6 ? '⚠️ Near Target' : '❌ Below Target'} ({analysis.buildRate}%)
-                      </span>
-                    </div>
-                    <div style={styles.assessmentItem}>
-                      <span style={styles.assessmentLabel}>Political Feasibility:</span>
-                      <span style={{
-                        color: analysis.politicalFeasibility === 'high' ? COLORS.hamiltonian :
-                          analysis.politicalFeasibility === 'medium' ? COLORS.warning : COLORS.other
-                      }}>
-                        {analysis.politicalFeasibility === 'high' ? '✅ Can Build Now' : 
-                          analysis.politicalFeasibility === 'medium' ? '⚠️ Possible with Effort' : '❌ Blocked'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Accountability Index - Corruption Risk */}
-                <div style={{
-                  marginTop: '1.5rem',
-                  padding: '1.25rem',
-                  backgroundColor: COLORS.bgCard,
-                  borderRadius: '12px',
-                  border: `1px solid ${COLORS.border}`,
-                }}>
-                  <h3 style={{ 
-                    ...styles.stateSubtitle, 
-                    marginBottom: '1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}>
-                    🔍 Accountability Index
-                  </h3>
-                  
-                  {/* Risk calculation based on build rate, hamiltonian share, and proven corruption */}
-                  {(() => {
-                    const nonHamiltonian = 100 - analysis.hamiltonianShare
-                    // If there's proven corruption, automatically HIGH risk
-                    const hasProvenCorruption = !!analysis.corruptionEvidence
-                    const riskLevel = hasProvenCorruption ? 'PROVEN' :
-                      analysis.buildRate < 0.5 ? 'HIGH' : 
-                      analysis.buildRate < 0.8 ? 'ELEVATED' : 
-                      analysis.buildRate < 1.0 ? 'MODERATE' : 'LOW'
-                    const riskColor = riskLevel === 'PROVEN' ? '#ff0000' :
-                      riskLevel === 'HIGH' ? COLORS.other :
-                      riskLevel === 'ELEVATED' ? COLORS.warning :
-                      riskLevel === 'MODERATE' ? '#f0ad4e' : COLORS.hamiltonian
-                    
-                    return (
-                      <>
-                        <div style={{ 
-                          display: 'grid', 
-                          gridTemplateColumns: 'repeat(3, 1fr)', 
-                          gap: '1rem',
-                          marginBottom: '1rem'
-                        }}>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.75rem', color: COLORS.textMuted, marginBottom: '0.25rem' }}>
-                              Build Rate
-                            </div>
-                            <div style={{ 
-                              fontSize: '1.1rem', 
-                              fontWeight: 700,
-                              color: analysis.buildRate >= 1.0 ? COLORS.hamiltonian : 
-                                analysis.buildRate >= 0.6 ? COLORS.warning : COLORS.other
-                            }}>
-                              {analysis.buildRate}%
-                            </div>
-                            <div style={{ fontSize: '0.7rem', color: COLORS.textMuted }}>
-                              {analysis.buildRate >= 1.0 ? 'Sustainable' : 'Below sustainable'}
-                            </div>
-                          </div>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.75rem', color: COLORS.textMuted, marginBottom: '0.25rem' }}>
-                              Non-Physical Spending
-                            </div>
-                            <div style={{ 
-                              fontSize: '1.1rem', 
-                              fontWeight: 700,
-                              color: nonHamiltonian > 80 ? COLORS.other : 
-                                nonHamiltonian > 70 ? COLORS.warning : COLORS.hamiltonian
-                            }}>
-                              {nonHamiltonian}%
-                            </div>
-                            <div style={{ fontSize: '0.7rem', color: COLORS.textMuted }}>
-                              No physical output
-                            </div>
-                          </div>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.75rem', color: COLORS.textMuted, marginBottom: '0.25rem' }}>
-                              Audit Visibility
-                            </div>
-                            <div style={{ 
-                              fontSize: '1.1rem', 
-                              fontWeight: 700,
-                              color: analysis.hamiltonianShare >= 25 ? COLORS.hamiltonian : 
-                                analysis.hamiltonianShare >= 18 ? COLORS.warning : COLORS.other
-                            }}>
-                              {analysis.hamiltonianShare >= 25 ? 'HIGH' : 
-                                analysis.hamiltonianShare >= 18 ? 'MEDIUM' : 'LOW'}
-                            </div>
-                            <div style={{ fontSize: '0.7rem', color: COLORS.textMuted }}>
-                              Visible projects
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Risk Level Banner */}
-                        <div style={{
-                          padding: '0.75rem 1rem',
-                          backgroundColor: riskColor + '22',
-                          borderRadius: '8px',
-                          border: `1px solid ${riskColor}`,
-                          marginBottom: '1rem',
-                        }}>
-                          <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'space-between'
-                          }}>
-                            <span style={{ fontSize: '0.85rem', color: COLORS.textMuted }}>
-                              Corruption Risk Level:
-                            </span>
-                            <span style={{ 
-                              fontSize: '1rem', 
-                              fontWeight: 700, 
-                              color: riskColor,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.5rem'
-                            }}>
-                              {riskLevel === 'PROVEN' ? '🔴' : riskLevel === 'HIGH' ? '🚨' : riskLevel === 'ELEVATED' ? '⚠️' : riskLevel === 'MODERATE' ? '📊' : '✅'}
-                              {riskLevel === 'PROVEN' ? 'PROVEN FRAUD' : riskLevel}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        {/* The Principle */}
-                        <div style={{
-                          padding: '1rem',
-                          backgroundColor: COLORS.bg + '88',
-                          borderRadius: '8px',
-                          borderLeft: `3px solid ${COLORS.accent}`,
-                        }}>
-                          <p style={{ 
-                            fontSize: '0.85rem', 
-                            color: COLORS.text, 
-                            margin: 0,
-                            lineHeight: 1.6,
-                            fontStyle: 'italic'
-                          }}>
-                            <strong style={{ color: COLORS.accent }}>The Productivity-Corruption Law:</strong>{' '}
-                            Productive spending is self-auditing — a bridge either exists or it doesn't. 
-                            When {nonHamiltonian}% of spending has no physical output, accountability weakens. 
-                            {analysis.buildRate < 0.8 && (
-                              <span style={{ color: COLORS.warning }}>
-                                {' '}Low build rates create opportunity for waste and fraud.
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                        
-                        {/* Corruption Evidence - if exists */}
-                        {analysis.corruptionEvidence && (
-                          <div style={{
-                            marginTop: '1rem',
-                            padding: '1rem',
-                            backgroundColor: COLORS.other + '22',
-                            borderRadius: '8px',
-                            border: `2px solid ${COLORS.other}`,
-                          }}>
-                            <div style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: '0.5rem',
-                              marginBottom: '0.5rem'
-                            }}>
-                              <span style={{ fontSize: '1.2rem' }}>🚨</span>
-                              <strong style={{ color: COLORS.other, fontSize: '0.9rem' }}>
-                                PROVEN CORRUPTION
-                              </strong>
-                            </div>
-                            <p style={{ 
-                              fontSize: '0.85rem', 
-                              color: COLORS.text, 
-                              margin: 0,
-                              lineHeight: 1.5
-                            }}>
-                              {analysis.corruptionEvidence}
-                            </p>
-                          </div>
-                        )}
-                        
-                        {/* Path to Victory - if exists */}
-                        {analysis.pathToVictory && analysis.pathToVictory.length > 0 && (
-                          <div style={{
-                            marginTop: '1rem',
-                            padding: '1rem',
-                            backgroundColor: COLORS.hamiltonian + '15',
-                            borderRadius: '8px',
-                            border: `1px solid ${COLORS.hamiltonian}44`,
-                          }}>
-                            <div style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: '0.5rem',
-                              marginBottom: '0.75rem'
-                            }}>
-                              <span style={{ fontSize: '1.2rem' }}>🎯</span>
-                              <strong style={{ color: COLORS.hamiltonian, fontSize: '0.9rem' }}>
-                                PATH TO VICTORY (Accelerated)
-                              </strong>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                              {analysis.pathToVictory.map((step, idx) => (
-                                <div key={idx} style={{ 
-                                  display: 'flex', 
-                                  alignItems: 'flex-start', 
-                                  gap: '0.75rem',
-                                  fontSize: '0.8rem',
-                                  color: COLORS.text,
-                                }}>
-                                  <span style={{ 
-                                    color: COLORS.hamiltonian, 
-                                    fontWeight: 700,
-                                    minWidth: '20px'
-                                  }}>
-                                    {idx + 1}.
-                                  </span>
-                                  <span>{step}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )
-                  })()}
-                </div>
               </div>
-            )
-          })()}
-          </section>
+            ))}
+          </div>
+          
+          <div style={styles.policyInsight}>
+            <strong>How This Addresses the Target:</strong> Wave 1 authorized $1.2T in productive investment (CHIPS, IRA, IIJA) 
+            through <strong>subsidy-based industrial policy</strong>. Wave 2 is disbursing those funds to factories, infrastructure, 
+            and R&D. Wave 3 represents a <strong>distinct approach: strategic protectionism</strong> — tariffs (50% steel/aluminum, 
+            10% universal + sector-specific) drive reshoring through protection rather than subsidies. The administration has 
+            distanced itself from CHIPS/IRA-style programs, favoring tariff-driven investment. Combined, these waves shift spending 
+            composition toward the 12-15% investment share needed to stabilize debt/GDP at ~100% by 2030.
+          </div>
+        </section>
 
         {/* ================================================================ */}
-        {/* FOOTER */}
+        {/* THE EVIDENCE - Is It Working? */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <div style={styles.narrativeHeader}>
+            <span style={styles.narrativeStep}>03</span>
+            <span style={styles.narrativeLabel}>THE EVIDENCE</span>
+          </div>
+          <div style={styles.sectionHeader}>
+            <div>
+              <h2 style={styles.sectionTitle}>Is It Working?</h2>
+              <p style={styles.sectionSubtitle}>
+                Tracking progress: Are policy waves increasing productive investment toward the 12-15% target?
+              </p>
+            </div>
+            <Link href="/opportunities" style={styles.viewAllLink}>
+              View All Opportunities →
+            </Link>
+          </div>
+          
+          {/* The Flow - All numbers traceable */}
+          <div style={styles.evidenceFlow}>
+            <div style={styles.flowStep}>
+              <div style={styles.flowValue}>$1.2T</div>
+              <div style={styles.flowLabel}>Enacted Legislation</div>
+              <div style={styles.flowNote}>CHIPS + IRA + IIJA authorized</div>
+            </div>
+            <div style={styles.flowArrow}>→</div>
+            <div style={styles.flowStep}>
+              <div style={styles.flowValue}>$225B/yr</div>
+              <div style={styles.flowLabel}>Factory Construction</div>
+              <div style={styles.flowNote}>
+                <a href="https://fred.stlouisfed.org/series/TLMFGCONS" target="_blank" rel="noreferrer" style={{ color: COLORS.blue, textDecoration: 'none' }}>
+                  Census Bureau ↗
+                </a>
+              </div>
+            </div>
+            <div style={styles.flowArrow}>→</div>
+            <div style={styles.flowStep}>
+              <div style={{ ...styles.flowValue, color: COLORS.accent }}>${SECTOR_PIPELINE.reduce((sum, s) => sum + s.pipeline, 0)}B</div>
+              <div style={styles.flowLabel}>Pipeline Tracked</div>
+              <div style={styles.flowNote}>{SECTOR_PIPELINE.reduce((sum, s) => sum + s.projects, 0)} opportunities in Radar</div>
+            </div>
+          </div>
+          
+          <div style={styles.sectorGrid}>
+            {SECTOR_PIPELINE.map(sector => (
+              <div key={sector.sector} style={styles.sectorCard}>
+                <div style={styles.sectorHeader}>
+                  <span style={styles.sectorName}>{sector.sector}</span>
+                  <span style={styles.sectorProjects}>{sector.projects} projects</span>
+                </div>
+                <div style={{ ...styles.sectorValue, color: sector.color }}>
+                  ${sector.pipeline}B
+                </div>
+                <div style={styles.sectorBar}>
+                  <div 
+                    style={{ 
+                      ...styles.sectorBarFill, 
+                      width: `${(sector.pipeline / 200) * 100}%`,
+                      backgroundColor: sector.color 
+                    }} 
+                  />
+                </div>
+                <div style={styles.sectorQuality}>
+                  <span style={{ 
+                    color: sector.quality === 'leading-edge' ? COLORS.accent : 
+                           sector.quality === 'advanced' ? COLORS.blue : COLORS.textMuted 
+                  }}>
+                    {sector.quality === 'leading-edge' ? '★★★★★' : 
+                     sector.quality === 'advanced' ? '★★★★☆' : '★★★☆☆'}
+                  </span>
+                  <span style={{
+                    ...styles.sectorImpact,
+                    color: sector.economicImpact === 'transformational' ? COLORS.accent :
+                           sector.economicImpact === 'catalytic' ? COLORS.blue : COLORS.textMuted
+                  }}>
+                    {getEconomicImpactLabel(sector.economicImpact)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* GDP Impact - Economic Multiplier Effect */}
+          <div style={styles.gdpImpactCard}>
+            <div style={styles.gdpImpactHeader}>
+              <span style={styles.gdpImpactIcon}>📊</span>
+              <div>
+                <div style={styles.gdpImpactTitle}>GDP Impact (Economic Multiplier Effect)</div>
+                <div style={styles.gdpImpactSubtitle}>Estimated GDP growth from pipeline investments using CBO-validated multipliers</div>
+              </div>
+            </div>
+            <div style={styles.gdpImpactGrid}>
+              <div style={styles.gdpImpactStat}>
+                <div style={styles.gdpImpactValue}>${Math.round(GDP_IMPACT.totalPipeline)}B</div>
+                <div style={styles.gdpImpactLabel}>Total Pipeline Investment</div>
+              </div>
+              <div style={styles.gdpImpactStat}>
+                <div style={{ ...styles.gdpImpactValue, color: COLORS.accent }}>${Math.round(GDP_IMPACT.totalGDPImpact)}B</div>
+                <div style={styles.gdpImpactLabel}>Estimated GDP Impact (multiplier effect)</div>
+              </div>
+              <div style={styles.gdpImpactStat}>
+                <div style={{ ...styles.gdpImpactValue, color: COLORS.blue }}>${Math.round(GDP_IMPACT.annualInvestment)}B/yr</div>
+                <div style={styles.gdpImpactLabel}>Annual Investment (5-year average)</div>
+              </div>
+            </div>
+            <div style={styles.gdpImpactNote}>
+              <strong>Methodology:</strong> Pipeline investment (${Math.round(GDP_IMPACT.totalPipeline)}B) estimated to generate ${Math.round(GDP_IMPACT.totalGDPImpact)}B in GDP impact over time. 
+              Multipliers: Transformational 2.0x, Catalytic 1.5x, Significant 1.3x, Direct-only 1.0x. 
+              Based on CBO research (infrastructure multipliers range 0.4-2.2x, midpoint 1.3x). 
+              <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.7rem', color: COLORS.textDim }}>
+                Sources: CBO multiplier estimates, EPI analysis. US GDP: $29.2T (2024, BEA).
+              </span>
+            </div>
+          </div>
+
+          {/* Federal Spending Composition - Investment Share */}
+          <div style={styles.gdpImpactCard}>
+            <div style={styles.gdpImpactHeader}>
+              <span style={styles.gdpImpactIcon}>🏛️</span>
+              <div>
+                <div style={styles.gdpImpactTitle}>Federal Spending Composition</div>
+                <div style={styles.gdpImpactSubtitle}>Physical investment as % of federal spending (target: 12-15%)</div>
+              </div>
+            </div>
+            <div style={styles.gdpImpactProgress}>
+              <div style={styles.gdpImpactProgressHeader}>
+                <span>Physical Investment Share of Federal Spending</span>
+                <span style={{ color: COLORS.accent }}>Target: 12-15%</span>
+              </div>
+              <div style={styles.gdpImpactProgressBar}>
+                <div style={{
+                  ...styles.gdpImpactProgressFill,
+                  width: `${(FEDERAL_SPENDING_IMPACT.currentInvestmentPercent / 15) * 100}%`,
+                  backgroundColor: COLORS.textMuted,
+                }} />
+                <div style={{
+                  ...styles.gdpImpactProgressFill,
+                  width: `${Math.min((FEDERAL_SPENDING_IMPACT.targetMin - FEDERAL_SPENDING_IMPACT.currentInvestmentPercent) / 15 * 100, 100 - (FEDERAL_SPENDING_IMPACT.currentInvestmentPercent / 15) * 100)}%`,
+                  backgroundColor: COLORS.accent,
+                  marginLeft: `${(FEDERAL_SPENDING_IMPACT.currentInvestmentPercent / 15) * 100}%`,
+                  opacity: 0.3,
+                }} />
+              </div>
+              <div style={styles.gdpImpactProgressLabels}>
+                <span>Current: {FEDERAL_SPENDING_IMPACT.currentInvestmentPercent}%</span>
+                <span style={{ color: COLORS.accent }}>Target: {FEDERAL_SPENDING_IMPACT.targetMin}-{FEDERAL_SPENDING_IMPACT.targetMax}%</span>
+                <span style={{ color: FEDERAL_SPENDING_IMPACT.currentInvestmentPercent >= FEDERAL_SPENDING_IMPACT.targetMin ? COLORS.accent : COLORS.warning }}>
+                  Gap: {FEDERAL_SPENDING_IMPACT.targetMin - FEDERAL_SPENDING_IMPACT.currentInvestmentPercent}%
+                </span>
+              </div>
+            </div>
+            <div style={styles.gdpImpactNote}>
+              <strong>Current Status:</strong> Federal physical investment is {FEDERAL_SPENDING_IMPACT.currentInvestmentPercent}% of federal spending ($490B of $6.1T). 
+              Target is 12-15% to shift spending composition toward productive investment. 
+              <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.7rem', color: COLORS.textDim }}>
+                Note: Pipeline investments are primarily private, not federal spending. This metric tracks federal budget composition shift needed for fiscal sustainability.
+                Source: OMB Historical Tables 8.1.
+              </span>
+            </div>
+          </div>
+          
+          {/* Quality Insight - with calculation basis */}
+          <div style={styles.qualityInsight}>
+            <strong>Progress Toward Target:</strong> Factory construction spending has increased 2.5x since CHIPS/IRA 
+            (from $90B/yr to $225B/yr), indicating policy is driving investment. The ${SECTOR_PIPELINE.reduce((sum, s) => sum + s.pipeline, 0)}B tracked pipeline represents 
+            productive capacity that will grow GDP. <strong style={{ color: COLORS.accent }}>Key question:</strong> Is this 
+            enough to shift federal spending composition from 8% to 12-15% investment share? That depends on total spending 
+            growth and whether investment grows faster than transfers.
+            <span style={{ display: 'block', color: COLORS.textDim, fontSize: '0.75rem', marginTop: '0.5rem' }}>
+              Economic impact categories based on BLS employment multipliers and sector research.
+            </span>
+          </div>
+          
+          <div style={styles.totalPipeline}>
+            <span style={styles.totalLabel}>Total Tracked Pipeline:</span>
+            <span style={styles.totalValue}>
+              ${SECTOR_PIPELINE.reduce((sum, s) => sum + s.pipeline, 0)}B
+            </span>
+            <span style={styles.totalProjects}>
+              across {SECTOR_PIPELINE.reduce((sum, s) => sum + s.projects, 0)} projects
+            </span>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* THE CASE - Why We Need to Invest */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <div style={styles.narrativeHeader}>
+            <span style={styles.narrativeStep}>04</span>
+            <span style={styles.narrativeLabel}>THE CASE</span>
+          </div>
+          <h2 style={styles.sectionTitle}>What's Still Needed</h2>
+          <p style={styles.sectionSubtitle}>
+            Even with current progress, these gaps show why reaching 12-15% investment share is necessary — not just for fiscal sustainability, but for strategic competitiveness
+          </p>
+          
+          <div style={styles.gapsGrid}>
+            {STRATEGIC_GAPS.map(gap => (
+              <div key={gap.id} style={styles.gapCard}>
+                <div style={styles.gapHeader}>
+                  <span style={styles.gapIcon}>{gap.icon}</span>
+                  <div>
+                    <div style={styles.gapCategory}>{gap.category}</div>
+                    <div style={styles.gapTitle}>{gap.title}</div>
+                  </div>
+                </div>
+                <div style={styles.gapComparison}>
+                  <div style={styles.gapSide}>
+                    <div style={{ ...styles.gapValue, color: COLORS.danger }}>{gap.us}</div>
+                    <div style={styles.gapLabel}>{gap.usLabel}</div>
+                  </div>
+                  <div style={styles.gapVs}>vs</div>
+                  <div style={styles.gapSide}>
+                    <div style={{ ...styles.gapValue, color: gap.color }}>{gap.them}</div>
+                    <div style={styles.gapLabel}>{gap.themLabel}</div>
+                  </div>
+                </div>
+                <div style={styles.gapBottom}>
+                  <div style={styles.gapGap}>
+                    <strong>Gap:</strong> {gap.gap} — {gap.gapNote}
+                  </div>
+                  <a 
+                    href={gap.sourceUrl} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    style={{ ...styles.gapSource, color: COLORS.blue, textDecoration: 'none' }}
+                  >
+                    {gap.source} ↗
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div style={styles.caseInsight}>
+            <div style={styles.insightIcon}>💡</div>
+            <div>
+              <strong>The OT Connection:</strong> Each gap above represents sectors in the ${SECTOR_PIPELINE.reduce((sum, s) => sum + s.pipeline, 0)}B tracked pipeline. 
+              Every new semiconductor fab, battery plant, nuclear facility, and grid project requires <strong>Operating Technology</strong>: 
+              MES, SCADA, historians, digital twins, industrial cybersecurity. Building the productive economy = building factories = 
+              OT implementation demand. The 12-15% investment target closes these gaps while creating the OT opportunities that 
+              enable the productive economy.
+              <span style={{ display: 'block', fontSize: '0.75rem', color: COLORS.textDim, marginTop: '0.5rem' }}>
+                Pipeline data from Opportunity Radar • See section 05 for OT requirements breakdown
+              </span>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* PREREQUISITES & IMPLEMENTATION - Consolidated */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <div style={styles.narrativeHeader}>
+            <span style={styles.narrativeStep}>05</span>
+            <span style={styles.narrativeLabel}>PREREQUISITES</span>
+          </div>
+          <h2 style={styles.sectionTitle}>The Hidden Infrastructure</h2>
+          <p style={styles.sectionSubtitle}>
+            You can't build the end product without the prerequisites — and you can't operate without OT.
+          </p>
+          
+          {/* Compact summary grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ ...styles.gapCard, padding: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>🧲</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Rare Earths</span>
+              </div>
+              <div style={{ fontSize: '0.8rem', color: COLORS.textMuted }}>95%+ refining in China. U.S. has mining but not processing.</div>
+            </div>
+            <div style={{ ...styles.gapCard, padding: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>🔋</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Batteries</span>
+              </div>
+              <div style={{ fontSize: '0.8rem', color: COLORS.textMuted }}>80%+ materials processing in China. Cells need precursors.</div>
+            </div>
+            <div style={{ ...styles.gapCard, padding: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>🔬</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Semiconductors</span>
+              </div>
+              <div style={{ fontSize: '0.8rem', color: COLORS.textMuted }}>Equipment 2-3yr lead times. Chemicals/gases concentrated.</div>
+            </div>
+            <div style={{ ...styles.gapCard, padding: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>⚛️</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Nuclear</span>
+              </div>
+              <div style={{ fontSize: '0.8rem', color: COLORS.textMuted }}>No U.S. commercial HALEU. SMRs can't deploy without it.</div>
+            </div>
+            <div style={{ ...styles.gapCard, padding: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>⚡</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Grid</span>
+              </div>
+              <div style={{ fontSize: '0.8rem', color: COLORS.textMuted }}>3-5yr interconnect. 2-3yr transformer lead times.</div>
+            </div>
+            <div style={{ ...styles.gapCard, padding: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>🤖</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>AI Imperative</span>
+              </div>
+              <div style={{ fontSize: '0.8rem', color: COLORS.textMuted }}>China $6-8/hr vs. U.S. $30/hr. Automation is strategic.</div>
+            </div>
+          </div>
+          
+          {/* OT Pipeline callout */}
+          <div style={styles.totalPipeline}>
+            <span style={styles.totalLabel}>OT-Relevant Pipeline:</span>
+            <span style={styles.totalValue}>
+              ${(() => {
+                const otRelevantSectors = ['semiconductors', 'ev-battery', 'nuclear', 'advanced-mfg']
+                const otRelevant = opportunities.filter(opp => 
+                  otRelevantSectors.includes(opp.sector) && opp.investmentSize > 0
+                )
+                return Math.round(otRelevant.reduce((sum, opp) => sum + opp.investmentSize, 0) / 1000)
+              })()}B
+            </span>
+            <span style={styles.totalProjects}>
+              ({(() => {
+                const otRelevantSectors = ['semiconductors', 'ev-battery', 'nuclear', 'advanced-mfg']
+                return opportunities.filter(opp => otRelevantSectors.includes(opp.sector) && opp.investmentSize > 0).length
+              })()} projects)
+            </span>
+          </div>
+          
+          {/* Insight box with deep-dive links */}
+          <div style={styles.caseInsight}>
+            <div style={styles.insightIcon}>💡</div>
+            <div>
+              <strong>The Pattern:</strong> Every sector needs prerequisites (refining, processing, fuel, transmission) that are labor-intensive, giving China a cost advantage. <strong>AI/automation + OT security</strong> are the path to compete.
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.75rem' }}>
+                <Link href="/sectors" style={{ ...styles.viewAllLink, fontSize: '0.8rem' }}>Sectors & AI Use Cases →</Link>
+                <Link href="/policy-gaps" style={{ ...styles.viewAllLink, fontSize: '0.8rem' }}>Policy Gaps & Players →</Link>
+                <Link href="/opportunities" style={{ ...styles.viewAllLink, fontSize: '0.8rem' }}>Opportunity Radar →</Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* WHAT'S COMING - Key Dates */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <div style={styles.narrativeHeader}>
+            <span style={styles.narrativeStep}>06</span>
+            <span style={styles.narrativeLabel}>WHAT'S COMING</span>
+          </div>
+          <h2 style={styles.sectionTitle}>Key Dates to Watch</h2>
+          <p style={styles.sectionSubtitle}>
+            Policy milestones, RFP deadlines, and expected announcements
+          </p>
+          
+          <div style={styles.timelineGrid}>
+            <div style={styles.timelineCard}>
+              <div style={styles.timelineCardHeader}>Q4 2025</div>
+              <ul style={styles.timelineList}>
+                <li>Tariff policy fully implemented</li>
+                <li>CHIPS Act awards continue through year-end</li>
+                <li>Multiple fab production ramps ongoing</li>
+                <li>Reshoring announcements accelerating</li>
+              </ul>
+            </div>
+            <div style={styles.timelineCard}>
+              <div style={styles.timelineCardHeader}>Q1 2026</div>
+              <ul style={styles.timelineList}>
+                <li>DOE transmission corridor designations</li>
+                <li>TSMC Arizona fab production ramp</li>
+                <li>TerraPower HALEU fuel availability</li>
+                <li>IRA tax credit guidance updates</li>
+              </ul>
+            </div>
+            <div style={styles.timelineCard}>
+              <div style={styles.timelineCardHeader}>Q2-Q3 2026</div>
+              <ul style={styles.timelineList}>
+                <li>Samsung Taylor fab production start</li>
+                <li>Multiple EV battery plant commissioning</li>
+                <li>NRC advanced reactor reviews progress</li>
+                <li>Critical minerals project awards</li>
+              </ul>
+            </div>
+            <div style={styles.timelineCard}>
+              <div style={styles.timelineCardHeader}>2027-2028</div>
+              <ul style={styles.timelineList}>
+                <li>Intel Ohio Phase 2 decisions</li>
+                <li>Three Mile Island restart (2028 target)</li>
+                <li>SunZia transmission operational</li>
+                <li>Wave 3 acceleration full effect</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* FOOTER - Sources & Methodology */}
         {/* ================================================================ */}
         <footer style={styles.footer}>
-          <p>The question isn't "how much do we owe?" — it's "what did we build?"</p>
-          <p style={styles.footerMeta}>American System Dashboard v1.0 • Aligned with DOE Genesis Mission</p>
+          <div style={styles.footerSources}>
+            <div style={styles.footerSourcesTitle}>Data Sources</div>
+            <div style={styles.footerSourcesGrid}>
+              <a href="https://fiscaldata.treasury.gov/" target="_blank" rel="noreferrer" style={styles.footerLink}>
+                Treasury Fiscal Data
+              </a>
+              <a href="https://www.whitehouse.gov/omb/budget/historical-tables/" target="_blank" rel="noreferrer" style={styles.footerLink}>
+                OMB Historical Tables
+              </a>
+              <a href="https://www.energy.gov/" target="_blank" rel="noreferrer" style={styles.footerLink}>
+                Department of Energy
+              </a>
+              <a href="https://www.semiconductors.org/" target="_blank" rel="noreferrer" style={styles.footerLink}>
+                Semiconductor Industry Association
+              </a>
+              <a href="https://infrastructurereportcard.org/" target="_blank" rel="noreferrer" style={styles.footerLink}>
+                ASCE Infrastructure Report
+              </a>
+              <a href="https://reshorenow.org/" target="_blank" rel="noreferrer" style={styles.footerLink}>
+                Reshoring Initiative
+              </a>
+            </div>
+          </div>
+          <div style={styles.footerContent}>
+            <span>Build Clock • U.S. Industrial Investment Tracker</span>
+            <span style={styles.footerDivider}>•</span>
+            <span>Last Updated: December 2025</span>
+          </div>
+          <div style={styles.footerNote}>
+            Internal Use Only • Deloitte Consulting LLP • Operating Transformation
+          </div>
         </footer>
       </div>
     </main>
@@ -3820,8 +1159,7 @@ export default function Home() {
 // ============================================================================
 // STYLES
 // ============================================================================
-
-const styles: { [key: string]: React.CSSProperties } = {
+const styles: Record<string, React.CSSProperties> = {
   main: {
     minHeight: '100vh',
     backgroundColor: COLORS.bg,
@@ -3829,1584 +1167,997 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontFamily: "'JetBrains Mono', 'SF Mono', monospace",
   },
   container: {
-    maxWidth: '1400px',
+    maxWidth: '1200px',
     margin: '0 auto',
-    padding: '2rem',
+    padding: '2rem 2.5rem',
   },
-  
-  // Hero
-  hero: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1.4fr',
-    gap: '3rem',
+
+  // Header
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: '2rem',
-    paddingBottom: '2rem',
+    paddingBottom: '1.5rem',
     borderBottom: `1px solid ${COLORS.border}`,
   },
-  heroLeft: {},
-  heroRight: {},
-  trustBadge: {
-    display: 'inline-block',
-    fontSize: '0.65rem',
-    padding: '4px 10px',
-    borderRadius: '4px',
-    backgroundColor: '#ffd70022',
-    color: '#ffd700',
-    fontWeight: 700,
-    letterSpacing: '2px',
-    marginBottom: '0.75rem',
-    border: '1px solid #ffd70044',
-  },
-  heroTitle: {
-    fontSize: '2.5rem',
+  title: {
+    fontSize: '2rem',
     fontWeight: 800,
-    lineHeight: 1.1,
+    margin: 0,
+    lineHeight: 1.2,
+  },
+  subtitle: {
+    color: COLORS.textMuted,
+    fontSize: '0.9rem',
+    marginTop: '0.25rem',
+  },
+  radarLink: {
+    padding: '0.6rem 1.2rem',
+    backgroundColor: COLORS.accent + '22',
+    border: `1px solid ${COLORS.accent}`,
+    borderRadius: '6px',
+    color: COLORS.accent,
+    textDecoration: 'none',
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    transition: 'all 0.2s',
+  },
+
+  // Hero - Debt Clock Design
+  heroNew: {
+    marginBottom: '3rem',
+  },
+
+  // Debt Hero (the big number)
+  debtHero: {
+    display: 'grid',
+    gridTemplateColumns: '1.5fr 1fr',
+    gap: '2rem',
+    alignItems: 'center',
+    padding: '2rem',
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '12px',
+    marginBottom: '2rem',
+  },
+  debtHeroMain: {},
+  debtHeroLabel: {
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '2px',
+    marginBottom: '0.5rem',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  debtHeroValue: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '0.75rem',
+  },
+  debtHeroUnit: {
+    fontSize: '1.5rem',
+    fontWeight: 600,
+    color: COLORS.textMuted,
+    letterSpacing: '3px',
+  },
+  debtHeroSource: {
+    fontSize: '0.7rem',
+    color: COLORS.textDim,
+    marginTop: '0.5rem',
+  },
+  debtHeroQuestion: {
+    padding: '1.5rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '8px',
+    borderLeft: `3px solid ${COLORS.accent}`,
+  },
+  hamiltonQuestion: {
+    fontSize: '0.7rem',
+    color: COLORS.accent,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '1px',
     marginBottom: '0.5rem',
   },
-  heroTagline: {
-    fontSize: '0.85rem',
-    color: COLORS.accent,
-    textTransform: 'uppercase',
-    letterSpacing: '2px',
-    marginBottom: '0.75rem',
-  },
-  heroSubtitle: {
-    fontSize: '1rem',
-    color: COLORS.textMuted,
+  hamiltonText: {
+    fontSize: '1.1rem',
+    color: COLORS.text,
     lineHeight: 1.5,
+    fontStyle: 'italic',
   },
-  debtBox: {
+
+  // Breakdown Section
+  breakdownSection: {
+    marginBottom: '1.5rem',
+  },
+  breakdownHeader: {
+    marginBottom: '1rem',
+  },
+  breakdownTitle: {
+    fontSize: '1rem',
+    fontWeight: 600,
+    margin: 0,
+    marginBottom: '0.25rem',
+  },
+  breakdownSubtitle: {
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+  },
+  breakdownBar: {
+    display: 'flex',
+    height: '24px',
+    borderRadius: '4px',
+    overflow: 'hidden',
+    marginBottom: '1rem',
+  },
+  breakdownBarSegment: {
+    height: '100%',
+    transition: 'width 0.3s ease',
+  },
+  breakdownCards: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '1rem',
+    marginBottom: '1rem',
+  },
+  breakdownCard: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderLeft: '4px solid',
+    borderRadius: '8px',
+    padding: '1rem',
+  },
+  breakdownCardHeader: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '0.5rem',
+    marginBottom: '0.25rem',
+  },
+  breakdownCardPercent: {
+    fontSize: '1.5rem',
+    fontWeight: 800,
+  },
+  breakdownCardLabel: {
+    fontSize: '0.85rem',
+    fontWeight: 600,
+  },
+  breakdownCardAmount: {
+    fontSize: '0.9rem',
+    color: COLORS.textMuted,
+    marginBottom: '0.5rem',
+  },
+  breakdownCardDesc: {
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+    marginBottom: '0.25rem',
+  },
+  breakdownCardSublabel: {
+    fontSize: '0.7rem',
+    color: COLORS.textDim,
+    fontStyle: 'italic',
+  },
+  historicalNote: {
+    padding: '1rem',
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '6px',
+    fontSize: '0.85rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.6,
+  },
+
+  // Citizen Context
+  citizenContext: {
+    display: 'flex',
+    gap: '2rem',
+    padding: '1rem 1.5rem',
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+  },
+  citizenStat: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '0.5rem',
+  },
+  citizenLabel: {
+    fontSize: '0.8rem',
+    color: COLORS.textMuted,
+  },
+  citizenValue: {
+    fontSize: '1.1rem',
+    fontWeight: 700,
+  },
+  citizenNote: {
+    fontSize: '0.75rem',
+    color: COLORS.textDim,
+  },
+
+  // Metrics Grid
+  metricsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '1rem',
+    marginBottom: '1.5rem',
+  },
+  metricCard: {
     backgroundColor: COLORS.bgCard,
     border: `1px solid ${COLORS.border}`,
     borderRadius: '8px',
     padding: '1.25rem',
-    textAlign: 'center',
-    marginBottom: '1rem',
   },
-  debtLabel: {
-    fontSize: '0.7rem',
+  metricLabel: {
+    fontSize: '0.75rem',
     color: COLORS.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: '1px',
-    marginBottom: '0.5rem',
+    fontWeight: 600,
+    marginBottom: '0.75rem',
+    lineHeight: 1.3,
+  },
+  metricComparison: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: '0.5rem',
+    marginBottom: '0.75rem',
   },
-  liveIndicator: {
-    color: COLORS.textMuted,
-    animation: 'spin 1s linear infinite',
+  metricCurrent: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'flex-start',
   },
-  liveIndicatorLive: {
-    color: COLORS.hamiltonian,
-    fontSize: '0.6rem',
-    fontWeight: 600,
-  },
-  dataSource: {
+  metricNow: {
     fontSize: '0.6rem',
     color: COLORS.textDim,
-    marginTop: '0.5rem',
-    textTransform: 'none',
-    letterSpacing: '0',
+    textTransform: 'uppercase' as const,
   },
-  kpiSection: {
-    marginBottom: '2rem',
+  metricArrow: {
+    fontSize: '1rem',
+    color: COLORS.textMuted,
   },
-  kpiGrid: {
+  metricHistorical: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'flex-start',
+    color: COLORS.textMuted,
+    fontSize: '0.9rem',
+  },
+  metricYear: {
+    fontSize: '0.6rem',
+    color: COLORS.textDim,
+  },
+  metricInsight: {
+    fontSize: '0.7rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.4,
+    marginBottom: '0.75rem',
+  },
+  metricSource: {
+    fontSize: '0.65rem',
+    color: COLORS.blue,
+    textDecoration: 'none',
+  },
+
+  // Debt Context
+  debtContext: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '1rem',
-  },
-  kpiCard: {
+    gridTemplateColumns: 'auto 1fr',
+    gap: '2rem',
+    padding: '1.25rem 1.5rem',
     backgroundColor: COLORS.bgCard,
     border: `1px solid ${COLORS.border}`,
     borderRadius: '8px',
-    padding: '1rem',
-    textAlign: 'center' as const,
+    alignItems: 'center',
   },
-  kpiLabel: {
+  debtContextLeft: {},
+  debtContextLabel: {
     fontSize: '0.65rem',
     color: COLORS.textMuted,
     textTransform: 'uppercase' as const,
     letterSpacing: '1px',
-    marginBottom: '0.5rem',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.25rem',
-  },
-  kpiValue: {
-    fontSize: '1.5rem',
-    fontWeight: 700,
-    fontFamily: "'JetBrains Mono', monospace",
     marginBottom: '0.25rem',
   },
-  kpiSubtext: {
-    fontSize: '0.65rem',
+  debtContextValue: {},
+  debtContextNote: {
+    fontSize: '0.75rem',
     color: COLORS.textDim,
+    marginTop: '0.25rem',
   },
-  apiNote: {
-    marginTop: '0.75rem',
-    fontSize: '0.65rem',
-    color: COLORS.textDim,
-    textAlign: 'center' as const,
-  },
-  
-  // Hamiltonian Gauge Section
-  hamiltonianSection: {
-    backgroundColor: COLORS.bgCard,
-    borderRadius: '16px',
-    border: `2px solid ${COLORS.hamiltonian}44`,
-    padding: '2rem',
-    marginBottom: '2rem',
-    boxShadow: `0 0 40px ${COLORS.hamiltonian}11`,
-  },
-  hamiltonianHero: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '2rem',
-    marginBottom: '2rem',
-  },
-  gaugeContainer: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gaugeLabel: {
-    fontSize: '0.8rem',
-    fontWeight: 700,
-    letterSpacing: '2px',
-    color: COLORS.hamiltonian,
-    marginBottom: '1rem',
-  },
-  gaugeWrapper: {
-    width: '100%',
-    display: 'flex',
-    justifyContent: 'center',
-  },
-  gaugeTagline: {
-    textAlign: 'center' as const,
-    fontSize: '1rem',
-    color: COLORS.text,
-    marginTop: '1rem',
+  debtContextRight: {},
+  debtContextInsight: {
+    fontSize: '0.9rem',
+    color: COLORS.textMuted,
     lineHeight: 1.6,
+    borderLeft: `2px solid ${COLORS.accent}`,
+    paddingLeft: '1rem',
   },
-  breakdownContainer: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-  },
-  breakdownTitle: {
-    fontSize: '0.8rem',
-    fontWeight: 600,
-    color: COLORS.textMuted,
-    marginBottom: '1rem',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '1px',
-  },
-  breakdownGrid: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '0.75rem',
-  },
-  breakdownItem: {
+
+  // Narrative Headers
+  narrativeHeader: {
     display: 'flex',
     alignItems: 'center',
     gap: '0.75rem',
+    marginBottom: '1rem',
   },
-  breakdownIcon: {
-    fontSize: '1.25rem',
-    width: '2rem',
-    textAlign: 'center' as const,
-  },
-  breakdownInfo: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-  },
-  breakdownLabel: {
-    fontSize: '0.75rem',
-    color: COLORS.text,
-    width: '100px',
-  },
-  breakdownBar: {
-    flex: 1,
-    height: '8px',
-    backgroundColor: COLORS.border,
-    borderRadius: '4px',
-    overflow: 'hidden',
-  },
-  breakdownBarFill: {
-    height: '100%',
-    backgroundColor: COLORS.hamiltonian,
+  narrativeStep: {
+    fontSize: '0.7rem',
+    fontWeight: 700,
+    color: COLORS.accent,
+    backgroundColor: COLORS.accent + '22',
+    padding: '0.25rem 0.5rem',
     borderRadius: '4px',
   },
-  breakdownValue: {
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    color: COLORS.hamiltonian,
-    width: '35px',
-    textAlign: 'right' as const,
-  },
-  historySection: {
-    borderTop: `1px solid ${COLORS.border}`,
-    paddingTop: '1.5rem',
-    marginBottom: '1.5rem',
-  },
-  historyTitle: {
-    fontSize: '0.8rem',
+  narrativeLabel: {
+    fontSize: '0.7rem',
     fontWeight: 600,
     color: COLORS.textMuted,
-    marginBottom: '1rem',
     textTransform: 'uppercase' as const,
-    letterSpacing: '1px',
-    textAlign: 'center' as const,
+    letterSpacing: '2px',
   },
-  historyTimeline: {
+
+  // Sections
+  section: {
+    marginBottom: '3rem',
+  },
+  sectionHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    height: '120px',
-    gap: '0.5rem',
-  },
-  historyPoint: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    flex: 1,
-  },
-  historyYear: {
-    fontSize: '0.6rem',
-    color: COLORS.textDim,
-    marginBottom: '0.25rem',
-  },
-  historyBar: {
-    width: '100%',
-    maxWidth: '40px',
-    borderRadius: '4px 4px 0 0',
-    transition: 'height 0.3s ease',
-  },
-  historyShare: {
-    fontSize: '0.65rem',
-    fontWeight: 600,
-    color: COLORS.text,
-    marginTop: '0.25rem',
-  },
-  historyEvent: {
-    fontSize: '0.5rem',
-    color: COLORS.textDim,
-    textAlign: 'center' as const,
-    marginTop: '0.25rem',
-    lineHeight: 1.2,
-    maxWidth: '60px',
-  },
-  historyNote: {
-    fontSize: '0.75rem',
-    color: COLORS.textMuted,
-    textAlign: 'center' as const,
-    marginTop: '1rem',
-    lineHeight: 1.5,
-  },
-  methodologyNote: {
-    fontSize: '0.65rem',
-    color: COLORS.textDim,
-    padding: '1rem',
-    backgroundColor: COLORS.bg,
-    borderRadius: '8px',
-    lineHeight: 1.5,
-    borderLeft: `3px solid ${COLORS.hamiltonian}44`,
-  },
-  
-  // Trend Chart Section
-  trendSection: {
-    borderTop: `1px solid ${COLORS.border}`,
-    paddingTop: '1.5rem',
     marginBottom: '1.5rem',
   },
-  trendTitle: {
-    fontSize: '0.8rem',
-    fontWeight: 600,
-    color: COLORS.textMuted,
-    marginBottom: '1rem',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '1px',
-    textAlign: 'center' as const,
-  },
-  trendChart: {
-    width: '100%',
-    marginBottom: '0.75rem',
-  },
-  trendLegend: {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '1.5rem',
-    marginBottom: '0.75rem',
-  },
-  legendItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    fontSize: '0.7rem',
-    color: COLORS.textMuted,
-  },
-  legendDot: {
-    width: '10px',
-    height: '10px',
-    borderRadius: '50%',
-    display: 'inline-block',
-  },
-  trendNote: {
-    fontSize: '0.75rem',
-    color: COLORS.textMuted,
-    textAlign: 'center' as const,
-    lineHeight: 1.6,
-  },
-  
-  debtSplit: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '1rem',
-    marginBottom: '1rem',
-  },
-  debtSplitBox: {
-    backgroundColor: COLORS.bgCard,
-    border: '2px solid',
-    borderRadius: '8px',
-    padding: '1rem',
-    textAlign: 'center',
-  },
-  splitLabel: {
-    fontSize: '0.65rem',
-    color: COLORS.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    marginBottom: '0.5rem',
-  },
-  splitPercent: {
-    fontSize: '0.9rem',
-    fontWeight: 700,
-    marginTop: '0.25rem',
-  },
-  perCitizen: {
-    fontSize: '0.85rem',
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    padding: '0.75rem',
-    backgroundColor: COLORS.bgCardAlt,
-    borderRadius: '6px',
-  },
-  
-  // Philosophy section
-  philosophySection: {
-    marginBottom: '2.5rem',
-    padding: '1.5rem',
-    backgroundColor: COLORS.bgCardAlt,
-    borderRadius: '12px',
-    border: `1px solid ${COLORS.border}`,
-  },
-  philosophyTitle: {
-    textAlign: 'center',
-    fontSize: '1.2rem',
-    fontWeight: 700,
-    marginBottom: '1.25rem',
-    letterSpacing: '1px',
-  },
-  philosophyGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '1rem',
-  },
-  philosophyCard: {
-    backgroundColor: COLORS.bgCard,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: '8px',
-    padding: '1rem',
-    fontSize: '0.8rem',
-    lineHeight: 1.5,
-  },
-  philIcon: {
-    fontSize: '1.25rem',
-    marginBottom: '0.5rem',
-  },
-  
-  // Sections
-  section: {
-    marginBottom: '2.5rem',
-  },
   sectionTitle: {
-    fontSize: '1.3rem',
+    fontSize: '1.25rem',
     fontWeight: 700,
-    marginBottom: '0.5rem',
+    margin: 0,
+    marginBottom: '0.25rem',
   },
   sectionSubtitle: {
-    fontSize: '0.9rem',
+    fontSize: '0.85rem',
     color: COLORS.textMuted,
-    marginBottom: '1.25rem',
+    margin: 0,
   },
-  
-  // Stakes
-  stakesGrid: {
+  viewAllLink: {
+    color: COLORS.accent,
+    textDecoration: 'none',
+    fontSize: '0.85rem',
+    fontWeight: 500,
+  },
+
+  // Policy Waves
+  wavesContainer: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '1rem',
+    marginTop: '1.5rem',
+    marginBottom: '1.5rem',
+  },
+  waveCard: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1.25rem',
+  },
+  waveHeader: {
+    marginBottom: '0.75rem',
+  },
+  waveNumber: {
+    fontSize: '0.65rem',
+    color: COLORS.accent,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '1px',
+    marginBottom: '0.25rem',
+  },
+  waveLabel: {
+    fontSize: '1.1rem',
+    fontWeight: 700,
+    marginBottom: '0.1rem',
+  },
+  wavePeriod: {
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+  },
+  waveDesc: {
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+    marginBottom: '1rem',
+    lineHeight: 1.4,
+  },
+  wavePolicies: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.5rem',
+  },
+  wavePolicy: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '0.5rem',
+    padding: '0.5rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '4px',
+  },
+  wavePolicyIcon: {
+    fontSize: '1rem',
+    flexShrink: 0,
+  },
+  wavePolicyContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+  wavePolicyName: {
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    marginBottom: '0.1rem',
+  },
+  wavePolicyAmount: {
+    fontSize: '0.75rem',
+    color: COLORS.accent,
+    fontWeight: 600,
+  },
+  wavePolicyNote: {
+    fontSize: '0.65rem',
+    color: COLORS.textDim,
+    marginTop: '0.1rem',
+  },
+  wavePolicyStatus: {
+    fontSize: '0.6rem',
+    padding: '0.15rem 0.4rem',
+    borderRadius: '3px',
+    textTransform: 'uppercase' as const,
+    fontWeight: 600,
+    flexShrink: 0,
+  },
+  waveTotal: {
+    marginTop: '0.75rem',
+    paddingTop: '0.75rem',
+    borderTop: `1px solid ${COLORS.border}`,
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    color: COLORS.accent,
+  },
+  policyInsight: {
+    padding: '1rem',
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '6px',
+    fontSize: '0.85rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.6,
+  },
+
+  // Evidence Flow
+  evidenceFlow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '1rem',
+    padding: '1.5rem',
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    marginBottom: '1.5rem',
+  },
+  flowStep: {
+    textAlign: 'center' as const,
+    padding: '0 1rem',
+  },
+  flowValue: {
+    fontSize: '1.75rem',
+    fontWeight: 800,
+    color: COLORS.text,
+    marginBottom: '0.25rem',
+  },
+  flowLabel: {
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    marginBottom: '0.1rem',
+  },
+  flowNote: {
+    fontSize: '0.7rem',
+    color: COLORS.textDim,
+  },
+  flowArrow: {
+    fontSize: '1.5rem',
+    color: COLORS.textMuted,
+  },
+
+  // Sector Grid
+  sectorGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
     gap: '1rem',
   },
-  stakeCard: {
-    backgroundColor: COLORS.bgCard,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: '8px',
-    padding: '1.25rem',
-  },
-  stakeIcon: {
-    fontSize: '1.5rem',
-    marginBottom: '0.75rem',
-  },
-  stakeEquation: {
-    marginTop: '0.75rem',
-    padding: '0.5rem',
-    backgroundColor: COLORS.bgCardAlt,
-    borderRadius: '4px',
-    fontSize: '0.8rem',
-    color: COLORS.warning,
-    textAlign: 'center',
-  },
-  
-  // Advantages
-  advantagesGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '1rem',
-  },
-  advantageCard: {
+  sectorCard: {
     backgroundColor: COLORS.bgCard,
     border: `1px solid ${COLORS.border}`,
     borderRadius: '8px',
     padding: '1rem',
   },
-  advHeader: {
+  sectorHeader: {
     display: 'flex',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: '0.5rem',
-    marginBottom: '0.75rem',
-  },
-  advIcon: {
-    fontSize: '1.2rem',
-  },
-  advArea: {
-    fontWeight: 600,
-    fontSize: '0.85rem',
-    flex: 1,
-  },
-  dominantBadge: {
-    fontSize: '0.55rem',
-    padding: '2px 6px',
-    borderRadius: '3px',
-    backgroundColor: '#00ff8822',
-    color: COLORS.hamiltonian,
-    fontWeight: 700,
-  },
-  advMetric: {
     marginBottom: '0.5rem',
   },
-  advMetricValue: {
-    fontSize: '1.3rem',
-    fontWeight: 700,
-    color: COLORS.hamiltonian,
+  sectorName: {
+    fontSize: '0.85rem',
+    fontWeight: 600,
   },
-  advMetricLabel: {
+  sectorProjects: {
     fontSize: '0.7rem',
     color: COLORS.textMuted,
-    marginLeft: '0.25rem',
   },
-  advEvidence: {
-    fontSize: '0.75rem',
+  sectorValue: {
+    fontSize: '1.25rem',
+    fontWeight: 700,
+    marginBottom: '0.5rem',
+  },
+  sectorBar: {
+    height: '4px',
+    backgroundColor: COLORS.border,
+    borderRadius: '2px',
+    overflow: 'hidden',
+  },
+  sectorBarFill: {
+    height: '100%',
+    borderRadius: '2px',
+    transition: 'width 0.3s ease',
+  },
+  sectorQuality: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: '0.5rem',
+    fontSize: '0.7rem',
+  },
+  sectorImpact: {
+    fontSize: '0.65rem',
+    fontWeight: 500,
+  },
+  qualityInsight: {
+    marginTop: '1rem',
+    padding: '1rem',
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '6px',
+    fontSize: '0.85rem',
     color: COLORS.textMuted,
-    lineHeight: 1.4,
+    lineHeight: 1.6,
   },
-  
-  // Strategy flow
-  strategyFlow: {
-    display: 'flex',
-    gap: '0.5rem',
-    overflowX: 'auto',
-    paddingBottom: '1rem',
-  },
-  strategyStep: {
-    flex: '1',
-    minWidth: '200px',
-    display: 'flex',
-    flexDirection: 'column',
-    position: 'relative',
-  },
-  stepNumber: {
-    width: '28px',
-    height: '28px',
-    borderRadius: '50%',
-    backgroundColor: COLORS.accent,
-    color: COLORS.bg,
+
+  // Total Pipeline
+  totalPipeline: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: 700,
-    fontSize: '0.85rem',
-    marginBottom: '0.75rem',
-  },
-  stepContent: {
+    gap: '1rem',
+    marginTop: '1.5rem',
+    padding: '1rem',
     backgroundColor: COLORS.bgCard,
     border: `1px solid ${COLORS.border}`,
     borderRadius: '8px',
-    padding: '1rem',
-    flex: 1,
   },
-  stepHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    marginBottom: '0.5rem',
-  },
-  stepIcon: {
-    fontSize: '1rem',
-  },
-  stepName: {
-    fontWeight: 700,
+  totalLabel: {
     fontSize: '0.85rem',
+    color: COLORS.textMuted,
   },
-  stepStatus: {
-    fontSize: '0.55rem',
-    padding: '2px 6px',
-    borderRadius: '3px',
+  totalValue: {
+    fontSize: '1.5rem',
     fontWeight: 700,
-    textTransform: 'uppercase',
-  },
-  stepAction: {
-    fontSize: '0.9rem',
-    color: COLORS.hamiltonian,
-    fontWeight: 600,
-    marginBottom: '0.5rem',
-  },
-  stepDesc: {
-    fontSize: '0.75rem',
-    color: COLORS.textMuted,
-    lineHeight: 1.4,
-    marginBottom: '0.75rem',
-  },
-  stepExamples: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '0.25rem',
-    marginBottom: '0.5rem',
-  },
-  exampleTag: {
-    fontSize: '0.65rem',
-    padding: '2px 6px',
-    backgroundColor: COLORS.bgCardAlt,
-    borderRadius: '3px',
-    color: COLORS.textMuted,
-  },
-  stepRevenue: {
-    fontSize: '0.75rem',
-    color: COLORS.gold,
-    fontWeight: 600,
-  },
-  stepArrow: {
-    position: 'absolute',
-    right: '-12px',
-    top: '50%',
-    fontSize: '1.2rem',
     color: COLORS.accent,
   },
-  
-  // Gaps
+  totalProjects: {
+    fontSize: '0.85rem',
+    color: COLORS.textMuted,
+  },
+
+  // Quote Card
+  quoteCard: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderLeft: `3px solid ${COLORS.purple}`,
+    borderRadius: '8px',
+    padding: '1.5rem 2rem',
+    marginTop: '1.5rem',
+    marginBottom: '1.5rem',
+    position: 'relative' as const,
+  },
+  quoteIcon: {
+    position: 'absolute' as const,
+    top: '0.5rem',
+    left: '1rem',
+    fontSize: '3rem',
+    color: COLORS.purple,
+    opacity: 0.3,
+    fontFamily: 'Georgia, serif',
+    lineHeight: 1,
+  },
+  quoteText: {
+    fontSize: '1.1rem',
+    fontStyle: 'italic',
+    color: COLORS.text,
+    lineHeight: 1.6,
+    margin: 0,
+    marginBottom: '1rem',
+    paddingLeft: '1rem',
+  },
+  quoteCite: {
+    fontSize: '0.85rem',
+    color: COLORS.textMuted,
+    fontStyle: 'normal',
+    paddingLeft: '1rem',
+  },
+
+  // Gap Analysis Grid
   gapsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(6, 1fr)',
+    gridTemplateColumns: 'repeat(2, 1fr)',
     gap: '1rem',
+    marginBottom: '1.5rem',
   },
   gapCard: {
     backgroundColor: COLORS.bgCard,
     border: `1px solid ${COLORS.border}`,
     borderRadius: '8px',
-    padding: '1rem',
+    padding: '1.25rem',
   },
   gapHeader: {
     display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: '0.5rem',
+    alignItems: 'flex-start',
+    gap: '0.75rem',
+    marginBottom: '1rem',
   },
-  gapArea: {
-    fontWeight: 600,
-    fontSize: '0.85rem',
-  },
-  gapTimeline: {
-    fontSize: '0.65rem',
-    color: COLORS.textMuted,
-  },
-  gapBar: {
-    height: '8px',
-    backgroundColor: COLORS.bgCardAlt,
-    borderRadius: '4px',
-    overflow: 'hidden',
-    marginBottom: '0.5rem',
-  },
-  gapFill: {
-    height: '100%',
-    backgroundColor: COLORS.warning,
-    borderRadius: '4px',
-  },
-  gapNumbers: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    fontSize: '0.75rem',
-    marginBottom: '0.5rem',
-  },
-  gapFooter: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    fontSize: '0.7rem',
-  },
-  gapInvestment: {
-    color: COLORS.warning,
-  },
-  gapJobs: {
-    color: COLORS.hamiltonian,
-  },
-  
-  // Workforce Section
-  workforceGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '1rem',
-    marginBottom: '1.5rem',
-  },
-  workforceCard: {
-    backgroundColor: COLORS.bgCard,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: '8px',
-    padding: '1rem',
-  },
-  wfHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    marginBottom: '0.75rem',
-  },
-  wfIcon: {
-    fontSize: '1.25rem',
-  },
-  wfLabel: {
-    fontSize: '0.65rem',
-    fontWeight: 600,
-    color: COLORS.textMuted,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-  },
-  wfMetric: {
-    display: 'flex',
-    alignItems: 'baseline',
-    gap: '0.5rem',
-    marginBottom: '0.5rem',
-  },
-  wfValue: {
+  gapIcon: {
     fontSize: '1.5rem',
-    fontWeight: 700,
-    color: COLORS.hamiltonian,
   },
-  wfTarget: {
-    fontSize: '0.7rem',
-    color: COLORS.textDim,
-  },
-  wfNote: {
-    fontSize: '0.7rem',
+  gapCategory: {
+    fontSize: '0.65rem',
     color: COLORS.textMuted,
-  },
-  workforcePolicy: {
-    backgroundColor: COLORS.bgCardAlt,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: '8px',
-    padding: '1.25rem',
-    marginBottom: '1rem',
-  },
-  wfPolicyTitle: {
-    fontSize: '0.8rem',
-    fontWeight: 600,
-    color: COLORS.text,
-    marginBottom: '1rem',
     textTransform: 'uppercase' as const,
     letterSpacing: '1px',
   },
-  wfPolicyGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '1rem',
+  gapTitle: {
+    fontSize: '1rem',
+    fontWeight: 700,
   },
-  wfPolicyItem: {
+  gapComparison: {
     display: 'flex',
-    gap: '0.75rem',
-    fontSize: '0.75rem',
-    color: COLORS.textMuted,
-    lineHeight: 1.4,
-  },
-  wfPolicyIcon: {
-    fontSize: '1.25rem',
-    flexShrink: 0,
-  },
-  workforceQuote: {
-    textAlign: 'center' as const,
-    fontSize: '0.9rem',
-    fontStyle: 'italic',
-    color: COLORS.hamiltonian,
-    padding: '1rem',
-    borderLeft: `3px solid ${COLORS.hamiltonian}`,
-    backgroundColor: COLORS.bgCard,
-    borderRadius: '0 8px 8px 0',
-  },
-  
-  // National Capacity Section
-  nationalCapacityGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '1rem',
-    marginBottom: '1.5rem',
-  },
-  capacityCard: {
-    backgroundColor: COLORS.bgCard,
-    border: `2px solid ${COLORS.border}`,
-    borderRadius: '8px',
-    padding: '1rem',
-  },
-  capHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '0.75rem',
-  },
-  capCategory: {
-    fontSize: '1rem',
-    fontWeight: 700,
-  },
-  capStatus: {
-    fontSize: '0.6rem',
-    fontWeight: 600,
-    padding: '0.25rem 0.5rem',
-    borderRadius: '4px',
-    textTransform: 'uppercase' as const,
-  },
-  capMetrics: {
-    display: 'flex',
-    gap: '1rem',
-    marginBottom: '0.75rem',
-    paddingBottom: '0.75rem',
-    borderBottom: `1px solid ${COLORS.border}`,
-  },
-  capMetric: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '0.25rem',
-  },
-  capLabel: {
-    fontSize: '0.6rem',
-    color: COLORS.textDim,
-    textTransform: 'uppercase' as const,
-  },
-  capValue: {
-    fontSize: '1rem',
-    fontWeight: 700,
-    color: COLORS.text,
-  },
-  capDetail: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '0.4rem',
-  },
-  capRow: {
-    display: 'flex',
-    gap: '0.5rem',
-    fontSize: '0.7rem',
-    color: COLORS.textMuted,
-    lineHeight: 1.4,
-  },
-  capRowLabel: {
-    flexShrink: 0,
-    width: '70px',
-  },
-  hamiltonianPrinciple: {
-    backgroundColor: COLORS.bgCardAlt,
-    border: `1px solid ${COLORS.accent}44`,
-    borderRadius: '8px',
-    padding: '1.25rem',
-  },
-  hpTitle: {
-    fontSize: '0.8rem',
-    fontWeight: 600,
-    color: COLORS.accent,
+    justifyContent: 'space-between',
     marginBottom: '1rem',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '1px',
-  },
-  hpContent: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: '1rem',
-  },
-  hpItem: {
-    display: 'flex',
-    gap: '0.75rem',
-    fontSize: '0.8rem',
-    color: COLORS.textMuted,
-    lineHeight: 1.5,
-  },
-  hpIcon: {
-    fontSize: '1rem',
-    flexShrink: 0,
-  },
-  
-  // Growth Initiatives
-  initiativesGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '1.5rem',
-    marginBottom: '1.5rem',
-  },
-  initiativeColumn: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '0.75rem',
-  },
-  initiativeHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: '0.5rem',
-    borderBottom: `2px solid ${COLORS.border}`,
-    marginBottom: '0.5rem',
-  },
-  initiativeTimeframe: {
-    fontSize: '0.75rem',
-    fontWeight: 700,
-    color: COLORS.gold,
-    textTransform: 'uppercase' as const,
-  },
-  initiativeYears: {
-    fontSize: '0.65rem',
-    color: COLORS.textDim,
-  },
-  initiativeCard: {
-    display: 'flex',
-    gap: '0.75rem',
-    backgroundColor: COLORS.bgCard,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: '8px',
-    padding: '0.75rem',
-  },
-  initIcon: {
-    fontSize: '1.5rem',
-    flexShrink: 0,
-  },
-  initContent: {
-    flex: 1,
-    minWidth: 0,
-  },
-  initTitle: {
-    fontSize: '0.85rem',
-    fontWeight: 700,
-    color: COLORS.text,
-    marginBottom: '0.35rem',
-  },
-  initStats: {
-    display: 'flex',
-    gap: '0.75rem',
-    fontSize: '0.65rem',
-    color: COLORS.hamiltonian,
-    marginBottom: '0.35rem',
-    flexWrap: 'wrap' as const,
-  },
-  initDesc: {
-    fontSize: '0.65rem',
-    color: COLORS.textMuted,
-    lineHeight: 1.4,
-  },
-  initiativeSummary: {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '3rem',
-    padding: '1rem',
-    backgroundColor: COLORS.bgCardAlt,
-    borderRadius: '8px',
-    border: `1px solid ${COLORS.gold}44`,
-  },
-  summaryItem: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    gap: '0.25rem',
-  },
-  summaryLabel: {
-    fontSize: '0.65rem',
-    color: COLORS.textMuted,
-    textTransform: 'uppercase' as const,
-  },
-  summaryValue: {
-    fontSize: '1.25rem',
-    fontWeight: 700,
-    color: COLORS.gold,
-  },
-  
-  // Leapfrog
-  leapfrogGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(6, 1fr)',
-    gap: '1rem',
-  },
-  leapfrogCard: {
-    backgroundColor: COLORS.bgCard,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: '8px',
-    padding: '1rem',
-    textAlign: 'center',
-  },
-  leapfrogIcon: {
-    fontSize: '1.5rem',
-    marginBottom: '0.5rem',
-  },
-  leapfrogArea: {
-    fontWeight: 700,
-    fontSize: '0.85rem',
-    marginBottom: '0.75rem',
-  },
-  leapfrogRow: {
-    fontSize: '0.75rem',
-    marginBottom: '0.25rem',
-  },
-  leapfrogArrow: {
-    color: COLORS.hamiltonian,
-    fontSize: '1rem',
-    margin: '0.25rem 0',
-  },
-  
-  // Your Stake Calculator
-  stakeCalculator: {
-    display: 'grid',
-    gridTemplateColumns: '280px 1fr',
-    gap: '2rem',
-    backgroundColor: COLORS.bgCard,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: '12px',
-    padding: '1.5rem',
-  },
-  stakeInputs: {
-    borderRight: `1px solid ${COLORS.border}`,
-    paddingRight: '2rem',
-  },
-  inputGroup: {
-    marginBottom: '1.5rem',
-  },
-  select: {
-    width: '100%',
     padding: '0.75rem',
     backgroundColor: COLORS.bg,
-    border: `1px solid ${COLORS.border}`,
     borderRadius: '6px',
-    color: COLORS.text,
-    fontSize: '0.9rem',
-    fontFamily: 'inherit',
-    cursor: 'pointer',
-    marginTop: '0.5rem',
   },
-  scenarioButtons: {
-    display: 'flex',
-    gap: '0.5rem',
-    marginTop: '0.5rem',
-  },
-  scenarioBtn: {
-    flex: 1,
-    padding: '0.5rem 0.25rem',
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: '6px',
-    fontFamily: 'inherit',
-    fontSize: '0.85rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    gap: '2px',
-    minWidth: '70px',
-  },
-  scenarioLabels: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    fontSize: '0.65rem',
-    color: COLORS.textDim,
-    marginTop: '0.5rem',
-    paddingLeft: '0.5rem',
-  },
-  scenarioExplainer: {
-    fontSize: '0.7rem',
+  gapSide: {
     textAlign: 'center' as const,
-    marginTop: '0.75rem',
-    padding: '0.5rem',
-    backgroundColor: COLORS.bg,
-    borderRadius: '6px',
-    minHeight: '2rem',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1,
   },
-  stakeResults: {},
-  stakeResultsTitle: {
-    fontSize: '1.1rem',
-    marginBottom: '1.25rem',
-    color: COLORS.hamiltonian,
-  },
-  benefitsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '1rem',
-    marginBottom: '1.5rem',
-  },
-  benefitCard: {
-    backgroundColor: COLORS.bg,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: '8px',
-    padding: '1rem',
-    textAlign: 'center',
-  },
-  benefitIcon: {
+  gapValue: {
     fontSize: '1.5rem',
-    marginBottom: '0.5rem',
+    fontWeight: 800,
+    marginBottom: '0.1rem',
   },
-  benefitLabel: {
-    fontSize: '0.75rem',
-    color: COLORS.textMuted,
-    marginBottom: '0.25rem',
-  },
-  benefitValue: {
-    fontSize: '1.3rem',
-    fontWeight: 700,
-    color: COLORS.hamiltonian,
-    marginBottom: '0.25rem',
-  },
-  benefitNote: {
+  gapLabel: {
     fontSize: '0.65rem',
-    color: COLORS.textDim,
-  },
-  stateProjects: {
-    marginBottom: '1.25rem',
-  },
-  projectsList: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '0.5rem',
-    marginTop: '0.5rem',
-  },
-  projectTag: {
-    fontSize: '0.75rem',
-    padding: '0.25rem 0.75rem',
-    backgroundColor: COLORS.bgCardAlt,
-    borderRadius: '4px',
-    color: COLORS.text,
-  },
-  bottomLine: {
-    padding: '1rem',
-    backgroundColor: COLORS.bgCardAlt,
-    borderRadius: '8px',
-    fontSize: '0.9rem',
-    lineHeight: 1.5,
-    border: `1px solid ${COLORS.hamiltonian}33`,
-  },
-  
-  // Calculation Breakdown
-  calculationBreakdown: {
-    marginTop: '1rem',
-    padding: '1rem',
-    backgroundColor: COLORS.bg,
-    borderRadius: '8px',
-    border: `1px solid ${COLORS.border}`,
-  },
-  calcTitle: {
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    color: COLORS.textMuted,
-    marginBottom: '0.75rem',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-  },
-  calcGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '1rem',
-    marginBottom: '0.75rem',
-  },
-  calcItem: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '0.25rem',
-  },
-  calcLabel: {
-    fontSize: '0.65rem',
-    color: COLORS.textMuted,
-  },
-  calcValue: {
-    fontSize: '1rem',
-    fontWeight: 700,
-    color: COLORS.hamiltonian,
-  },
-  calcExplain: {
-    fontSize: '0.6rem',
     color: COLORS.textDim,
     lineHeight: 1.3,
   },
-  calcNote: {
-    fontSize: '0.6rem',
-    color: COLORS.textDim,
-    fontStyle: 'italic',
-    textAlign: 'center' as const,
-    paddingTop: '0.5rem',
-    borderTop: `1px solid ${COLORS.border}`,
-  },
-  
-  // State Review Section
-  // National Build Rate Section
-  nationalBuildContainer: {
-    marginTop: '1.5rem',
-  },
-  nationalBuildMain: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1.5fr',
-    gap: '2rem',
-    padding: '1.5rem',
-    backgroundColor: COLORS.bgCard,
-    borderRadius: '12px',
-    border: `1px solid ${COLORS.border}`,
-    marginBottom: '1rem',
-  },
-  buildRateGauge: {
-    textAlign: 'center' as const,
-    display: 'flex',
-    flexDirection: 'column' as const,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buildRateLabel: {
+  gapVs: {
     fontSize: '0.75rem',
     color: COLORS.textMuted,
-    letterSpacing: '2px',
-    marginBottom: '0.5rem',
-    textTransform: 'uppercase' as const,
+    padding: '0 0.5rem',
   },
-  buildRateValue: {
-    fontSize: '3rem',
-    fontWeight: 800,
-    lineHeight: 1,
-    marginBottom: '0.5rem',
+  gapBottom: {
+    borderTop: `1px solid ${COLORS.border}`,
+    paddingTop: '0.75rem',
   },
-  buildRateOf: {
-    fontSize: '1rem',
-    fontWeight: 400,
-    color: COLORS.textMuted,
-  },
-  buildRateTarget: {
+  gapGap: {
     fontSize: '0.8rem',
-    color: COLORS.textMuted,
-    marginBottom: '1rem',
-  },
-  buildRateBar: {
-    width: '100%',
-    maxWidth: '200px',
-    height: '12px',
-    backgroundColor: COLORS.bg,
-    borderRadius: '6px',
-    overflow: 'hidden',
-  },
-  buildBreakdown: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-  },
-  buildBreakdownTitle: {
-    fontSize: '0.85rem',
-    fontWeight: 600,
-    color: COLORS.text,
-    marginBottom: '1rem',
-    borderBottom: `1px solid ${COLORS.border}`,
-    paddingBottom: '0.5rem',
-  },
-  buildBreakdownGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '1rem',
-    marginBottom: '1rem',
-  },
-  buildBreakdownItem: {
-    textAlign: 'center' as const,
-    padding: '0.75rem',
-    backgroundColor: COLORS.bg,
-    borderRadius: '8px',
-    border: `1px solid ${COLORS.border}`,
-  },
-  buildBreakdownIcon: {
-    fontSize: '1.5rem',
-    marginBottom: '0.5rem',
-  },
-  buildBreakdownLabel: {
-    fontSize: '0.65rem',
     color: COLORS.textMuted,
     marginBottom: '0.25rem',
   },
-  buildBreakdownValue: {
-    fontSize: '1.1rem',
-    fontWeight: 700,
-    color: COLORS.hamiltonian,
+  gapSource: {
+    fontSize: '0.65rem',
+    color: COLORS.textDim,
   },
-  buildBreakdownPct: {
-    fontSize: '0.7rem',
-    color: COLORS.textMuted,
-  },
-  buildBreakdownTotal: {
-    fontSize: '0.85rem',
-    color: COLORS.text,
-    padding: '0.75rem',
-    backgroundColor: COLORS.bgCardAlt,
-    borderRadius: '6px',
-    textAlign: 'center' as const,
-  },
-  buildMethodology: {
-    fontSize: '0.75rem',
-    color: COLORS.textMuted,
-    padding: '0.75rem',
-    backgroundColor: COLORS.bg,
-    borderRadius: '6px',
-    border: `1px solid ${COLORS.warning}44`,
-    lineHeight: 1.5,
-  },
-  
-  // Leaderboard Section
-  leaderboardContainer: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '0.75rem',
-    marginTop: '1.5rem',
+
+  // Fiscal Sustainability Card
+  fiscalCard: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1.5rem',
     marginBottom: '1rem',
   },
-  leaderboardRow: {
-    display: 'grid',
-    gridTemplateColumns: '60px 1fr 120px 100px 200px',
-    gap: '1rem',
-    alignItems: 'center',
-    padding: '1rem',
-    borderRadius: '8px',
-    border: `1px solid ${COLORS.border}`,
-    transition: 'all 0.2s ease',
-  },
-  leaderboardContribution: {
-    textAlign: 'center' as const,
+  fiscalHeader: {
     display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    padding: '0.5rem',
-    backgroundColor: COLORS.bg,
-    borderRadius: '6px',
-    border: `1px solid ${COLORS.border}`,
+    alignItems: 'flex-start',
+    gap: '0.75rem',
+    marginBottom: '1rem',
   },
-  leaderboardRank: {
-    fontSize: '1.1rem',
+  fiscalIcon: {
+    fontSize: '1.5rem',
+  },
+  fiscalTitle: {
+    fontSize: '1rem',
     fontWeight: 700,
-    textAlign: 'center' as const,
-    color: COLORS.text,
   },
-  leaderboardState: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-  },
-  leaderboardScore: {
-    textAlign: 'right' as const,
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'flex-end',
-  },
-  leaderboardBar: {
-    width: '100%',
-    height: '8px',
-    backgroundColor: COLORS.bg,
-    borderRadius: '4px',
-    overflow: 'hidden',
-  },
-  leaderboardNote: {
-    fontSize: '0.75rem',
+  fiscalSubtitle: {
+    fontSize: '0.8rem',
     color: COLORS.textMuted,
-    marginTop: '1rem',
-    padding: '0.75rem',
-    backgroundColor: COLORS.bg,
-    borderRadius: '6px',
-    border: `1px solid ${COLORS.border}`,
   },
-  stateReviewSelector: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-    marginBottom: '2rem',
-    padding: '1rem',
-    backgroundColor: COLORS.bgCard,
-    borderRadius: '8px',
-    border: `1px solid ${COLORS.border}`,
-  },
-  stateReviewLabel: {
-    fontSize: '0.9rem',
-    fontWeight: 600,
-    color: COLORS.text,
-  },
-  stateReviewSelect: {
-    flex: 1,
-    padding: '0.5rem',
-    backgroundColor: COLORS.bg,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: '4px',
-    color: COLORS.text,
-    fontSize: '0.9rem',
-    cursor: 'pointer',
-  },
-  stateReviewContent: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '1.5rem',
-  },
-  stateMetricsGrid: {
+  fiscalContent: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '1rem',
+    gridTemplateColumns: 'auto 1fr',
+    gap: '1.5rem',
+    alignItems: 'start',
   },
-  stateMetricCard: {
-    backgroundColor: COLORS.bgCard,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: '8px',
+  fiscalStat: {
+    textAlign: 'center' as const,
     padding: '1rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '8px',
+  },
+  fiscalStatValue: {
+    fontSize: '2rem',
+    fontWeight: 800,
+    color: COLORS.warning,
+  },
+  fiscalStatLabel: {
+    fontSize: '0.7rem',
+    color: COLORS.textMuted,
+  },
+  fiscalLogic: {
     display: 'flex',
     flexDirection: 'column' as const,
     gap: '0.5rem',
-  },
-  stateMetricLabel: {
-    fontSize: '0.65rem',
-    color: COLORS.textDim,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-  },
-  stateMetricValue: {
-    fontSize: '1.5rem',
-    fontWeight: 700,
-    color: COLORS.text,
-  },
-  stateMetricTarget: {
-    fontSize: '0.65rem',
-    color: COLORS.textMuted,
-  },
-  stateAdvantages: {
-    backgroundColor: COLORS.bgCard,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: '8px',
-    padding: '1rem',
-  },
-  stateSubtitle: {
-    fontSize: '1rem',
-    fontWeight: 700,
-    color: COLORS.text,
     marginBottom: '0.75rem',
   },
-  advantagesList: {
+  logicRow: {
     display: 'flex',
-    flexWrap: 'wrap' as const,
+    alignItems: 'center',
     gap: '0.5rem',
+    fontSize: '0.85rem',
+    color: COLORS.textMuted,
   },
-  advantageTag: {
-    fontSize: '0.75rem',
-    padding: '0.4rem 0.75rem',
-    backgroundColor: COLORS.hamiltonian + '33',
-    color: COLORS.hamiltonian,
-    borderRadius: '4px',
-    border: `1px solid ${COLORS.hamiltonian}66`,
+  fiscalNote: {
+    fontSize: '0.85rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.5,
+    gridColumn: '1 / -1',
+    padding: '0.75rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '6px',
+    borderLeft: `3px solid ${COLORS.accent}`,
   },
-  stateProjectsSection: {
+
+  // Case Insight
+  caseInsight: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '1rem',
+    padding: '1.25rem',
+    backgroundColor: COLORS.accent + '11',
+    border: `1px solid ${COLORS.accent}33`,
+    borderRadius: '8px',
+    fontSize: '0.9rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.6,
+  },
+  insightIcon: {
+    fontSize: '1.25rem',
+    flexShrink: 0,
+  },
+
+  // Thesis Section
+  thesisSection: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '12px',
+    padding: '2.5rem',
+    marginBottom: '2rem',
+  },
+  thesisContent: {
+    maxWidth: '700px',
+  },
+  thesisTitle: {
+    fontSize: '1.5rem',
+    fontWeight: 700,
+    marginBottom: '1rem',
+    color: COLORS.accent,
+  },
+  thesisPara: {
+    fontSize: '1rem',
+    lineHeight: 1.7,
+    color: COLORS.textMuted,
+    marginBottom: '1rem',
+  },
+  thesisHighlight: {
+    backgroundColor: COLORS.bg,
+    borderRadius: '8px',
+    padding: '1.25rem',
+    marginTop: '1.5rem',
+    marginBottom: '1.5rem',
+  },
+  thesisHighlightLabel: {
+    fontSize: '0.7rem',
+    color: COLORS.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
+    marginBottom: '0.5rem',
+  },
+  thesisHighlightValue: {
+    fontSize: '1.25rem',
+    fontWeight: 700,
+    color: COLORS.accent,
+  },
+  thesisCta: {
+    display: 'inline-block',
+    padding: '0.75rem 1.5rem',
+    backgroundColor: COLORS.accent,
+    color: COLORS.bg,
+    textDecoration: 'none',
+    borderRadius: '6px',
+    fontSize: '0.9rem',
+    fontWeight: 600,
+  },
+
+  // Footer
+  // What's Coming Timeline
+  timelineGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '1rem',
+    marginTop: '1.5rem',
+  },
+  timelineCard: {
     backgroundColor: COLORS.bgCard,
     border: `1px solid ${COLORS.border}`,
     borderRadius: '8px',
     padding: '1rem',
   },
-  projectsTable: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '0.5rem',
-  },
-  projectRow: {
-    display: 'grid',
-    gridTemplateColumns: '2fr 1fr 1fr 0.8fr',
-    gap: '1rem',
-    padding: '0.75rem',
-    backgroundColor: COLORS.bg,
-    borderRadius: '4px',
-    fontSize: '0.8rem',
-    alignItems: 'center',
-  },
-  projectName: {
-    fontWeight: 600,
-    color: COLORS.text,
-  },
-  projectCategory: {
-    color: COLORS.textMuted,
-    fontSize: '0.75rem',
-  },
-  projectStatus: {
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    textTransform: 'uppercase' as const,
-  },
-  projectInvestment: {
+  timelineCardHeader: {
+    fontSize: '1rem',
     fontWeight: 700,
-    color: COLORS.hamiltonian,
-    textAlign: 'right' as const,
+    color: COLORS.accent,
+    marginBottom: '0.75rem',
+    paddingBottom: '0.5rem',
+    borderBottom: `1px solid ${COLORS.border}`,
   },
-  stateGaps: {
-    backgroundColor: COLORS.bgCard,
-    border: `1px solid ${COLORS.warning}44`,
-    borderRadius: '8px',
+  timelineList: {
+    margin: 0,
+    padding: 0,
+    paddingLeft: '1rem',
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.6,
+  },
+
+  // Footer
+  footer: {
+    borderTop: `1px solid ${COLORS.border}`,
+    paddingTop: '1.5rem',
+    textAlign: 'center',
+  },
+  footerSources: {
+    marginBottom: '1.5rem',
     padding: '1rem',
+    backgroundColor: COLORS.bgCard,
+    borderRadius: '8px',
+    border: `1px solid ${COLORS.border}`,
   },
-  gapsList: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '0.75rem',
-  },
-  gapItem: {
-    display: 'flex',
-    gap: '1rem',
-    fontSize: '0.85rem',
-    padding: '0.5rem',
-    backgroundColor: COLORS.bg,
-    borderRadius: '4px',
-  },
-  gapCategory: {
+  footerSourcesTitle: {
+    fontSize: '0.7rem',
     fontWeight: 600,
-    color: COLORS.warning,
-    minWidth: '100px',
+    color: COLORS.textMuted,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '1px',
+    marginBottom: '0.75rem',
   },
-  gapNeed: {
-    color: COLORS.text,
-    flex: 1,
+  footerSourcesGrid: {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    justifyContent: 'center',
+    gap: '0.5rem 1.5rem',
   },
-  gapCurrent: {
+  footerLink: {
+    fontSize: '0.75rem',
+    color: COLORS.blue,
+    textDecoration: 'none',
+  },
+  footerContent: {
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+    marginBottom: '0.5rem',
+  },
+  footerDivider: {
+    margin: '0 0.75rem',
+    color: COLORS.border,
+  },
+  footerNote: {
+    fontSize: '0.7rem',
+    color: COLORS.textDim,
+  },
+  gdpImpactCard: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '1.5rem',
+    marginBottom: '1.5rem',
+  },
+  gdpImpactHeader: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '0.75rem',
+    marginBottom: '1.5rem',
+  },
+  gdpImpactIcon: {
+    fontSize: '1.5rem',
+  },
+  gdpImpactTitle: {
+    fontSize: '1rem',
+    fontWeight: 700,
+  },
+  gdpImpactSubtitle: {
+    fontSize: '0.8rem',
     color: COLORS.textMuted,
   },
-  stateInfoGrid: {
+  gdpImpactGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
     gap: '1rem',
+    marginBottom: '1.5rem',
   },
-  stateInfoCard: {
-    backgroundColor: COLORS.bgCard,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: '8px',
+  gdpImpactStat: {
+    textAlign: 'center' as const,
     padding: '1rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '6px',
   },
-  stateInfoTitle: {
-    fontSize: '0.9rem',
-    fontWeight: 700,
-    color: COLORS.text,
-    marginBottom: '0.5rem',
+  gdpImpactValue: {
+    fontSize: '1.5rem',
+    fontWeight: 800,
+    marginBottom: '0.25rem',
   },
-  stateInfoText: {
-    fontSize: '0.8rem',
-    color: COLORS.textMuted,
-    lineHeight: 1.5,
-  },
-  workforceBadge: {
-    display: 'inline-block',
-    padding: '0.25rem 0.5rem',
-    borderRadius: '4px',
+  gdpImpactLabel: {
     fontSize: '0.7rem',
-    fontWeight: 600,
-    marginBottom: '0.5rem',
+    color: COLORS.textMuted,
   },
-  stateAssessment: {
-    backgroundColor: COLORS.bgCardAlt,
-    border: `1px solid ${COLORS.accent}44`,
-    borderRadius: '8px',
-    padding: '1rem',
+  gdpImpactProgress: {
+    marginBottom: '1rem',
   },
-  assessmentContent: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '0.75rem',
-  },
-  assessmentItem: {
+  gdpImpactProgressHeader: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '0.5rem',
-    fontSize: '0.85rem',
-  },
-  assessmentLabel: {
-    color: COLORS.textMuted,
-  },
-  
-  // Win section
-  winSection: {
-    textAlign: 'center',
-    padding: '2rem',
-    backgroundColor: COLORS.bgCardAlt,
-    borderRadius: '12px',
-    marginBottom: '2rem',
-  },
-  winTitle: {
-    fontSize: '1.3rem',
-    fontWeight: 700,
+    fontSize: '0.8rem',
     marginBottom: '0.5rem',
-    color: COLORS.hamiltonian,
-    letterSpacing: '2px',
   },
-  winSubtitle: {
-    fontSize: '0.9rem',
-    color: COLORS.textMuted,
-    marginBottom: '1.5rem',
+  gdpImpactProgressBar: {
+    height: '24px',
+    backgroundColor: COLORS.border,
+    borderRadius: '4px',
+    overflow: 'hidden',
+    position: 'relative' as const,
+    marginBottom: '0.5rem',
   },
-  winGrid: {
+  gdpImpactProgressFill: {
+    height: '100%',
+    position: 'absolute' as const,
+    left: 0,
+    top: 0,
+    transition: 'width 0.3s ease',
+  },
+  gdpImpactProgressLabels: {
     display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: '0.75rem',
-    marginBottom: '1.5rem',
-  },
-  winItem: {
-    padding: '0.75rem 1.25rem',
-    backgroundColor: COLORS.bgCard,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: '6px',
-    fontSize: '0.9rem',
-  },
-  winQuote: {
-    fontSize: '1rem',
-    fontStyle: 'italic',
-    color: COLORS.text,
-    marginTop: '1.5rem',
-  },
-  quoteAuthor: {
-    display: 'block',
-    fontSize: '0.85rem',
-    color: COLORS.hamiltonian,
-    fontStyle: 'normal',
-    marginTop: '0.5rem',
-  },
-  
-  // Footer
-  footer: {
-    textAlign: 'center',
-    padding: '1.5rem',
-    borderTop: `1px solid ${COLORS.border}`,
-    fontSize: '0.9rem',
+    justifyContent: 'space-between',
+    fontSize: '0.7rem',
     color: COLORS.textMuted,
   },
-  footerMeta: {
+  gdpImpactNote: {
     fontSize: '0.75rem',
-    color: COLORS.textDim,
-    marginTop: '0.5rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.5,
+    padding: '0.75rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '6px',
+    borderLeft: `3px solid ${COLORS.accent}`,
   },
 }
