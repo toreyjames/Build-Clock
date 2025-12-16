@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Build Economy and the AI Imperative - Deloitte</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: #0a0f14;
+            color: #e6edf3;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 4rem;
+            opacity: 0;
+            transform: translateX(100px);
+            transition: opacity 1s ease, transform 1s ease;
+            text-align: center;
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .slide.prev {
+            opacity: 0;
+            transform: translateX(-100px);
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #7ee787;
+        }
+
+        h3 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: #7d8590;
+            margin-bottom: 2rem;
+            max-width: 800px;
+        }
+
+        .stat {
+            font-size: 4rem;
+            font-weight: 800;
+            color: #7ee787;
+            margin: 1rem 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-label {
+            font-size: 1.25rem;
+            color: #7d8590;
+            margin-bottom: 2rem;
+        }
+
+        .comparison {
+            display: flex;
+            gap: 3rem;
+            margin: 2rem 0;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .comparison-item {
+            text-align: center;
+            padding: 2rem;
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 12px;
+            min-width: 250px;
+        }
+
+        .comparison-value {
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 1rem 0;
+        }
+
+        .comparison-label {
+            font-size: 1rem;
+            color: #7d8590;
+        }
+
+        .china {
+            color: #f85149;
+        }
+
+        .us {
+            color: #58a6ff;
+        }
+
+        .vs {
+            font-size: 1.5rem;
+            color: #7d8590;
+        }
+
+        .bullet-list {
+            text-align: left;
+            max-width: 700px;
+            margin: 2rem auto;
+        }
+
+        .bullet-list li {
+            font-size: 1.25rem;
+            margin: 1rem 0;
+            padding-left: 1rem;
+            line-height: 1.6;
+        }
+
+        .bullet-list li::marker {
+            color: #7ee787;
+        }
+
+        .sectors-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin: 2rem 0;
+            max-width: 900px;
+        }
+
+        .sector-card {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .sector-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .sector-name {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .deloitte-logo {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #7ee787;
+        }
+
+        .progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: #7ee787;
+            transition: width 0.3s ease;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: #238636;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #2ea043;
+        }
+
+        .slide-number {
+            position: absolute;
+            bottom: 2rem;
+            left: 2rem;
+            font-size: 0.875rem;
+            color: #7d8590;
+        }
+
+        .highlight {
+            color: #7ee787;
+            font-weight: 700;
+        }
+
+        .fade-in {
+            animation: fadeIn 1s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .count-up {
+            animation: countUp 2s ease;
+        }
+
+        @keyframes countUp {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <div class="deloitte-logo">DELOITTE</div>
+        <div class="progress-bar" id="progressBar"></div>
+        <div class="slide-number" id="slideNumber">1 / 5</div>
+
+        <!-- Slide 1: Opening -->
+        <div class="slide active" id="slide1">
+            <h1>Build Clock: Tracking Investment for <span class="highlight">New Opportunities</span></h1>
+            <div class="subtitle">Monitoring $800B+ in industrial projects to identify OT implementation opportunities</div>
+            <div class="stat count-up">$800B+</div>
+            <div class="stat-label">Industrial Investment Tracked</div>
+            <div class="sectors-grid">
+                <div class="sector-card">
+                    <div class="sector-icon">🔬</div>
+                    <div class="sector-name">Semiconductors</div>
+                </div>
+                <div class="sector-card">
+                    <div class="sector-icon">🔋</div>
+                    <div class="sector-name">Batteries</div>
+                </div>
+                <div class="sector-card">
+                    <div class="sector-icon">🧲</div>
+                    <div class="sector-name">Rare Earths</div>
+                </div>
+                <div class="sector-card">
+                    <div class="sector-icon">⚛️</div>
+                    <div class="sector-name">Nuclear</div>
+                </div>
+                <div class="sector-card">
+                    <div class="sector-icon">⚡</div>
+                    <div class="sector-name">Grid</div>
+                </div>
+                <div class="sector-card">
+                    <div class="sector-icon">🤖</div>
+                    <div class="sector-name">AI Infrastructure</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: The Challenge -->
+        <div class="slide" id="slide2">
+            <h2>The Challenge: The Prerequisites Gap</h2>
+            <div class="subtitle">Many projects depend on prerequisites that don't exist in the U.S.</div>
+            <ul class="bullet-list">
+                <li>Rare earth refining</li>
+                <li>Battery materials processing</li>
+                <li>HALEU fuel production</li>
+                <li>Transmission infrastructure</li>
+            </ul>
+            <div class="comparison">
+                <div class="comparison-item">
+                    <div class="comparison-value china">$6-8/hr</div>
+                    <div class="comparison-label">China Labor Cost</div>
+                </div>
+                <div class="vs">vs</div>
+                <div class="comparison-item">
+                    <div class="comparison-value us">$25-35/hr</div>
+                    <div class="comparison-label">U.S. Labor Cost</div>
+                </div>
+            </div>
+            <div class="stat-label"><span class="highlight">3-5x Cost Disadvantage</span></div>
+        </div>
+
+        <!-- Slide 3: The Solution -->
+        <div class="slide" id="slide3">
+            <h2>AI & Automation: Strategic Necessity</h2>
+            <div class="subtitle">The math: To compete with $6/hr labor using $30/hr labor, we need <span class="highlight">5x productivity</span></div>
+            <div class="stat count-up">5x</div>
+            <div class="stat-label">Productivity Required</div>
+            <ul class="bullet-list">
+                <li><span class="highlight">Process Optimization:</span> AI reduces waste, improves yield, lowers costs</li>
+                <li><span class="highlight">Quality Control:</span> Automated systems provide consistency and higher quality</li>
+                <li><span class="highlight">Predictive Maintenance:</span> AI prevents failures, reduces downtime</li>
+            </ul>
+            <div class="subtitle" style="margin-top: 2rem;">
+                <span class="highlight">AI-enabled automation is the only path to competitive advantage</span>
+            </div>
+        </div>
+
+        <!-- Slide 4: Deloitte Opportunity -->
+        <div class="slide" id="slide4">
+            <h2>Deloitte: Industrial AI Security</h2>
+            <div class="subtitle">Every AI-enabled industrial system needs OT security</div>
+            <ul class="bullet-list">
+                <li>AI introduces new attack vectors: model poisoning, adversarial inputs, data exfiltration</li>
+                <li>Deloitte's differentiated offering: <span class="highlight">Industrial AI Security</span></li>
+                <li>Securing AI/ML systems in OT environments</li>
+            </ul>
+            <div class="sectors-grid" style="margin-top: 3rem;">
+                <div class="sector-card">
+                    <div class="sector-icon">🧲</div>
+                    <div class="sector-name">Rare Earths</div>
+                </div>
+                <div class="sector-card">
+                    <div class="sector-icon">🔬</div>
+                    <div class="sector-name">Semiconductors</div>
+                </div>
+                <div class="sector-card">
+                    <div class="sector-icon">🔋</div>
+                    <div class="sector-name">Batteries</div>
+                </div>
+                <div class="sector-card">
+                    <div class="sector-icon">⚛️</div>
+                    <div class="sector-name">Nuclear</div>
+                </div>
+                <div class="sector-card">
+                    <div class="sector-icon">⚡</div>
+                    <div class="sector-name">Grid</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Closing -->
+        <div class="slide" id="slide5">
+            <h2>Tracking Investment for Opportunities</h2>
+            <div class="subtitle" style="font-size: 1.5rem; margin-bottom: 3rem;">
+                Build Clock monitors announced projects to surface<br>
+                opportunities where AI/automation + OT security are critical
+            </div>
+            <div class="stat count-up" style="font-size: 3rem; margin: 2rem 0;">
+                AI/Automation: <span class="highlight">Not Optional</span>
+            </div>
+            <div class="stat-label" style="font-size: 1.5rem; margin-bottom: 3rem;">
+                The Only Path to Competitive Advantage
+            </div>
+            <div class="subtitle" style="font-size: 1.25rem;">
+                <span class="highlight">Deloitte's Industrial AI Security</span><br>
+                enables opportunities in the build economy
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="previousSlide()">← Previous</button>
+            <button class="btn" onclick="nextSlide()">Next →</button>
+            <button class="btn" onclick="toggleAutoPlay()" id="autoPlayBtn">Auto Play</button>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let autoPlayInterval = null;
+        let isAutoPlaying = false;
+
+        function showSlide(n) {
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active', 'prev');
+                if (index < n) {
+                    slide.classList.add('prev');
+                }
+            });
+
+            if (n >= 0 && n < totalSlides) {
+                slides[n].classList.add('active');
+                currentSlide = n;
+                updateSlideNumber();
+                updateProgress();
+            }
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                showSlide(currentSlide + 1);
+            }
+        }
+
+        function previousSlide() {
+            if (currentSlide > 0) {
+                showSlide(currentSlide - 1);
+            }
+        }
+
+        function updateSlideNumber() {
+            document.getElementById('slideNumber').textContent = `${currentSlide + 1} / ${totalSlides}`;
+        }
+
+        function updateProgress() {
+            const progress = ((currentSlide + 1) / totalSlides) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+        }
+
+        function toggleAutoPlay() {
+            if (isAutoPlaying) {
+                clearInterval(autoPlayInterval);
+                isAutoPlaying = false;
+                document.getElementById('autoPlayBtn').textContent = 'Auto Play';
+            } else {
+                autoPlayInterval = setInterval(() => {
+                    if (currentSlide < totalSlides - 1) {
+                        nextSlide();
+                    } else {
+                        showSlide(0); // Loop back to start
+                    }
+                }, 10000); // 10 seconds per slide (adjust for 3-5 min total)
+                isAutoPlaying = true;
+                document.getElementById('autoPlayBtn').textContent = 'Pause';
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                previousSlide();
+            }
+        });
+
+        // Initialize
+        updateProgress();
+    </script>
+</body>
+</html>
+

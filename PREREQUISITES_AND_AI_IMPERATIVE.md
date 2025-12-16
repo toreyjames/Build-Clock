@@ -3,6 +3,71 @@
 
 ---
 
+## Introductory Video
+
+**Deloitte-Owned Asset: "The Build Economy and the AI Imperative"**
+
+### Video Overview
+
+A 3-5 minute executive briefing video that introduces Build Clock's purpose: tracking $800B+ in industrial investment to identify new opportunities in the build economy, with a focus on why AI/automation are strategic necessities for competitive advantage.
+
+### Key Messages
+
+**Opening (0:00-0:45): Tracking Investment for Opportunities**
+- Build Clock monitors **$800B+ in announced industrial projects** across critical sectors
+- Purpose: Identify new opportunities in semiconductors, batteries, rare earths, nuclear, and grid infrastructure
+- Every tracked project represents potential OT implementation opportunities
+
+**The Challenge (0:45-2:00): The Prerequisites Gap**
+- Many projects depend on **prerequisites** that don't exist in the U.S.
+- Rare earth refining, battery materials processing, HALEU fuel production, transmission infrastructure
+- **The labor reality:** China and other countries have cheap, skilled labor ($6-8/hour) that enables these prerequisites
+- **The U.S. constraint:** U.S. labor costs are 3-5x higher ($25-35/hour), creating a fundamental cost disadvantage
+
+**The Solution (2:00-3:30): AI and Automation as Strategic Necessities**
+- **AI and automation are not optional** — they are the only path to competitive advantage
+- Process optimization: AI reduces waste, improves yield, lowers costs
+- Quality control: Automated systems provide consistency and higher quality
+- Predictive maintenance: AI prevents failures, reduces downtime
+- **The math:** To compete with $6/hour labor using $30/hour labor, we need 5x productivity — achievable only through AI/automation
+
+**The Deloitte Opportunity (3:30-4:30): Industrial AI Security**
+- Every AI-enabled industrial system needs OT security
+- AI introduces new attack vectors: model poisoning, adversarial inputs, data exfiltration
+- Deloitte's differentiated offering: **"Industrial AI Security"** — securing AI/ML systems in OT environments
+- Target sectors: rare earths, semiconductors, batteries, nuclear, grid infrastructure
+
+**Closing (4:30-5:00): The Strategic Imperative**
+- Build Clock tracks investment to surface opportunities where AI/automation + OT security are critical
+- **AI/automation is not optional** — it is the only path to competitive advantage in the build economy
+- Deloitte enables these opportunities through Industrial AI Security services
+
+### Visual Elements
+
+- **Opening:** Animated Build Clock visualization showing $800B+ in investments
+- **Challenge:** Side-by-side comparison of labor costs (China vs. U.S.) with visual emphasis on the 3-5x gap
+- **Solution:** Animated process flows showing AI optimization (before/after productivity gains)
+- **Opportunity:** Deloitte logo and service offering graphics
+- **Closing:** Call to action with Deloitte contact information
+
+### Production Notes
+
+- **Style:** Professional, executive-level briefing (similar to Deloitte Insights videos)
+- **Tone:** Strategic, data-driven, solution-oriented
+- **Branding:** Full Deloitte branding throughout (logo, colors, fonts)
+- **Ownership:** Deloitte-owned content, suitable for client presentations, internal use, and public-facing channels
+- **Distribution:** Deloitte.com, client presentations, industry conferences, social media
+
+### Key Statistics to Highlight
+
+- **$800B+** in industrial investment
+- **3-5x** labor cost disadvantage (U.S. vs. China)
+- **90%+** of rare earth refining capacity in China
+- **70%+** of battery materials processing in China
+- **5x productivity** required to compete (achievable through AI/automation)
+
+---
+
 ## Executive Summary
 
 The Build Clock reveals **$800B+ in industrial investment**, but many projects depend on **prerequisites** that don't exist in the U.S. — rare earth refining, battery materials processing, HALEU fuel production, transmission infrastructure.

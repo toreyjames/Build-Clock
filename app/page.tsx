@@ -477,6 +477,51 @@ export default function BuildClockPage() {
         </header>
 
         {/* ================================================================ */}
+        {/* INTRODUCTORY VIDEO */}
+        {/* ================================================================ */}
+        <section style={styles.videoSection}>
+          <div style={styles.videoContainer}>
+            <div style={styles.videoHeader}>
+              <h2 style={styles.videoTitle}>The Build Economy and the AI Imperative</h2>
+              <p style={styles.videoSubtitle}>
+                A strategic briefing on why AI and automation are necessities, not options, in the $800B+ industrial investment boom
+              </p>
+            </div>
+            <div style={styles.videoWrapper}>
+              {/* Video embed - Replace with actual Deloitte video URL when available */}
+              <div style={styles.videoPlaceholder}>
+                <div style={styles.videoPlaceholderContent}>
+                  <div style={styles.videoPlaceholderIcon}>▶</div>
+                  <div style={styles.videoPlaceholderText}>
+                    <div style={styles.videoPlaceholderTitle}>Deloitte-Owned Video</div>
+                    <div style={styles.videoPlaceholderDesc}>
+                      "The Build Economy and the AI Imperative"<br />
+                      <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>
+                        Video embed will be added here when production is complete
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Uncomment and update when video is ready:
+              <iframe
+                src="https://www.youtube.com/embed/VIDEO_ID"
+                title="The Build Economy and the AI Imperative"
+                style={styles.videoIframe}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+              */}
+            </div>
+            <div style={styles.videoNote}>
+              <strong>Deloitte-Owned Content:</strong> This video introduces Build Clock's purpose: tracking $800B+ in industrial investment 
+              to identify new opportunities in the build economy. Content covers how we monitor announced projects, why AI/automation are 
+              strategic necessities, and how Deloitte's Industrial AI Security services enable these opportunities.
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================ */}
         {/* THE PROBLEM - Only 8% Builds */}
         {/* ================================================================ */}
         <section style={styles.heroNew}>
@@ -506,12 +551,12 @@ export default function BuildClockPage() {
               )}
             </div>
             <div style={styles.debtHeroQuestion}>
-              <div style={styles.hamiltonQuestion}>The Core Question:</div>
+              <div style={styles.hamiltonQuestion}>Purpose:</div>
               <div style={styles.hamiltonText}>
-                Not <em>how much</em> we spend — but <em>what portion builds lasting capacity</em>?
+                Tracking <em>$800B+ in industrial investment</em> to identify new opportunities in the build economy
               </div>
               <div style={{ fontSize: '0.65rem', color: COLORS.textDim, marginTop: '0.5rem' }}>
-                Framework: Distinguishing capital investment from current consumption
+                Build Clock monitors announced projects across semiconductors, batteries, rare earths, nuclear, and grid infrastructure to surface OT implementation opportunities
               </div>
             </div>
           </div>
@@ -1264,6 +1309,97 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '0.85rem',
     fontWeight: 600,
     transition: 'all 0.2s',
+  },
+
+  // Video Section
+  videoSection: {
+    marginBottom: '3rem',
+  },
+  videoContainer: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '12px',
+    padding: '2rem',
+  },
+  videoHeader: {
+    marginBottom: '1.5rem',
+    textAlign: 'center' as const,
+  },
+  videoTitle: {
+    fontSize: '1.5rem',
+    fontWeight: 700,
+    margin: 0,
+    marginBottom: '0.5rem',
+    color: COLORS.text,
+  },
+  videoSubtitle: {
+    fontSize: '0.9rem',
+    color: COLORS.textMuted,
+    margin: 0,
+    lineHeight: 1.5,
+  },
+  videoWrapper: {
+    position: 'relative' as const,
+    width: '100%',
+    paddingBottom: '56.25%', // 16:9 aspect ratio
+    height: 0,
+    backgroundColor: COLORS.bg,
+    borderRadius: '8px',
+    overflow: 'hidden',
+    marginBottom: '1rem',
+  },
+  videoIframe: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    border: 'none',
+  },
+  videoPlaceholder: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.bg,
+    border: `2px dashed ${COLORS.border}`,
+  },
+  videoPlaceholderContent: {
+    textAlign: 'center' as const,
+    padding: '2rem',
+  },
+  videoPlaceholderIcon: {
+    fontSize: '4rem',
+    color: COLORS.accent,
+    marginBottom: '1rem',
+    cursor: 'pointer',
+    transition: 'transform 0.2s',
+  },
+  videoPlaceholderText: {
+    color: COLORS.textMuted,
+  },
+  videoPlaceholderTitle: {
+    fontSize: '1rem',
+    fontWeight: 600,
+    color: COLORS.text,
+    marginBottom: '0.5rem',
+  },
+  videoPlaceholderDesc: {
+    fontSize: '0.85rem',
+    lineHeight: 1.5,
+  },
+  videoNote: {
+    padding: '1rem',
+    backgroundColor: COLORS.bg,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '6px',
+    fontSize: '0.8rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.5,
   },
 
   // Hero - Debt Clock Design
