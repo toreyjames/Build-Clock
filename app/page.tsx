@@ -763,42 +763,67 @@ export default function BuildClockPage() {
           </div>
           
           <div style={styles.sectorGrid}>
-            {SECTOR_PIPELINE.map(sector => (
-              <div key={sector.sector} style={styles.sectorCard}>
-                <div style={styles.sectorHeader}>
-                  <span style={styles.sectorName}>{sector.sector}</span>
-                  <span style={styles.sectorProjects}>{sector.projects} projects</span>
-                </div>
-                <div style={{ ...styles.sectorValue, color: sector.color }}>
-                  ${sector.pipeline}B
-                </div>
-                <div style={styles.sectorBar}>
-                  <div 
-                    style={{ 
-                      ...styles.sectorBarFill, 
-                      width: `${(sector.pipeline / 200) * 100}%`,
-                      backgroundColor: sector.color 
-                    }} 
-                  />
-                </div>
-                <div style={styles.sectorQuality}>
-                  <span style={{ 
-                    color: sector.quality === 'leading-edge' ? COLORS.accent : 
-                           sector.quality === 'advanced' ? COLORS.blue : COLORS.textMuted 
-                  }}>
-                    {sector.quality === 'leading-edge' ? '★★★★★' : 
-                     sector.quality === 'advanced' ? '★★★★☆' : '★★★☆☆'}
-                  </span>
-                  <span style={{
-                    ...styles.sectorImpact,
-                    color: sector.economicImpact === 'transformational' ? COLORS.accent :
-                           sector.economicImpact === 'catalytic' ? COLORS.blue : COLORS.textMuted
-                  }}>
-                    {getEconomicImpactLabel(sector.economicImpact)}
-                  </span>
-                </div>
-              </div>
-            ))}
+            {SECTOR_PIPELINE.map(sector => {
+              // Map display name back to opportunity sector value(s) for filtering
+              // Note: "Defense & Critical" includes both 'defense' and 'critical-minerals'
+              const sectorMap: Record<string, string[]> = {
+                'AI Data Centers': ['data-centers'],
+                'Semiconductors': ['semiconductors'],
+                'EV & Battery': ['ev-battery'],
+                'Pharma': ['pharma'],
+                'Grid & Clean Energy': ['clean-energy'],
+                'Steel & Metals': ['steel-metals'],
+                'Advanced Mfg': ['advanced-mfg'],
+                'Nuclear (SMRs)': ['nuclear'],
+                'Oil & Gas': ['oil-gas'],
+                'Defense & Critical': ['defense', 'critical-minerals'],
+                'Water & Utilities': ['water-utilities'],
+                'Chemicals': ['chemicals'],
+              }
+              const sectorValues = sectorMap[sector.sector] || [sector.sector.toLowerCase().replace(/\s+/g, '-')]
+              const maxPipeline = Math.max(...SECTOR_PIPELINE.map(s => s.pipeline))
+              // For multi-sector, use first one for URL (filter will handle both)
+              const sectorValue = sectorValues[0]
+              
+              return (
+                <Link 
+                  key={sector.sector} 
+                  href={`/opportunities?sector=${sectorValue}`}
+                  style={{ textDecoration: 'none', color: 'inherit' }}
+                >
+                  <div style={{ ...styles.sectorCard, cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = sector.color
+                      e.currentTarget.style.transform = 'translateY(-2px)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = COLORS.border
+                      e.currentTarget.style.transform = 'translateY(0)'
+                    }}
+                  >
+                    <div style={styles.sectorHeader}>
+                      <span style={styles.sectorName}>{sector.sector}</span>
+                      <span style={styles.sectorProjects}>{sector.projects} projects →</span>
+                    </div>
+                    <div style={{ ...styles.sectorValue, color: sector.color }}>
+                      ${sector.pipeline}B
+                    </div>
+                    <div style={styles.sectorBar}>
+                      <div 
+                        style={{ 
+                          ...styles.sectorBarFill, 
+                          width: `${(sector.pipeline / maxPipeline) * 100}%`,
+                          backgroundColor: sector.color 
+                        }} 
+                      />
+                    </div>
+                    <div style={{ ...styles.sectorQuality, fontSize: '0.75rem', color: COLORS.textMuted, marginTop: '0.5rem' }}>
+                      Relative investment size • Click to view opportunities
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
           
           {/* GDP Impact - Economic Multiplier Effect */}

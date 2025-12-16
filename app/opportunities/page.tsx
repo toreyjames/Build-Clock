@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { opportunities, type Opportunity } from '../../lib/data/opportunities'
 
@@ -161,17 +162,35 @@ const isRfpPastDue = (opp: Opportunity) => {
 type ViewMode = 'cards' | 'table' | 'timeline';
 
 export default function OpportunitiesPage() {
+  const searchParams = useSearchParams()
   const [viewMode, setViewMode] = useState('cards');
   const [selectedStage, setSelectedStage] = useState('all');
   const [selectedPriority, setSelectedPriority] = useState('all');
   const [selectedOt, setSelectedOt] = useState('core');
   const [selectedHorizon, setSelectedHorizon] = useState('next');
+  const [selectedSector, setSelectedSector] = useState<string>('all');
   const [includeSoon, setIncludeSoon] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Read sector from URL params on mount
+  useEffect(() => {
+    const sectorParam = searchParams.get('sector')
+    if (sectorParam) {
+      setSelectedSector(sectorParam)
+    }
+  }, [searchParams])
 
   const filtered = opportunities.filter(opp => {
     if (selectedStage !== 'all' && opp.procurementStage !== selectedStage) return false;
     if (selectedPriority !== 'all' && opp.priority !== selectedPriority) return false;
+    if (selectedSector !== 'all') {
+      // Handle "Defense & Critical" which includes both defense and critical-minerals
+      if (selectedSector === 'defense') {
+        if (opp.sector !== 'defense' && opp.sector !== 'critical-minerals') return false;
+      } else {
+        if (opp.sector !== selectedSector) return false;
+      }
+    }
     const ot = inferOtRelevance(opp);
     if (selectedOt !== 'all' && ot !== selectedOt) return false;
     const horizon = getHorizon(opp.nextMilestone?.date);
@@ -238,7 +257,48 @@ export default function OpportunitiesPage() {
           </div>
         </div>
 
+        {selectedSector !== 'all' && (
+          <div style={{ ...styles.narrativeContext, marginBottom: '1rem' }}>
+            <div style={styles.narrativeBox}>
+              <span style={styles.narrativeLabel}>FILTERED BY SECTOR</span>
+              <span style={styles.narrativeText}>
+                Showing {filtered.length} {filtered.length === 1 ? 'opportunity' : 'opportunities'} in {getSectorLabel(selectedSector)}
+                <button
+                  onClick={() => setSelectedSector('all')}
+                  style={{
+                    marginLeft: '1rem',
+                    padding: '0.25rem 0.75rem',
+                    backgroundColor: COLORS.bgCard,
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: '4px',
+                    color: COLORS.text,
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  Clear filter
+                </button>
+              </span>
+            </div>
+          </div>
+        )}
+
         <div style={styles.filters}>
+          <div style={styles.filterGroup}>
+            <span style={styles.filterLabel}>Sector:</span>
+            {(['all', 'semiconductors', 'data-centers', 'ev-battery', 'pharma', 'clean-energy', 'nuclear', 'defense', 'advanced-mfg', 'steel-metals', 'oil-gas', 'water-utilities', 'chemicals']).map(s => (
+              <button
+                key={s}
+                onClick={() => setSelectedSector(s)}
+                style={{
+                  ...styles.filterBtn,
+                  ...(selectedSector === s ? styles.filterBtnActive : {}),
+                }}
+              >
+                {s === 'all' ? 'All' : getSectorLabel(s)}
+              </button>
+            ))}
+          </div>
           <div style={styles.filterGroup}>
             <span style={styles.filterLabel}>Stage:</span>
             {(['all', 'monitoring', 'pre-rfp', 'rfp-open', 'evaluation', 'awarded']).map(stage => (
