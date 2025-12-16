@@ -582,28 +582,6 @@ export default function BuildClockPage() {
             </div>
           </div>
 
-          {/* Per Citizen Context */}
-          <div style={styles.citizenContext}>
-            <div style={styles.citizenStat}>
-              <span style={styles.citizenLabel}>Your share of the debt:</span>
-              <span style={styles.citizenValue}>${Math.round(debtPerCitizen).toLocaleString()}</span>
-            </div>
-            <div style={styles.citizenStat}>
-              <span style={styles.citizenLabel}>Portion that built assets:</span>
-              <span style={{ ...styles.citizenValue, color: COLORS.accent }}>
-                ${Math.round(debtPerCitizen * 0.08).toLocaleString()}
-              </span>
-              <span style={styles.citizenNote}>(~8%)</span>
-            </div>
-            <div style={styles.citizenStat}>
-              <span style={styles.citizenLabel}>Already consumed:</span>
-              <span style={{ ...styles.citizenValue, color: COLORS.danger }}>
-                ${Math.round(debtPerCitizen * 0.92).toLocaleString()}
-              </span>
-              <span style={styles.citizenNote}>(~92%)</span>
-            </div>
-          </div>
-
           {/* Fiscal Target - moved from section 04 */}
           <div style={styles.fiscalCard}>
             <div style={styles.fiscalHeader}>
@@ -714,6 +692,14 @@ export default function BuildClockPage() {
             10% universal + sector-specific) drive reshoring through protection rather than subsidies. The administration has 
             distanced itself from CHIPS/IRA-style programs, favoring tariff-driven investment. Combined, these waves shift spending 
             composition toward the 12-15% investment share needed to stabilize debt/GDP at ~100% by 2030.
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+              <Link href="/policy-gaps" style={{ fontSize: '0.85rem', color: COLORS.blue, textDecoration: 'none' }}>
+                Policy Gaps & Solutions →
+              </Link>
+              <Link href="/opportunities" style={{ fontSize: '0.85rem', color: COLORS.blue, textDecoration: 'none' }}>
+                See Opportunities Created →
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -856,6 +842,11 @@ export default function BuildClockPage() {
               <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.7rem', color: COLORS.textDim }}>
                 Sources: CBO multiplier estimates, EPI analysis. US GDP: $29.2T (2024, BEA).
               </span>
+              <div style={{ marginTop: '0.75rem' }}>
+                <Link href="/references" style={{ fontSize: '0.85rem', color: COLORS.blue, textDecoration: 'none' }}>
+                  View Research Papers →
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -951,41 +942,78 @@ export default function BuildClockPage() {
           </p>
           
           <div style={styles.gapsGrid}>
-            {STRATEGIC_GAPS.map(gap => (
-              <div key={gap.id} style={styles.gapCard}>
-                <div style={styles.gapHeader}>
-                  <span style={styles.gapIcon}>{gap.icon}</span>
-                  <div>
-                    <div style={styles.gapCategory}>{gap.category}</div>
-                    <div style={styles.gapTitle}>{gap.title}</div>
+            {STRATEGIC_GAPS.map(gap => {
+              // Map gap categories to relevant sectors for linking
+              const gapSectorMap: Record<string, string> = {
+                'Semiconductors': 'semiconductors',
+                'Critical Minerals': 'critical-minerals',
+                'Battery Materials': 'ev-battery',
+                'Nuclear Fuel': 'nuclear',
+                'Grid Capacity': 'clean-energy',
+                'AI Infrastructure': 'data-centers',
+              }
+              const relevantSector = gapSectorMap[gap.category] || null
+              
+              return (
+                <div 
+                  key={gap.id} 
+                  style={{
+                    ...styles.gapCard,
+                    cursor: relevantSector ? 'pointer' : 'default',
+                    transition: 'all 0.2s',
+                  }}
+                  onClick={relevantSector ? () => window.location.href = `/opportunities?sector=${relevantSector}` : undefined}
+                  onMouseEnter={relevantSector ? (e) => {
+                    e.currentTarget.style.borderColor = COLORS.accent
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                  } : undefined}
+                  onMouseLeave={relevantSector ? (e) => {
+                    e.currentTarget.style.borderColor = COLORS.border
+                    e.currentTarget.style.transform = 'translateY(0)'
+                  } : undefined}
+                >
+                  <div style={styles.gapHeader}>
+                    <span style={styles.gapIcon}>{gap.icon}</span>
+                    <div>
+                      <div style={styles.gapCategory}>{gap.category}</div>
+                      <div style={styles.gapTitle}>{gap.title}</div>
+                    </div>
+                  </div>
+                  <div style={styles.gapComparison}>
+                    <div style={styles.gapSide}>
+                      <div style={{ ...styles.gapValue, color: COLORS.danger }}>{gap.us}</div>
+                      <div style={styles.gapLabel}>{gap.usLabel}</div>
+                    </div>
+                    <div style={styles.gapVs}>vs</div>
+                    <div style={styles.gapSide}>
+                      <div style={{ ...styles.gapValue, color: gap.color }}>{gap.them}</div>
+                      <div style={styles.gapLabel}>{gap.themLabel}</div>
+                    </div>
+                  </div>
+                  <div style={styles.gapBottom}>
+                    <div style={styles.gapGap}>
+                      <strong>Gap:</strong> {gap.gap} — {gap.gapNote}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {relevantSector && (
+                        <span style={{ fontSize: '0.75rem', color: COLORS.accent }}>
+                          View opportunities →
+                        </span>
+                      )}
+                      <a 
+                        href={gap.sourceUrl} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        style={{ ...styles.gapSource, color: COLORS.blue, textDecoration: 'none' }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {gap.source} ↗
+                      </a>
+                    </div>
                   </div>
                 </div>
-                <div style={styles.gapComparison}>
-                  <div style={styles.gapSide}>
-                    <div style={{ ...styles.gapValue, color: COLORS.danger }}>{gap.us}</div>
-                    <div style={styles.gapLabel}>{gap.usLabel}</div>
-                  </div>
-                  <div style={styles.gapVs}>vs</div>
-                  <div style={styles.gapSide}>
-                    <div style={{ ...styles.gapValue, color: gap.color }}>{gap.them}</div>
-                    <div style={styles.gapLabel}>{gap.themLabel}</div>
-                  </div>
-                </div>
-                <div style={styles.gapBottom}>
-                  <div style={styles.gapGap}>
-                    <strong>Gap:</strong> {gap.gap} — {gap.gapNote}
-                  </div>
-                  <a 
-                    href={gap.sourceUrl} 
-                    target="_blank" 
-                    rel="noreferrer" 
-                    style={{ ...styles.gapSource, color: COLORS.blue, textDecoration: 'none' }}
-                  >
-                    {gap.source} ↗
-                  </a>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
           
           <div style={styles.caseInsight}>
