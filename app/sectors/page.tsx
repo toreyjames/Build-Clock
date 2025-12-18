@@ -278,13 +278,13 @@ const SECTORS: Sector[] = [
     valueChain: [
       {
         stage: 'Fuel Cycle',
-        description: 'Uranium mining, enrichment, fuel fabrication (HALEU for SMRs)',
+        description: 'Uranium mining, enrichment, fuel fabrication (HALEU for advanced reactors)',
         usCapacity: 'Limited (mining, some enrichment), no HALEU production',
         globalLeader: 'Russia (enrichment), France (fuel fabrication)',
         gap: 'Critical (HALEU)',
         laborIntensity: 'High (precision processes)',
         aiNecessity: 'AI for process optimization, quality control, predictive maintenance',
-        otRequirements: ['Process control', 'Safety systems', 'Security (nuclear materials)'],
+        otRequirements: ['Process control', 'Safety systems', 'Security (nuclear materials)', 'QA throughput systems'],
       },
       {
         stage: 'Components',
@@ -303,8 +303,8 @@ const SECTORS: Sector[] = [
         globalLeader: 'South Korea, China, Russia',
         gap: 'Critical',
         laborIntensity: 'Very high (thousands of workers)',
-        aiNecessity: 'AI for construction automation (welding, inspection), predictive maintenance',
-        otRequirements: ['Construction automation', 'Inspection systems'],
+        aiNecessity: 'AI for construction automation (welding, inspection), licensing acceleration',
+        otRequirements: ['Construction automation', 'Inspection systems', 'Licensing support systems', 'QA automation'],
       },
       {
         stage: 'Reactor Operations',
@@ -334,7 +334,7 @@ const SECTORS: Sector[] = [
       'AI/ML systems (new attack vectors: model poisoning, adversarial inputs)',
       'Legacy systems (hard to secure, can\'t patch)',
     ],
-    deloitteOpportunity: 'OT security for fuel cycle facilities, OT security for reactor operations, AI/OT integration security, NRC compliance',
+    deloitteOpportunity: 'OT security, AI/OT integration, NRC compliance. Heartbeat AI: licensing acceleration, QA automation, operations optimization. ER&I clients: NuScale, TerraPower, X-energy, Oklo.',
   },
   {
     id: 'grid',
