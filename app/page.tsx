@@ -363,38 +363,69 @@ interface DebtData {
 }
 
 // ============================================================================
-// STRATEGIC GAPS NETWORK VISUALIZATION
+// AI MANHATTAN PROJECT - DEPENDENCY UNIVERSE VISUALIZATION
 // ============================================================================
+// The AI data center buildout is the strategic driver that creates demand for everything
 function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null)
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
 
-  // Map gaps to network positions (grid at center, others around it)
-  const nodePositions: Record<string, { x: number; y: number; angle: number }> = {
-    'grid-energy': { x: 50, y: 50, angle: 0 }, // Center - enabling infrastructure
-    'semiconductor': { x: 20, y: 35, angle: -45 },
-    'ev-battery': { x: 80, y: 35, angle: 45 },
-    'nuclear': { x: 50, y: 20, angle: 90 },
-  }
-
-  // Define connections (from -> to, with label)
-  const connections = [
-    { from: 'grid-energy', to: 'semiconductor', label: 'powers', type: 'enables' },
-    { from: 'grid-energy', to: 'ev-battery', label: 'powers', type: 'enables' },
-    { from: 'grid-energy', to: 'nuclear', label: 'connects', type: 'enables' },
-    { from: 'nuclear', to: 'grid-energy', label: 'feeds', type: 'feeds' },
-    { from: 'semiconductor', to: 'ev-battery', label: 'controls', type: 'enables' },
+  // The universe: AI at center, everything else flows from it
+  // AI Data Centers → needs Power, Chips, Water, Cooling
+  // Power → needs Grid, Nuclear, Transmission
+  // Chips → needs Fabs, Rare Earths, Chemicals, Water
+  // All of it → needs OT systems
+  
+  const nodes = [
+    // CENTER: The Manhattan Project
+    { id: 'ai-datacenters', label: 'AI Data Centers', sublabel: 'The Manhattan Project', icon: '🧠', color: COLORS.purple, x: 50, y: 50, size: 'large', sector: 'data-centers' },
+    
+    // INNER RING: Direct dependencies (what AI needs immediately)
+    { id: 'power', label: 'Power', sublabel: '100MW+ per DC', icon: '⚡', color: COLORS.warning, x: 50, y: 25, size: 'medium', sector: 'clean-energy' },
+    { id: 'chips', label: 'AI Chips', sublabel: 'GPUs, TPUs, ASICs', icon: '🔬', color: COLORS.blue, x: 75, y: 38, size: 'medium', sector: 'semiconductors' },
+    { id: 'water', label: 'Water', sublabel: 'Cooling Systems', icon: '💧', color: '#4fc3f7', x: 75, y: 62, size: 'medium', sector: 'water-utilities' },
+    { id: 'storage', label: 'Storage', sublabel: 'Battery Backup', icon: '🔋', color: COLORS.accent, x: 50, y: 75, size: 'medium', sector: 'ev-battery' },
+    
+    // OUTER RING: Prerequisites (what the inner ring needs)
+    { id: 'nuclear', label: 'Nuclear', sublabel: 'Clean Baseload', icon: '⚛️', color: '#ff7043', x: 30, y: 15, size: 'small', sector: 'nuclear' },
+    { id: 'grid', label: 'Grid', sublabel: 'Transmission', icon: '🔌', color: COLORS.warning, x: 70, y: 15, size: 'small', sector: 'clean-energy' },
+    { id: 'rare-earths', label: 'Rare Earths', sublabel: 'Magnets', icon: '🧲', color: '#ab47bc', x: 90, y: 50, size: 'small', sector: 'critical-minerals' },
+    { id: 'chemicals', label: 'Chemicals', sublabel: 'Process Materials', icon: '🧪', color: '#26a69a', x: 85, y: 78, size: 'small', sector: 'chemicals' },
+    { id: 'upw', label: 'Ultra-Pure Water', sublabel: 'Fab Operations', icon: '🚰', color: '#4fc3f7', x: 25, y: 85, size: 'small', sector: 'water-utilities' },
+    { id: 'workforce', label: 'Workforce', sublabel: 'AI Gap → Automation', icon: '🤖', color: COLORS.textMuted, x: 15, y: 50, size: 'small', sector: null },
   ]
 
-  const gapSectorMap: Record<string, string> = {
-    'semiconductor': 'semiconductors',
-    'ev-battery': 'ev-battery',
-    'nuclear': 'nuclear',
-    'grid-energy': 'clean-energy',
-  }
+  // Connections show dependency flow: FROM what's needed TO what needs it
+  const connections = [
+    // AI Data Centers needs...
+    { from: 'ai-datacenters', to: 'power', label: 'needs', type: 'primary' },
+    { from: 'ai-datacenters', to: 'chips', label: 'needs', type: 'primary' },
+    { from: 'ai-datacenters', to: 'water', label: 'needs', type: 'primary' },
+    { from: 'ai-datacenters', to: 'storage', label: 'needs', type: 'primary' },
+    
+    // Power needs...
+    { from: 'power', to: 'nuclear', label: 'baseload', type: 'secondary' },
+    { from: 'power', to: 'grid', label: 'transmission', type: 'secondary' },
+    
+    // Chips need...
+    { from: 'chips', to: 'rare-earths', label: 'materials', type: 'secondary' },
+    { from: 'chips', to: 'chemicals', label: 'process', type: 'secondary' },
+    { from: 'chips', to: 'upw', label: 'fab ops', type: 'secondary' },
+    
+    // Water needs...
+    { from: 'water', to: 'upw', label: 'treatment', type: 'secondary' },
+    
+    // Storage needs...
+    { from: 'storage', to: 'rare-earths', label: 'magnets', type: 'secondary' },
+    
+    // Workforce gap
+    { from: 'workforce', to: 'ai-datacenters', label: '$30 vs $6/hr', type: 'constraint' },
+    
+    // Feedback loops
+    { from: 'nuclear', to: 'grid', label: 'feeds', type: 'feedback' },
+  ]
 
-  const handleNodeClick = (gapId: string) => {
-    const sector = gapSectorMap[gapId]
+  const handleNodeClick = (sector: string | null) => {
     if (sector) {
       window.location.href = `/opportunities?sector=${sector}`
     }
@@ -402,40 +433,87 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
 
   return (
     <div style={styles.networkContainer}>
+      {/* Title callout */}
+      <div style={{ 
+        textAlign: 'center', 
+        marginBottom: '1.5rem',
+        padding: '1rem',
+        backgroundColor: COLORS.purple + '15',
+        borderRadius: '8px',
+        border: `1px solid ${COLORS.purple}40`
+      }}>
+        <div style={{ fontSize: '0.75rem', color: COLORS.purple, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '0.25rem' }}>
+          The Strategic Driver
+        </div>
+        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: COLORS.text }}>
+          AI Data Center Buildout: $500B+ Stargate & Hyperscalers
+        </div>
+        <div style={{ fontSize: '0.85rem', color: COLORS.textMuted, marginTop: '0.25rem' }}>
+          Everything below exists to serve this demand. Follow the connections.
+        </div>
+      </div>
+
       <svg 
         viewBox="0 0 100 100" 
-        style={styles.networkSvg}
+        style={{ ...styles.networkSvg, height: '450px' }}
         preserveAspectRatio="xMidYMid meet"
       >
+        {/* Defs */}
+        <defs>
+          <marker id="arrowhead" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto">
+            <polygon points="0 0, 4 2, 0 4" fill={COLORS.accent} />
+          </marker>
+          <marker id="arrowhead-dim" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto">
+            <polygon points="0 0, 4 2, 0 4" fill={COLORS.border} />
+          </marker>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+          <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor={COLORS.purple} stopOpacity="0.3"/>
+            <stop offset="100%" stopColor={COLORS.purple} stopOpacity="0"/>
+          </radialGradient>
+        </defs>
+
+        {/* Center glow for AI */}
+        <circle cx="50" cy="50" r="12" fill="url(#centerGlow)" />
+
         {/* Connection lines */}
         {connections.map((conn, idx) => {
-          const fromPos = nodePositions[conn.from]
-          const toPos = nodePositions[conn.to]
-          if (!fromPos || !toPos) return null
+          const fromNode = nodes.find(n => n.id === conn.from)
+          const toNode = nodes.find(n => n.id === conn.to)
+          if (!fromNode || !toNode) return null
 
           const isHighlighted = hoveredNode === conn.from || hoveredNode === conn.to || selectedNode === conn.from || selectedNode === conn.to
+          const isPrimary = conn.type === 'primary'
+          const isConstraint = conn.type === 'constraint'
+          const isFeedback = conn.type === 'feedback'
           
           return (
             <g key={idx}>
               <line
-                x1={fromPos.x}
-                y1={fromPos.y}
-                x2={toPos.x}
-                y2={toPos.y}
-                stroke={isHighlighted ? COLORS.accent : COLORS.border}
-                strokeWidth={isHighlighted ? 0.3 : 0.15}
-                strokeDasharray={conn.type === 'feeds' ? '0.5,0.5' : 'none'}
-                opacity={isHighlighted ? 0.8 : 0.3}
-                markerEnd={isHighlighted ? "url(#arrowhead)" : undefined}
+                x1={fromNode.x}
+                y1={fromNode.y}
+                x2={toNode.x}
+                y2={toNode.y}
+                stroke={isHighlighted ? COLORS.accent : isConstraint ? COLORS.danger : isPrimary ? COLORS.purple + '60' : COLORS.border}
+                strokeWidth={isHighlighted ? 0.4 : isPrimary ? 0.25 : 0.15}
+                strokeDasharray={isFeedback ? '0.8,0.4' : isConstraint ? '0.5,0.5' : 'none'}
+                opacity={isHighlighted ? 1 : isPrimary ? 0.7 : 0.4}
+                markerEnd={isHighlighted ? "url(#arrowhead)" : isPrimary ? "url(#arrowhead-dim)" : undefined}
               />
-              {/* Connection label (only show on hover) */}
               {isHighlighted && (
                 <text
-                  x={(fromPos.x + toPos.x) / 2}
-                  y={(fromPos.y + toPos.y) / 2 - 1}
-                  fontSize="2"
-                  fill={COLORS.textMuted}
+                  x={(fromNode.x + toNode.x) / 2}
+                  y={(fromNode.y + toNode.y) / 2 - 1.5}
+                  fontSize="1.8"
+                  fill={COLORS.text}
                   textAnchor="middle"
+                  fontWeight={600}
                   style={{ pointerEvents: 'none' }}
                 >
                   {conn.label}
@@ -445,176 +523,109 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
           )
         })}
 
-        {/* Arrow marker definition and shadow filter */}
-        <defs>
-          <marker
-            id="arrowhead"
-            markerWidth="3"
-            markerHeight="3"
-            refX="2"
-            refY="1.5"
-            orient="auto"
-          >
-            <polygon
-              points="0 0, 3 1.5, 0 3"
-              fill={COLORS.accent}
-            />
-          </marker>
-          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="0.5"/>
-            <feOffset dx="0.3" dy="0.3" result="offsetblur"/>
-            <feComponentTransfer>
-              <feFuncA type="linear" slope="0.3"/>
-            </feComponentTransfer>
-            <feMerge>
-              <feMergeNode/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-        </defs>
-
         {/* Nodes */}
-        {gaps.map(gap => {
-          const pos = nodePositions[gap.id]
-          if (!pos) return null
-
-          const isHovered = hoveredNode === gap.id
-          const isSelected = selectedNode === gap.id
+        {nodes.map(node => {
+          const isHovered = hoveredNode === node.id
+          const isSelected = selectedNode === node.id
           const isActive = isHovered || isSelected
-          const sector = gapSectorMap[gap.id]
+          const isCenter = node.id === 'ai-datacenters'
+          const baseRadius = node.size === 'large' ? 6 : node.size === 'medium' ? 4 : 3
 
           return (
             <g
-              key={gap.id}
-              style={{ cursor: sector ? 'pointer' : 'default' }}
-              onMouseEnter={() => setHoveredNode(gap.id)}
+              key={node.id}
+              style={{ cursor: node.sector ? 'pointer' : 'default' }}
+              onMouseEnter={() => setHoveredNode(node.id)}
               onMouseLeave={() => setHoveredNode(null)}
               onClick={() => {
-                setSelectedNode(gap.id)
-                if (sector) handleNodeClick(gap.id)
+                setSelectedNode(node.id)
+                handleNodeClick(node.sector)
               }}
             >
               {/* Node circle */}
               <circle
-                cx={pos.x}
-                cy={pos.y}
-                r={isActive ? 4.5 : 3.5}
-                fill={isActive ? gap.color : COLORS.bgCard}
-                stroke={isActive ? COLORS.accent : gap.color}
-                strokeWidth={isActive ? 0.4 : 0.2}
-                opacity={isActive ? 1 : 0.8}
+                cx={node.x}
+                cy={node.y}
+                r={isActive ? baseRadius + 1 : baseRadius}
+                fill={isActive || isCenter ? node.color : COLORS.bgCard}
+                stroke={isActive ? COLORS.accent : node.color}
+                strokeWidth={isActive ? 0.5 : isCenter ? 0.4 : 0.2}
+                opacity={isActive ? 1 : isCenter ? 1 : 0.85}
+                filter={isCenter ? 'url(#glow)' : undefined}
                 style={{ transition: 'all 0.2s' }}
               />
               
               {/* Node icon */}
               <text
-                x={pos.x}
-                y={pos.y + 1.2}
-                fontSize="3.5"
+                x={node.x}
+                y={node.y + (isCenter ? 1.5 : 1)}
+                fontSize={isCenter ? 4 : node.size === 'medium' ? 3 : 2.5}
                 textAnchor="middle"
                 style={{ pointerEvents: 'none' }}
               >
-                {gap.icon}
+                {node.icon}
               </text>
 
-              {/* Node label */}
+              {/* Labels */}
               <text
-                x={pos.x}
-                y={pos.y + (gap.id === 'grid-energy' ? -7 : 7)}
-                fontSize="2.5"
+                x={node.x}
+                y={node.y + baseRadius + 3}
+                fontSize={isCenter ? 2.5 : 2}
                 fill={isActive ? COLORS.text : COLORS.textMuted}
                 textAnchor="middle"
-                fontWeight={isActive ? 700 : 600}
+                fontWeight={isActive || isCenter ? 700 : 500}
                 style={{ pointerEvents: 'none' }}
               >
-                {gap.title.split(' ')[0]}
+                {node.label}
               </text>
-              {gap.id !== 'grid-energy' && (
+              {(isActive || isCenter) && (
                 <text
-                  x={pos.x}
-                  y={pos.y + (gap.id === 'grid-energy' ? -5 : 9)}
-                  fontSize="1.8"
-                  fill={isActive ? COLORS.textMuted : COLORS.textDim}
+                  x={node.x}
+                  y={node.y + baseRadius + 5.5}
+                  fontSize="1.6"
+                  fill={COLORS.textDim}
                   textAnchor="middle"
                   style={{ pointerEvents: 'none' }}
                 >
-                  {gap.title.split(' ').slice(1).join(' ')}
+                  {node.sublabel}
                 </text>
-              )}
-
-              {/* Expanded info on hover - tooltip */}
-              {isActive && (
-                <g>
-                  <rect
-                    x={pos.x - 10}
-                    y={pos.y + (gap.id === 'grid-energy' ? 10 : -14)}
-                    width="20"
-                    height="7"
-                    fill={COLORS.bgCard}
-                    stroke={COLORS.accent}
-                    strokeWidth="0.3"
-                    rx="0.8"
-                    opacity={0.98}
-                    filter="url(#shadow)"
-                  />
-                  <text
-                    x={pos.x}
-                    y={pos.y + (gap.id === 'grid-energy' ? 12.5 : -11.5)}
-                    fontSize="2"
-                    fill={COLORS.text}
-                    textAnchor="middle"
-                    fontWeight={700}
-                    style={{ pointerEvents: 'none' }}
-                  >
-                    {gap.us} → {gap.them}
-                  </text>
-                  <text
-                    x={pos.x}
-                    y={pos.y + (gap.id === 'grid-energy' ? 14.5 : -9.5)}
-                    fontSize="1.6"
-                    fill={COLORS.textMuted}
-                    textAnchor="middle"
-                    style={{ pointerEvents: 'none' }}
-                  >
-                    {gap.gap}
-                  </text>
-                </g>
               )}
             </g>
           )
         })}
       </svg>
 
-      {/* Legend/Key */}
-      <div style={styles.networkLegend}>
-        <div style={styles.networkLegendItem}>
-          <div style={{ ...styles.networkLegendDot, backgroundColor: COLORS.accent }} />
-          <span style={styles.networkLegendText}>Enables / Powers</span>
+      {/* Legend */}
+      <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '1rem', fontSize: '0.75rem', color: COLORS.textMuted }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '20px', height: '2px', backgroundColor: COLORS.purple }} />
+          <span>Primary dependency</span>
         </div>
-        <div style={styles.networkLegendItem}>
-          <div style={{ ...styles.networkLegendDot, borderStyle: 'dashed', borderWidth: '1px', borderColor: COLORS.accent, backgroundColor: 'transparent' }} />
-          <span style={styles.networkLegendText}>Feeds back</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '20px', height: '2px', backgroundColor: COLORS.border }} />
+          <span>Prerequisite</span>
         </div>
-        <div style={{ ...styles.networkLegendItem, marginTop: '0.5rem', fontSize: '0.75rem', color: COLORS.textDim }}>
-          Hover or click nodes to see connections and details
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '20px', height: '2px', backgroundColor: COLORS.danger, borderStyle: 'dashed' }} />
+          <span>Constraint</span>
         </div>
       </div>
 
-      {/* Key Insights */}
+      {/* Key Insights - What This Means */}
       <div style={styles.networkInsights}>
-        <div style={styles.networkInsightTitle}>How They Connect</div>
+        <div style={styles.networkInsightTitle}>The Dependency Chain</div>
         <div style={styles.networkInsightGrid}>
           <div style={styles.networkInsightItem}>
-            <strong style={{ color: COLORS.accent }}>Grid & Energy</strong> powers all sectors. Without transmission capacity and transformers, factories can't operate.
+            <strong style={{ color: COLORS.purple }}>AI Data Centers</strong> are the demand driver. Stargate ($500B), Microsoft, Google, Amazon—they need everything below to exist.
           </div>
           <div style={styles.networkInsightItem}>
-            <strong style={{ color: COLORS.blue }}>Semiconductors</strong> control EV battery systems and require massive power—creating a feedback loop with grid demand.
+            <strong style={{ color: COLORS.warning }}>Power</strong> is the first constraint. 100MW+ per data center. Grid can't handle it. Nuclear is the answer for clean baseload.
           </div>
           <div style={styles.networkInsightItem}>
-            <strong style={{ color: COLORS.warning }}>Nuclear</strong> feeds the grid but needs grid infrastructure to connect. Both require highest-grade OT systems.
+            <strong style={{ color: COLORS.blue }}>Chips</strong> need fabs, which need rare earths, chemicals, and ultra-pure water. 2-3 year equipment lead times.
           </div>
           <div style={styles.networkInsightItem}>
-            <strong style={{ color: COLORS.accent }}>EV & Battery</strong> manufacturing depends on grid power and semiconductor control systems. Every gigafactory needs integrated OT.
+            <strong style={{ color: COLORS.danger }}>Workforce Gap</strong> ($30 vs $6/hr) means automation isn't optional—it's strategic necessity. AI solves its own prerequisite problem.
           </div>
         </div>
       </div>
@@ -909,19 +920,19 @@ export default function BuildClockPage() {
         </section>
 
         {/* ================================================================ */}
-        {/* SECTION 3: THE SYSTEM */}
+        {/* SECTION 3: THE SYSTEM - AI as the Strategic Driver */}
         {/* ================================================================ */}
         <section style={styles.section}>
           <div style={styles.narrativeHeader}>
             <span style={styles.narrativeStep}>03</span>
             <span style={styles.narrativeLabel}>THE SYSTEM</span>
           </div>
-          <h2 style={styles.sectionTitle}>How Sectors Connect: The Interdependency Universe</h2>
+          <h2 style={styles.sectionTitle}>The AI Manhattan Project: What It Takes to Build</h2>
           <p style={styles.sectionSubtitle}>
-            Every sector depends on others. Failures cascade across the system—understanding connections reveals where to act.
+            AI data centers are the strategic driver. Everything else—power, chips, water, rare earths—exists to serve this demand.
           </p>
           
-          {/* Interactive Dependency Network */}
+          {/* Interactive Dependency Network - AI at Center */}
           <StrategicGapsNetwork gaps={STRATEGIC_GAPS} />
           
           {/* CTA to Opportunities */}
