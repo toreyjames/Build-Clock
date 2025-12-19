@@ -477,61 +477,20 @@ export default function BuildClockPage() {
         </header>
 
         {/* ================================================================ */}
-        {/* INTRODUCTORY VIDEO */}
-        {/* ================================================================ */}
-        <section style={styles.videoSection}>
-          <div style={styles.videoContainer}>
-            <div style={styles.videoHeader}>
-              <h2 style={styles.videoTitle}>The Build Economy and the AI Imperative</h2>
-              <p style={styles.videoSubtitle}>
-                A strategic briefing on why AI and automation are necessities, not options, in the $800B+ industrial investment boom
-              </p>
-            </div>
-            <div style={styles.videoWrapper}>
-              {/* Video embed - Replace with actual Deloitte video URL when available */}
-              <div style={styles.videoPlaceholder}>
-                <div style={styles.videoPlaceholderContent}>
-                  <div style={styles.videoPlaceholderIcon}>▶</div>
-                  <div style={styles.videoPlaceholderText}>
-                    <div style={styles.videoPlaceholderTitle}>Deloitte-Owned Video</div>
-                    <div style={styles.videoPlaceholderDesc}>
-                      "The Build Economy and the AI Imperative"<br />
-                      <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>
-                        Video embed will be added here when production is complete
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {/* Uncomment and update when video is ready:
-              <iframe
-                src="https://www.youtube.com/embed/VIDEO_ID"
-                title="The Build Economy and the AI Imperative"
-                style={styles.videoIframe}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-              */}
-            </div>
-            <div style={styles.videoNote}>
-              <strong>Deloitte-Owned Content:</strong> This video introduces Build Clock's purpose: tracking $800B+ in industrial investment 
-              to identify new opportunities in the build economy. Content covers how we monitor announced projects, why AI/automation are 
-              strategic necessities, and how Deloitte's Industrial AI Security services enable these opportunities.
-            </div>
-          </div>
-        </section>
-
-        {/* ================================================================ */}
-        {/* THE PROBLEM - Only 8% Builds */}
+        {/* SECTION 1: THE STAKES */}
         {/* ================================================================ */}
         <section style={styles.heroNew}>
           <div style={styles.narrativeHeader}>
             <span style={styles.narrativeStep}>01</span>
-            <span style={styles.narrativeLabel}>THE PROBLEM</span>
+            <span style={styles.narrativeLabel}>THE STAKES</span>
           </div>
+          <h2 style={styles.sectionTitle}>8% vs 12-15%: The Investment Gap That Gates Everything</h2>
+          <p style={styles.sectionSubtitle}>
+            Federal spending is 8% physical investment. We need 12-15% for fiscal sustainability and strategic competitiveness.
+          </p>
           
-          {/* The Big Number */}
-          <div style={styles.debtHero}>
+          {/* Simplified Debt Display */}
+          <div style={{ ...styles.debtHero, marginBottom: '2rem' }}>
             <div style={styles.debtHeroMain}>
               <div style={styles.debtHeroLabel}>
                 FEDERAL DEBT
@@ -541,7 +500,7 @@ export default function BuildClockPage() {
                 )}
               </div>
               <div style={styles.debtHeroValue}>
-                <TickingValue value={totalDebt} prefix="$" suffix="" decimals={4} size="4rem" color={COLORS.text} />
+                <TickingValue value={totalDebt} prefix="$" suffix="" decimals={2} size="3rem" color={COLORS.text} />
                 <span style={styles.debtHeroUnit}>TRILLION</span>
               </div>
               {debtData.lastUpdated && (
@@ -549,15 +508,6 @@ export default function BuildClockPage() {
                   Source: U.S. Treasury • Updated: {debtData.lastUpdated}
                 </div>
               )}
-            </div>
-            <div style={styles.debtHeroQuestion}>
-              <div style={styles.hamiltonQuestion}>Purpose:</div>
-              <div style={styles.hamiltonText}>
-                Tracking <em>$800B+ in industrial investment</em> to identify new opportunities in the build economy
-              </div>
-              <div style={{ fontSize: '0.65rem', color: COLORS.textDim, marginTop: '0.5rem' }}>
-                Build Clock monitors announced projects across semiconductors, batteries, rare earths, nuclear, and grid infrastructure to surface OT implementation opportunities
-              </div>
             </div>
           </div>
 
@@ -618,71 +568,89 @@ export default function BuildClockPage() {
               ))}
             </div>
             
-            {/* Need-Based Context */}
+            {/* Target Context */}
             <div style={styles.historicalNote}>
-              <strong style={{ color: COLORS.accent }}>The Gap:</strong> At 8%, we're not investing enough to meet actual needs — 
-              <strong>$2.6T</strong> infrastructure gap (ASCE), <strong>20%</strong> chip production target (CHIPS Act), 
-              grid capacity for AI/EV demand, critical mineral security. The policy waves aren't about restoring 
-              the past — they're about building what the next economy requires.
+              <strong style={{ color: COLORS.accent }}>Target: 12-15%</strong> — To stabilize debt/GDP at ~100% by 2030, 
+              GDP must grow faster than debt. Productive investment has higher GDP multipliers than transfers. 
+              <strong style={{ color: COLORS.warning }}> Gap: {FEDERAL_SPENDING_IMPACT.targetMin - FEDERAL_SPENDING_IMPACT.currentInvestmentPercent}%</strong>
             </div>
           </div>
 
-          {/* Fiscal Target - moved from section 04 */}
-          <div style={styles.fiscalCard}>
-            <div style={styles.fiscalHeader}>
-              <span style={styles.fiscalIcon}>⚖️</span>
-              <div>
-                <div style={styles.fiscalTitle}>Fiscal Sustainability Target</div>
-                <div style={styles.fiscalSubtitle}>Current trajectory vs. stabilization goal</div>
-              </div>
+          {/* Strategic Gaps */}
+          <div style={{ marginTop: '3rem' }}>
+            <h3 style={{ ...styles.breakdownTitle, marginBottom: '1rem' }}>Strategic Gaps</h3>
+            <div style={styles.gapsGrid}>
+              {STRATEGIC_GAPS.map(gap => {
+                const gapSectorMap: Record<string, string> = {
+                  'Pipeline Sector': gap.id === 'semiconductor' ? 'semiconductors' : gap.id === 'ev-battery' ? 'ev-battery' : gap.id === 'nuclear' ? 'nuclear' : '',
+                  'Enabling Infrastructure': gap.id === 'grid-energy' ? 'clean-energy' : '',
+                }
+                const relevantSector = gapSectorMap[gap.category] || null
+                
+                return (
+                  <div 
+                    key={gap.id} 
+                    style={{
+                      ...styles.gapCard,
+                      cursor: relevantSector ? 'pointer' : 'default',
+                      transition: 'all 0.2s',
+                    }}
+                    onClick={relevantSector ? () => window.location.href = `/opportunities?sector=${relevantSector}` : undefined}
+                    onMouseEnter={relevantSector ? (e) => {
+                      e.currentTarget.style.borderColor = COLORS.accent
+                      e.currentTarget.style.transform = 'translateY(-2px)'
+                    } : undefined}
+                    onMouseLeave={relevantSector ? (e) => {
+                      e.currentTarget.style.borderColor = COLORS.border
+                      e.currentTarget.style.transform = 'translateY(0)'
+                    } : undefined}
+                  >
+                    <div style={styles.gapHeader}>
+                      <span style={styles.gapIcon}>{gap.icon}</span>
+                      <div>
+                        <div style={styles.gapCategory}>{gap.category}</div>
+                        <div style={styles.gapTitle}>{gap.title}</div>
+                      </div>
+                    </div>
+                    <div style={styles.gapComparison}>
+                      <div style={styles.gapSide}>
+                        <div style={{ ...styles.gapValue, color: COLORS.danger }}>{gap.us}</div>
+                        <div style={styles.gapLabel}>{gap.usLabel}</div>
+                      </div>
+                      <div style={styles.gapVs}>vs</div>
+                      <div style={styles.gapSide}>
+                        <div style={{ ...styles.gapValue, color: gap.color }}>{gap.them}</div>
+                        <div style={styles.gapLabel}>{gap.themLabel}</div>
+                      </div>
+                    </div>
+                    <div style={styles.gapBottom}>
+                      <div style={styles.gapGap}>
+                        <strong>Gap:</strong> {gap.gap} — {gap.gapNote}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-            <div style={styles.fiscalContent}>
-              <div style={styles.fiscalStat}>
-                <div style={styles.fiscalStatValue}>124%</div>
-                <div style={styles.fiscalStatLabel}>
-                  <a href="https://fred.stlouisfed.org/series/GFDEGDQ188S" target="_blank" rel="noreferrer" style={{ color: COLORS.blue, textDecoration: 'none' }}>
-                    Current Debt/GDP (FRED) ↗
-                  </a>
-                </div>
-              </div>
-              <div style={styles.fiscalLogic}>
-                <div style={styles.logicRow}>
-                  <span style={{ color: COLORS.danger }}>→</span>
-                  <span>CBO baseline: 166% by 2054 (unsustainable trajectory)</span>
-                </div>
-                <div style={styles.logicRow}>
-                  <span style={{ color: COLORS.warning }}>→</span>
-                  <span>Stabilization target: ~100% by 2030 (requires GDP growth faster than debt growth)</span>
-                </div>
-                <div style={styles.logicRow}>
-                  <span style={{ color: COLORS.accent }}>→</span>
-                  <span>Path: Increase productive investment share from 8% to 12-15% of spending</span>
-                </div>
-              </div>
-              <div style={styles.fiscalNote}>
-                <strong>The math:</strong> To stabilize debt/GDP at ~100% by 2030, GDP must grow faster than debt. 
-                Productive investment (infrastructure, R&D, manufacturing capacity) has higher GDP multipliers 
-                than transfers. Shifting spending composition toward investment can improve fiscal sustainability 
-                without cutting total spending.
-                <a href="https://www.cbo.gov/publication/59014" target="_blank" rel="noreferrer" style={{ color: COLORS.blue, marginLeft: '0.5rem' }}>
-                  CBO analysis ↗
-                </a>
-              </div>
+            <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+              <Link href="/policy-gaps" style={{ ...styles.viewAllLink, fontSize: '0.9rem' }}>
+                See what's missing →
+              </Link>
             </div>
           </div>
         </section>
 
         {/* ================================================================ */}
-        {/* THE RESPONSE - Policy Waves */}
+        {/* SECTION 2: THE MOMENTUM */}
         {/* ================================================================ */}
         <section style={styles.section}>
           <div style={styles.narrativeHeader}>
             <span style={styles.narrativeStep}>02</span>
-            <span style={styles.narrativeLabel}>THE RESPONSE</span>
+            <span style={styles.narrativeLabel}>THE MOMENTUM</span>
           </div>
-          <h2 style={styles.sectionTitle}>The Policy Response</h2>
+          <h2 style={styles.sectionTitle}>$800B+ Pipeline: Policy Waves Are Driving Investment</h2>
           <p style={styles.sectionSubtitle}>
-            Three waves of policy designed to increase productive investment — the path from 8% toward 12-15% needed for fiscal sustainability
+            Factory construction 2.5x since CHIPS/IRA. Policy is working.
           </p>
           
           <div style={styles.wavesContainer}>
@@ -731,18 +699,12 @@ export default function BuildClockPage() {
           </div>
           
           <div style={styles.policyInsight}>
-            <strong>How This Addresses the Target:</strong> Wave 1 authorized $1.2T in productive investment (CHIPS, IRA, IIJA) 
-            through <strong>subsidy-based industrial policy</strong>. Wave 2 is disbursing those funds to factories, infrastructure, 
-            and R&D. Wave 3 represents a <strong>distinct approach: strategic protectionism</strong> — tariffs (50% steel/aluminum, 
-            10% universal + sector-specific) drive reshoring through protection rather than subsidies. The administration has 
-            distanced itself from CHIPS/IRA-style programs, favoring tariff-driven investment. Combined, these waves shift spending 
-            composition toward the 12-15% investment share needed to stabilize debt/GDP at ~100% by 2030.
+            <strong>Evidence It's Working:</strong> Factory construction spending increased 2.5x since CHIPS/IRA 
+            (from $90B/yr to $225B/yr). Wave 1 authorized $1.2T. Wave 2 is disbursing. Wave 3 (tariffs) drives 
+            reshoring through protectionism. Combined, these waves shift toward the 12-15% investment target.
             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
-              <Link href="/policy-gaps" style={{ fontSize: '0.85rem', color: COLORS.blue, textDecoration: 'none' }}>
-                Policy Gaps & Solutions →
-              </Link>
               <Link href="/opportunities" style={{ fontSize: '0.85rem', color: COLORS.blue, textDecoration: 'none' }}>
-                See Opportunities Created →
+                Explore Opportunities →
               </Link>
             </div>
           </div>
@@ -857,111 +819,6 @@ export default function BuildClockPage() {
             })}
           </div>
           
-          {/* GDP Impact - Economic Multiplier Effect */}
-          <div style={styles.gdpImpactCard}>
-            <div style={styles.gdpImpactHeader}>
-              <span style={styles.gdpImpactIcon}>📊</span>
-              <div>
-                <div style={styles.gdpImpactTitle}>GDP Impact (Economic Multiplier Effect)</div>
-                <div style={styles.gdpImpactSubtitle}>Estimated GDP growth from pipeline investments using CBO-validated multipliers</div>
-              </div>
-            </div>
-            <div style={styles.gdpImpactGrid}>
-              <div style={styles.gdpImpactStat}>
-                <div style={styles.gdpImpactValue}>${Math.round(GDP_IMPACT.totalPipeline)}B</div>
-                <div style={styles.gdpImpactLabel}>Total Pipeline Investment</div>
-              </div>
-              <div style={styles.gdpImpactStat}>
-                <div style={{ ...styles.gdpImpactValue, color: COLORS.accent }}>${Math.round(GDP_IMPACT.totalGDPImpact)}B</div>
-                <div style={styles.gdpImpactLabel}>Estimated GDP Impact (multiplier effect)</div>
-              </div>
-              <div style={styles.gdpImpactStat}>
-                <div style={{ ...styles.gdpImpactValue, color: COLORS.blue }}>${Math.round(GDP_IMPACT.annualInvestment)}B/yr</div>
-                <div style={styles.gdpImpactLabel}>Annual Investment (5-year average)</div>
-              </div>
-            </div>
-            <div style={styles.gdpImpactNote}>
-              <strong>Methodology:</strong> Pipeline investment (${Math.round(GDP_IMPACT.totalPipeline)}B) estimated to generate ${Math.round(GDP_IMPACT.totalGDPImpact)}B in GDP impact over time. 
-              Multipliers: Transformational 2.0x, Catalytic 1.5x, Significant 1.3x, Direct-only 1.0x. 
-              Based on CBO research (infrastructure multipliers range 0.4-2.2x, midpoint 1.3x). 
-              <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.7rem', color: COLORS.textDim }}>
-                Sources: CBO multiplier estimates, EPI analysis. US GDP: $29.2T (2024, BEA).
-              </span>
-              <div style={{ marginTop: '0.75rem' }}>
-                <Link href="/references" style={{ fontSize: '0.85rem', color: COLORS.blue, textDecoration: 'none' }}>
-                  View Research Papers →
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Federal Spending Composition - Investment Share */}
-          <div style={styles.gdpImpactCard}>
-            <div style={styles.gdpImpactHeader}>
-              <span style={styles.gdpImpactIcon}>🏛️</span>
-              <div>
-                <div style={styles.gdpImpactTitle}>Federal Spending Composition</div>
-                <div style={styles.gdpImpactSubtitle}>Physical investment as % of federal spending</div>
-              </div>
-            </div>
-            
-            {/* Reasoning - moved to top */}
-            <div style={styles.gdpImpactNote}>
-              <strong style={{ color: COLORS.accent }}>Why 12-15% Target:</strong> To stabilize debt/GDP at ~100% by 2030, GDP must grow faster than debt. 
-              This requires shifting federal spending composition from transfers/operations toward productive investment. 
-              Current federal physical investment is {FEDERAL_SPENDING_IMPACT.currentInvestmentPercent}% of spending ($490B of $6.1T). 
-              Our analysis estimates a shift to <strong>12-15%</strong> is needed to support GDP growth sufficient for fiscal sustainability. 
-              This is an <strong>analytical framework target</strong> based on fiscal math, not an official government target.
-              <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.7rem', color: COLORS.textDim }}>
-                Source: Current 8% from OMB Historical Tables 8.1. Target range derived from fiscal sustainability analysis.
-              </span>
-            </div>
-            
-            <div style={styles.gdpImpactProgress}>
-              <div style={styles.gdpImpactProgressHeader}>
-                <span>Physical Investment Share of Federal Spending</span>
-                <span style={{ color: COLORS.accent }}>Target: 12-15%</span>
-              </div>
-              <div style={styles.gdpImpactProgressBar}>
-                <div style={{
-                  ...styles.gdpImpactProgressFill,
-                  width: `${(FEDERAL_SPENDING_IMPACT.currentInvestmentPercent / 15) * 100}%`,
-                  backgroundColor: COLORS.textMuted,
-                }} />
-                <div style={{
-                  ...styles.gdpImpactProgressFill,
-                  width: `${Math.min((FEDERAL_SPENDING_IMPACT.targetMin - FEDERAL_SPENDING_IMPACT.currentInvestmentPercent) / 15 * 100, 100 - (FEDERAL_SPENDING_IMPACT.currentInvestmentPercent / 15) * 100)}%`,
-                  backgroundColor: COLORS.accent,
-                  marginLeft: `${(FEDERAL_SPENDING_IMPACT.currentInvestmentPercent / 15) * 100}%`,
-                  opacity: 0.3,
-                }} />
-              </div>
-              <div style={styles.gdpImpactProgressLabels}>
-                <span>Current: {FEDERAL_SPENDING_IMPACT.currentInvestmentPercent}%</span>
-                <span style={{ color: COLORS.accent }}>Target: {FEDERAL_SPENDING_IMPACT.targetMin}-{FEDERAL_SPENDING_IMPACT.targetMax}%</span>
-                <span style={{ color: FEDERAL_SPENDING_IMPACT.currentInvestmentPercent >= FEDERAL_SPENDING_IMPACT.targetMin ? COLORS.accent : COLORS.warning }}>
-                  Gap: {FEDERAL_SPENDING_IMPACT.targetMin - FEDERAL_SPENDING_IMPACT.currentInvestmentPercent}%
-                </span>
-              </div>
-            </div>
-            <div style={{ ...styles.gdpImpactNote, marginTop: '1rem', fontSize: '0.85rem' }}>
-              <strong>Note:</strong> Pipeline investments tracked here are primarily private, not federal spending. 
-              This metric tracks the federal budget composition shift needed for fiscal sustainability.
-            </div>
-          </div>
-          
-          {/* Quality Insight - with calculation basis */}
-          <div style={styles.qualityInsight}>
-            <strong>Progress Toward Target:</strong> Factory construction spending has increased 2.5x since CHIPS/IRA 
-            (from $90B/yr to $225B/yr), indicating policy is driving investment. The ${SECTOR_PIPELINE.reduce((sum, s) => sum + s.pipeline, 0)}B tracked pipeline represents 
-            productive capacity that will grow GDP. <strong style={{ color: COLORS.accent }}>Key question:</strong> Is this 
-            enough to shift federal spending composition from 8% to 12-15% investment share? That depends on total spending 
-            growth and whether investment grows faster than transfers.
-            <span style={{ display: 'block', color: COLORS.textDim, fontSize: '0.75rem', marginTop: '0.5rem' }}>
-              Economic impact categories based on BLS employment multipliers and sector research.
-            </span>
-          </div>
-          
           <div style={styles.totalPipeline}>
             <span style={styles.totalLabel}>Total Tracked Pipeline:</span>
             <span style={styles.totalValue}>
@@ -974,123 +831,20 @@ export default function BuildClockPage() {
         </section>
 
         {/* ================================================================ */}
-        {/* THE CASE - Why We Need to Invest */}
+        {/* SECTION 3: THE GAPS */}
         {/* ================================================================ */}
         <section style={styles.section}>
           <div style={styles.narrativeHeader}>
-            <span style={styles.narrativeStep}>04</span>
-            <span style={styles.narrativeLabel}>THE CASE</span>
+            <span style={styles.narrativeStep}>03</span>
+            <span style={styles.narrativeLabel}>THE GAPS</span>
           </div>
-          <h2 style={styles.sectionTitle}>What's Still Needed</h2>
+          <h2 style={styles.sectionTitle}>Prerequisites + OT = The Hidden Infrastructure That Gates Success</h2>
           <p style={styles.sectionSubtitle}>
-            Even with current progress, these gaps show why reaching 12-15% investment share is necessary — not just for fiscal sustainability, but for strategic competitiveness
+            You can't build the end product without the prerequisites. You can't operate without OT.
           </p>
           
-          <div style={styles.gapsGrid}>
-            {STRATEGIC_GAPS.map(gap => {
-              // Map gap categories to relevant sectors for linking
-              const gapSectorMap: Record<string, string> = {
-                'Semiconductors': 'semiconductors',
-                'Critical Minerals': 'critical-minerals',
-                'Battery Materials': 'ev-battery',
-                'Nuclear Fuel': 'nuclear',
-                'Grid Capacity': 'clean-energy',
-                'AI Infrastructure': 'data-centers',
-              }
-              const relevantSector = gapSectorMap[gap.category] || null
-              
-              return (
-                <div 
-                  key={gap.id} 
-                  style={{
-                    ...styles.gapCard,
-                    cursor: relevantSector ? 'pointer' : 'default',
-                    transition: 'all 0.2s',
-                  }}
-                  onClick={relevantSector ? () => window.location.href = `/opportunities?sector=${relevantSector}` : undefined}
-                  onMouseEnter={relevantSector ? (e) => {
-                    e.currentTarget.style.borderColor = COLORS.accent
-                    e.currentTarget.style.transform = 'translateY(-2px)'
-                  } : undefined}
-                  onMouseLeave={relevantSector ? (e) => {
-                    e.currentTarget.style.borderColor = COLORS.border
-                    e.currentTarget.style.transform = 'translateY(0)'
-                  } : undefined}
-                >
-                  <div style={styles.gapHeader}>
-                    <span style={styles.gapIcon}>{gap.icon}</span>
-                    <div>
-                      <div style={styles.gapCategory}>{gap.category}</div>
-                      <div style={styles.gapTitle}>{gap.title}</div>
-                    </div>
-                  </div>
-                  <div style={styles.gapComparison}>
-                    <div style={styles.gapSide}>
-                      <div style={{ ...styles.gapValue, color: COLORS.danger }}>{gap.us}</div>
-                      <div style={styles.gapLabel}>{gap.usLabel}</div>
-                    </div>
-                    <div style={styles.gapVs}>vs</div>
-                    <div style={styles.gapSide}>
-                      <div style={{ ...styles.gapValue, color: gap.color }}>{gap.them}</div>
-                      <div style={styles.gapLabel}>{gap.themLabel}</div>
-                    </div>
-                  </div>
-                  <div style={styles.gapBottom}>
-                    <div style={styles.gapGap}>
-                      <strong>Gap:</strong> {gap.gap} — {gap.gapNote}
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                      {relevantSector && (
-                        <span style={{ fontSize: '0.75rem', color: COLORS.accent }}>
-                          View opportunities →
-                        </span>
-                      )}
-                      <a 
-                        href={gap.sourceUrl} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        style={{ ...styles.gapSource, color: COLORS.blue, textDecoration: 'none' }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {gap.source} ↗
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-          
-          <div style={styles.caseInsight}>
-            <div style={styles.insightIcon}>💡</div>
-            <div>
-              <strong>The OT Connection:</strong> Each gap above represents sectors in the ${SECTOR_PIPELINE.reduce((sum, s) => sum + s.pipeline, 0)}B tracked pipeline. 
-              Every new semiconductor fab, battery plant, nuclear facility, and grid project requires <strong>Operating Technology</strong>: 
-              MES, SCADA, historians, digital twins, industrial cybersecurity. Building the productive economy = building factories = 
-              OT implementation demand. The 12-15% investment target closes these gaps while creating the OT opportunities that 
-              enable the productive economy.
-              <span style={{ display: 'block', fontSize: '0.75rem', color: COLORS.textDim, marginTop: '0.5rem' }}>
-                Pipeline data from Opportunity Radar • See section 05 for OT requirements breakdown
-              </span>
-            </div>
-          </div>
-        </section>
-
-        {/* ================================================================ */}
-        {/* PREREQUISITES & IMPLEMENTATION - Consolidated */}
-        {/* ================================================================ */}
-        <section style={styles.section}>
-          <div style={styles.narrativeHeader}>
-            <span style={styles.narrativeStep}>05</span>
-            <span style={styles.narrativeLabel}>PREREQUISITES</span>
-          </div>
-          <h2 style={styles.sectionTitle}>The Hidden Infrastructure</h2>
-          <p style={styles.sectionSubtitle}>
-            You can't build the end product without the prerequisites — and you can't operate without OT.
-          </p>
-          
-          {/* Compact summary grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+          {/* Prerequisites Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '2rem', marginBottom: '1.5rem' }}>
             <div style={{ ...styles.gapCard, padding: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <span style={{ fontSize: '1.25rem' }}>🧲</span>
@@ -1165,59 +919,6 @@ export default function BuildClockPage() {
                 <Link href="/policy-gaps" style={{ ...styles.viewAllLink, fontSize: '0.8rem' }}>Policy Gaps & Players →</Link>
                 <Link href="/opportunities" style={{ ...styles.viewAllLink, fontSize: '0.8rem' }}>Opportunity Radar →</Link>
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ================================================================ */}
-        {/* WHAT'S COMING - Key Dates */}
-        {/* ================================================================ */}
-        <section style={styles.section}>
-          <div style={styles.narrativeHeader}>
-            <span style={styles.narrativeStep}>06</span>
-            <span style={styles.narrativeLabel}>WHAT'S COMING</span>
-          </div>
-          <h2 style={styles.sectionTitle}>Key Dates to Watch</h2>
-          <p style={styles.sectionSubtitle}>
-            Policy milestones, RFP deadlines, and expected announcements
-          </p>
-          
-          <div style={styles.timelineGrid}>
-            <div style={styles.timelineCard}>
-              <div style={styles.timelineCardHeader}>Q4 2025</div>
-              <ul style={styles.timelineList}>
-                <li>Tariff policy fully implemented</li>
-                <li>CHIPS Act awards continue through year-end</li>
-                <li>Multiple fab production ramps ongoing</li>
-                <li>Reshoring announcements accelerating</li>
-              </ul>
-            </div>
-            <div style={styles.timelineCard}>
-              <div style={styles.timelineCardHeader}>Q1 2026</div>
-              <ul style={styles.timelineList}>
-                <li>DOE transmission corridor designations</li>
-                <li>TSMC Arizona fab production ramp</li>
-                <li>TerraPower HALEU fuel availability</li>
-                <li>IRA tax credit guidance updates</li>
-              </ul>
-            </div>
-            <div style={styles.timelineCard}>
-              <div style={styles.timelineCardHeader}>Q2-Q3 2026</div>
-              <ul style={styles.timelineList}>
-                <li>Samsung Taylor fab production start</li>
-                <li>Multiple EV battery plant commissioning</li>
-                <li>NRC advanced reactor reviews progress</li>
-                <li>Critical minerals project awards</li>
-              </ul>
-            </div>
-            <div style={styles.timelineCard}>
-              <div style={styles.timelineCardHeader}>2027-2028</div>
-              <ul style={styles.timelineList}>
-                <li>Intel Ohio Phase 2 decisions</li>
-                <li>Three Mile Island restart (2028 target)</li>
-                <li>SunZia transmission operational</li>
-                <li>Wave 3 acceleration full effect</li>
-              </ul>
             </div>
           </div>
         </section>
