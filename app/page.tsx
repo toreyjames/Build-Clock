@@ -363,6 +363,266 @@ interface DebtData {
 }
 
 // ============================================================================
+// STRATEGIC GAPS NETWORK VISUALIZATION
+// ============================================================================
+function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null)
+  const [selectedNode, setSelectedNode] = useState<string | null>(null)
+
+  // Map gaps to network positions (grid at center, others around it)
+  const nodePositions: Record<string, { x: number; y: number; angle: number }> = {
+    'grid-energy': { x: 50, y: 50, angle: 0 }, // Center - enabling infrastructure
+    'semiconductor': { x: 20, y: 35, angle: -45 },
+    'ev-battery': { x: 80, y: 35, angle: 45 },
+    'nuclear': { x: 50, y: 20, angle: 90 },
+  }
+
+  // Define connections (from -> to, with label)
+  const connections = [
+    { from: 'grid-energy', to: 'semiconductor', label: 'powers', type: 'enables' },
+    { from: 'grid-energy', to: 'ev-battery', label: 'powers', type: 'enables' },
+    { from: 'grid-energy', to: 'nuclear', label: 'connects', type: 'enables' },
+    { from: 'nuclear', to: 'grid-energy', label: 'feeds', type: 'feeds' },
+    { from: 'semiconductor', to: 'ev-battery', label: 'controls', type: 'enables' },
+  ]
+
+  const gapSectorMap: Record<string, string> = {
+    'semiconductor': 'semiconductors',
+    'ev-battery': 'ev-battery',
+    'nuclear': 'nuclear',
+    'grid-energy': 'clean-energy',
+  }
+
+  const handleNodeClick = (gapId: string) => {
+    const sector = gapSectorMap[gapId]
+    if (sector) {
+      window.location.href = `/opportunities?sector=${sector}`
+    }
+  }
+
+  return (
+    <div style={styles.networkContainer}>
+      <svg 
+        viewBox="0 0 100 100" 
+        style={styles.networkSvg}
+        preserveAspectRatio="xMidYMid meet"
+      >
+        {/* Connection lines */}
+        {connections.map((conn, idx) => {
+          const fromPos = nodePositions[conn.from]
+          const toPos = nodePositions[conn.to]
+          if (!fromPos || !toPos) return null
+
+          const isHighlighted = hoveredNode === conn.from || hoveredNode === conn.to || selectedNode === conn.from || selectedNode === conn.to
+          
+          return (
+            <g key={idx}>
+              <line
+                x1={fromPos.x}
+                y1={fromPos.y}
+                x2={toPos.x}
+                y2={toPos.y}
+                stroke={isHighlighted ? COLORS.accent : COLORS.border}
+                strokeWidth={isHighlighted ? 0.3 : 0.15}
+                strokeDasharray={conn.type === 'feeds' ? '0.5,0.5' : 'none'}
+                opacity={isHighlighted ? 0.8 : 0.3}
+                markerEnd={isHighlighted ? "url(#arrowhead)" : undefined}
+              />
+              {/* Connection label (only show on hover) */}
+              {isHighlighted && (
+                <text
+                  x={(fromPos.x + toPos.x) / 2}
+                  y={(fromPos.y + toPos.y) / 2 - 1}
+                  fontSize="2"
+                  fill={COLORS.textMuted}
+                  textAnchor="middle"
+                  style={{ pointerEvents: 'none' }}
+                >
+                  {conn.label}
+                </text>
+              )}
+            </g>
+          )
+        })}
+
+        {/* Arrow marker definition and shadow filter */}
+        <defs>
+          <marker
+            id="arrowhead"
+            markerWidth="3"
+            markerHeight="3"
+            refX="2"
+            refY="1.5"
+            orient="auto"
+          >
+            <polygon
+              points="0 0, 3 1.5, 0 3"
+              fill={COLORS.accent}
+            />
+          </marker>
+          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="0.5"/>
+            <feOffset dx="0.3" dy="0.3" result="offsetblur"/>
+            <feComponentTransfer>
+              <feFuncA type="linear" slope="0.3"/>
+            </feComponentTransfer>
+            <feMerge>
+              <feMergeNode/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* Nodes */}
+        {gaps.map(gap => {
+          const pos = nodePositions[gap.id]
+          if (!pos) return null
+
+          const isHovered = hoveredNode === gap.id
+          const isSelected = selectedNode === gap.id
+          const isActive = isHovered || isSelected
+          const sector = gapSectorMap[gap.id]
+
+          return (
+            <g
+              key={gap.id}
+              style={{ cursor: sector ? 'pointer' : 'default' }}
+              onMouseEnter={() => setHoveredNode(gap.id)}
+              onMouseLeave={() => setHoveredNode(null)}
+              onClick={() => {
+                setSelectedNode(gap.id)
+                if (sector) handleNodeClick(gap.id)
+              }}
+            >
+              {/* Node circle */}
+              <circle
+                cx={pos.x}
+                cy={pos.y}
+                r={isActive ? 4.5 : 3.5}
+                fill={isActive ? gap.color : COLORS.bgCard}
+                stroke={isActive ? COLORS.accent : gap.color}
+                strokeWidth={isActive ? 0.4 : 0.2}
+                opacity={isActive ? 1 : 0.8}
+                style={{ transition: 'all 0.2s' }}
+              />
+              
+              {/* Node icon */}
+              <text
+                x={pos.x}
+                y={pos.y + 1.2}
+                fontSize="3.5"
+                textAnchor="middle"
+                style={{ pointerEvents: 'none' }}
+              >
+                {gap.icon}
+              </text>
+
+              {/* Node label */}
+              <text
+                x={pos.x}
+                y={pos.y + (gap.id === 'grid-energy' ? -7 : 7)}
+                fontSize="2.5"
+                fill={isActive ? COLORS.text : COLORS.textMuted}
+                textAnchor="middle"
+                fontWeight={isActive ? 700 : 600}
+                style={{ pointerEvents: 'none' }}
+              >
+                {gap.title.split(' ')[0]}
+              </text>
+              {gap.id !== 'grid-energy' && (
+                <text
+                  x={pos.x}
+                  y={pos.y + (gap.id === 'grid-energy' ? -5 : 9)}
+                  fontSize="1.8"
+                  fill={isActive ? COLORS.textMuted : COLORS.textDim}
+                  textAnchor="middle"
+                  style={{ pointerEvents: 'none' }}
+                >
+                  {gap.title.split(' ').slice(1).join(' ')}
+                </text>
+              )}
+
+              {/* Expanded info on hover - tooltip */}
+              {isActive && (
+                <g>
+                  <rect
+                    x={pos.x - 10}
+                    y={pos.y + (gap.id === 'grid-energy' ? 10 : -14)}
+                    width="20"
+                    height="7"
+                    fill={COLORS.bgCard}
+                    stroke={COLORS.accent}
+                    strokeWidth="0.3"
+                    rx="0.8"
+                    opacity={0.98}
+                    filter="url(#shadow)"
+                  />
+                  <text
+                    x={pos.x}
+                    y={pos.y + (gap.id === 'grid-energy' ? 12.5 : -11.5)}
+                    fontSize="2"
+                    fill={COLORS.text}
+                    textAnchor="middle"
+                    fontWeight={700}
+                    style={{ pointerEvents: 'none' }}
+                  >
+                    {gap.us} → {gap.them}
+                  </text>
+                  <text
+                    x={pos.x}
+                    y={pos.y + (gap.id === 'grid-energy' ? 14.5 : -9.5)}
+                    fontSize="1.6"
+                    fill={COLORS.textMuted}
+                    textAnchor="middle"
+                    style={{ pointerEvents: 'none' }}
+                  >
+                    {gap.gap}
+                  </text>
+                </g>
+              )}
+            </g>
+          )
+        })}
+      </svg>
+
+      {/* Legend/Key */}
+      <div style={styles.networkLegend}>
+        <div style={styles.networkLegendItem}>
+          <div style={{ ...styles.networkLegendDot, backgroundColor: COLORS.accent }} />
+          <span style={styles.networkLegendText}>Enables / Powers</span>
+        </div>
+        <div style={styles.networkLegendItem}>
+          <div style={{ ...styles.networkLegendDot, borderStyle: 'dashed', borderWidth: '1px', borderColor: COLORS.accent, backgroundColor: 'transparent' }} />
+          <span style={styles.networkLegendText}>Feeds back</span>
+        </div>
+        <div style={{ ...styles.networkLegendItem, marginTop: '0.5rem', fontSize: '0.75rem', color: COLORS.textDim }}>
+          Hover or click nodes to see connections and details
+        </div>
+      </div>
+
+      {/* Key Insights */}
+      <div style={styles.networkInsights}>
+        <div style={styles.networkInsightTitle}>How They Connect</div>
+        <div style={styles.networkInsightGrid}>
+          <div style={styles.networkInsightItem}>
+            <strong style={{ color: COLORS.accent }}>Grid & Energy</strong> powers all sectors. Without transmission capacity and transformers, factories can't operate.
+          </div>
+          <div style={styles.networkInsightItem}>
+            <strong style={{ color: COLORS.blue }}>Semiconductors</strong> control EV battery systems and require massive power—creating a feedback loop with grid demand.
+          </div>
+          <div style={styles.networkInsightItem}>
+            <strong style={{ color: COLORS.warning }}>Nuclear</strong> feeds the grid but needs grid infrastructure to connect. Both require highest-grade OT systems.
+          </div>
+          <div style={styles.networkInsightItem}>
+            <strong style={{ color: COLORS.accent }}>EV & Battery</strong> manufacturing depends on grid power and semiconductor control systems. Every gigafactory needs integrated OT.
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
 // TICKING COUNTER COMPONENT
 // ============================================================================
 function TickingValue({ 
@@ -576,68 +836,6 @@ export default function BuildClockPage() {
             </div>
           </div>
 
-          {/* Strategic Gaps */}
-          <div style={{ marginTop: '3rem' }}>
-            <h3 style={{ ...styles.breakdownTitle, marginBottom: '1rem' }}>Strategic Gaps</h3>
-            <div style={styles.gapsGrid}>
-              {STRATEGIC_GAPS.map(gap => {
-                const gapSectorMap: Record<string, string> = {
-                  'Pipeline Sector': gap.id === 'semiconductor' ? 'semiconductors' : gap.id === 'ev-battery' ? 'ev-battery' : gap.id === 'nuclear' ? 'nuclear' : '',
-                  'Enabling Infrastructure': gap.id === 'grid-energy' ? 'clean-energy' : '',
-                }
-                const relevantSector = gapSectorMap[gap.category] || null
-                
-                return (
-                  <div 
-                    key={gap.id} 
-                    style={{
-                      ...styles.gapCard,
-                      cursor: relevantSector ? 'pointer' : 'default',
-                      transition: 'all 0.2s',
-                    }}
-                    onClick={relevantSector ? () => window.location.href = `/opportunities?sector=${relevantSector}` : undefined}
-                    onMouseEnter={relevantSector ? (e) => {
-                      e.currentTarget.style.borderColor = COLORS.accent
-                      e.currentTarget.style.transform = 'translateY(-2px)'
-                    } : undefined}
-                    onMouseLeave={relevantSector ? (e) => {
-                      e.currentTarget.style.borderColor = COLORS.border
-                      e.currentTarget.style.transform = 'translateY(0)'
-                    } : undefined}
-                  >
-                    <div style={styles.gapHeader}>
-                      <span style={styles.gapIcon}>{gap.icon}</span>
-                      <div>
-                        <div style={styles.gapCategory}>{gap.category}</div>
-                        <div style={styles.gapTitle}>{gap.title}</div>
-                      </div>
-                    </div>
-                    <div style={styles.gapComparison}>
-                      <div style={styles.gapSide}>
-                        <div style={{ ...styles.gapValue, color: COLORS.danger }}>{gap.us}</div>
-                        <div style={styles.gapLabel}>{gap.usLabel}</div>
-                      </div>
-                      <div style={styles.gapVs}>vs</div>
-                      <div style={styles.gapSide}>
-                        <div style={{ ...styles.gapValue, color: gap.color }}>{gap.them}</div>
-                        <div style={styles.gapLabel}>{gap.themLabel}</div>
-                      </div>
-                    </div>
-                    <div style={styles.gapBottom}>
-                      <div style={styles.gapGap}>
-                        <strong>Gap:</strong> {gap.gap} — {gap.gapNote}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-            <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-              <Link href="/policy-gaps" style={{ ...styles.viewAllLink, fontSize: '0.9rem' }}>
-                See what's missing →
-              </Link>
-            </div>
-          </div>
         </section>
 
         {/* ================================================================ */}
@@ -711,215 +909,26 @@ export default function BuildClockPage() {
         </section>
 
         {/* ================================================================ */}
-        {/* THE EVIDENCE - Is It Working? */}
+        {/* SECTION 3: THE SYSTEM */}
         {/* ================================================================ */}
         <section style={styles.section}>
           <div style={styles.narrativeHeader}>
             <span style={styles.narrativeStep}>03</span>
-            <span style={styles.narrativeLabel}>THE EVIDENCE</span>
+            <span style={styles.narrativeLabel}>THE SYSTEM</span>
           </div>
-          <div style={styles.sectionHeader}>
-            <div>
-              <h2 style={styles.sectionTitle}>Is It Working?</h2>
-              <p style={styles.sectionSubtitle}>
-                Tracking progress: Are policy waves increasing productive investment toward the 12-15% target?
-              </p>
-            </div>
-            <Link href="/opportunities" style={styles.viewAllLink}>
-              View All Opportunities →
-            </Link>
-          </div>
-          
-          {/* The Flow - All numbers traceable */}
-          <div style={styles.evidenceFlow}>
-            <div style={styles.flowStep}>
-              <div style={styles.flowValue}>$1.2T</div>
-              <div style={styles.flowLabel}>Enacted Legislation</div>
-              <div style={styles.flowNote}>CHIPS + IRA + IIJA authorized</div>
-            </div>
-            <div style={styles.flowArrow}>→</div>
-            <div style={styles.flowStep}>
-              <div style={styles.flowValue}>$225B/yr</div>
-              <div style={styles.flowLabel}>Factory Construction</div>
-              <div style={styles.flowNote}>
-                <a href="https://fred.stlouisfed.org/series/TLMFGCONS" target="_blank" rel="noreferrer" style={{ color: COLORS.blue, textDecoration: 'none' }}>
-                  Census Bureau ↗
-                </a>
-              </div>
-            </div>
-            <div style={styles.flowArrow}>→</div>
-            <div style={styles.flowStep}>
-              <div style={{ ...styles.flowValue, color: COLORS.accent }}>${SECTOR_PIPELINE.reduce((sum, s) => sum + s.pipeline, 0)}B</div>
-              <div style={styles.flowLabel}>Pipeline Tracked</div>
-              <div style={styles.flowNote}>{SECTOR_PIPELINE.reduce((sum, s) => sum + s.projects, 0)} opportunities in Radar</div>
-            </div>
-          </div>
-          
-          <div style={styles.sectorGrid}>
-            {SECTOR_PIPELINE.map(sector => {
-              // Map display name back to opportunity sector value(s) for filtering
-              // Note: "Defense & Critical" includes both 'defense' and 'critical-minerals'
-              const sectorMap: Record<string, string[]> = {
-                'AI Data Centers': ['data-centers'],
-                'Semiconductors': ['semiconductors'],
-                'EV & Battery': ['ev-battery'],
-                'Pharma': ['pharma'],
-                'Grid & Clean Energy': ['clean-energy'],
-                'Steel & Metals': ['steel-metals'],
-                'Advanced Mfg': ['advanced-mfg'],
-                'Nuclear (SMRs)': ['nuclear'],
-                'Oil & Gas': ['oil-gas'],
-                'Defense & Critical': ['defense', 'critical-minerals'],
-                'Water & Utilities': ['water-utilities'],
-                'Chemicals': ['chemicals'],
-              }
-              const sectorValues = sectorMap[sector.sector] || [sector.sector.toLowerCase().replace(/\s+/g, '-')]
-              const maxPipeline = Math.max(...SECTOR_PIPELINE.map(s => s.pipeline))
-              // For multi-sector, use first one for URL (filter will handle both)
-              const sectorValue = sectorValues[0]
-              
-              return (
-                <Link 
-                  key={sector.sector} 
-                  href={`/opportunities?sector=${sectorValue}`}
-                  style={{ textDecoration: 'none', color: 'inherit' }}
-                >
-                  <div style={{ ...styles.sectorCard, cursor: 'pointer', transition: 'all 0.2s' }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = sector.color
-                      e.currentTarget.style.transform = 'translateY(-2px)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = COLORS.border
-                      e.currentTarget.style.transform = 'translateY(0)'
-                    }}
-                  >
-                    <div style={styles.sectorHeader}>
-                      <span style={styles.sectorName}>{sector.sector}</span>
-                      <span style={styles.sectorProjects}>{sector.projects} projects →</span>
-                    </div>
-                    <div style={{ ...styles.sectorValue, color: sector.color }}>
-                      ${sector.pipeline}B
-                    </div>
-                    <div style={styles.sectorBar}>
-                      <div 
-                        style={{ 
-                          ...styles.sectorBarFill, 
-                          width: `${(sector.pipeline / maxPipeline) * 100}%`,
-                          backgroundColor: sector.color 
-                        }} 
-                      />
-                    </div>
-                    <div style={{ ...styles.sectorQuality, fontSize: '0.75rem', color: COLORS.textMuted, marginTop: '0.5rem' }}>
-                      Relative investment size • Click to view opportunities
-                    </div>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-          
-          <div style={styles.totalPipeline}>
-            <span style={styles.totalLabel}>Total Tracked Pipeline:</span>
-            <span style={styles.totalValue}>
-              ${SECTOR_PIPELINE.reduce((sum, s) => sum + s.pipeline, 0)}B
-            </span>
-            <span style={styles.totalProjects}>
-              across {SECTOR_PIPELINE.reduce((sum, s) => sum + s.projects, 0)} projects
-            </span>
-          </div>
-        </section>
-
-        {/* ================================================================ */}
-        {/* SECTION 3: THE GAPS */}
-        {/* ================================================================ */}
-        <section style={styles.section}>
-          <div style={styles.narrativeHeader}>
-            <span style={styles.narrativeStep}>03</span>
-            <span style={styles.narrativeLabel}>THE GAPS</span>
-          </div>
-          <h2 style={styles.sectionTitle}>Prerequisites + OT = The Hidden Infrastructure That Gates Success</h2>
+          <h2 style={styles.sectionTitle}>How Sectors Connect: The Interdependency Universe</h2>
           <p style={styles.sectionSubtitle}>
-            You can't build the end product without the prerequisites. You can't operate without OT.
+            Every sector depends on others. Failures cascade across the system—understanding connections reveals where to act.
           </p>
           
-          {/* Prerequisites Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '2rem', marginBottom: '1.5rem' }}>
-            <div style={{ ...styles.gapCard, padding: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '1.25rem' }}>🧲</span>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Rare Earths</span>
-              </div>
-              <div style={{ fontSize: '0.8rem', color: COLORS.textMuted }}>95%+ refining in China. U.S. has mining but not processing.</div>
-            </div>
-            <div style={{ ...styles.gapCard, padding: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '1.25rem' }}>🔋</span>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Batteries</span>
-              </div>
-              <div style={{ fontSize: '0.8rem', color: COLORS.textMuted }}>80%+ materials processing in China. Cells need precursors.</div>
-            </div>
-            <div style={{ ...styles.gapCard, padding: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '1.25rem' }}>🔬</span>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Semiconductors</span>
-              </div>
-              <div style={{ fontSize: '0.8rem', color: COLORS.textMuted }}>Equipment 2-3yr lead times. Chemicals/gases concentrated.</div>
-            </div>
-            <div style={{ ...styles.gapCard, padding: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '1.25rem' }}>⚛️</span>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Nuclear</span>
-              </div>
-              <div style={{ fontSize: '0.8rem', color: COLORS.textMuted }}>No U.S. commercial HALEU. SMRs can't deploy without it.</div>
-            </div>
-            <div style={{ ...styles.gapCard, padding: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '1.25rem' }}>⚡</span>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Grid</span>
-              </div>
-              <div style={{ fontSize: '0.8rem', color: COLORS.textMuted }}>3-5yr interconnect. 2-3yr transformer lead times.</div>
-            </div>
-            <div style={{ ...styles.gapCard, padding: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '1.25rem' }}>🤖</span>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>AI Imperative</span>
-              </div>
-              <div style={{ fontSize: '0.8rem', color: COLORS.textMuted }}>China $6-8/hr vs. U.S. $30/hr. Automation is strategic.</div>
-            </div>
-          </div>
+          {/* Interactive Dependency Network */}
+          <StrategicGapsNetwork gaps={STRATEGIC_GAPS} />
           
-          {/* OT Pipeline callout */}
-          <div style={styles.totalPipeline}>
-            <span style={styles.totalLabel}>OT-Relevant Pipeline:</span>
-            <span style={styles.totalValue}>
-              ${(() => {
-                const otRelevantSectors = ['semiconductors', 'ev-battery', 'nuclear', 'advanced-mfg']
-                const otRelevant = opportunities.filter(opp => 
-                  otRelevantSectors.includes(opp.sector) && opp.investmentSize > 0
-                )
-                return Math.round(otRelevant.reduce((sum, opp) => sum + opp.investmentSize, 0) / 1000)
-              })()}B
-            </span>
-            <span style={styles.totalProjects}>
-              ({(() => {
-                const otRelevantSectors = ['semiconductors', 'ev-battery', 'nuclear', 'advanced-mfg']
-                return opportunities.filter(opp => otRelevantSectors.includes(opp.sector) && opp.investmentSize > 0).length
-              })()} projects)
-            </span>
-          </div>
-          
-          {/* Insight box with deep-dive links */}
-          <div style={styles.caseInsight}>
-            <div style={styles.insightIcon}>💡</div>
-            <div>
-              <strong>The Pattern:</strong> Every sector needs prerequisites (refining, processing, fuel, transmission) that are labor-intensive, giving China a cost advantage. <strong>AI/automation + OT security</strong> are the path to compete.
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.75rem' }}>
-                <Link href="/sectors" style={{ ...styles.viewAllLink, fontSize: '0.8rem' }}>Sectors & AI Use Cases →</Link>
-                <Link href="/policy-gaps" style={{ ...styles.viewAllLink, fontSize: '0.8rem' }}>Policy Gaps & Players →</Link>
-                <Link href="/opportunities" style={{ ...styles.viewAllLink, fontSize: '0.8rem' }}>Opportunity Radar →</Link>
-              </div>
-            </div>
+          {/* CTA to Opportunities */}
+          <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+            <Link href="/opportunities" style={styles.viewAllLink}>
+              Explore Opportunities →
+            </Link>
           </div>
         </section>
 
@@ -1756,6 +1765,71 @@ const styles: Record<string, React.CSSProperties> = {
   gapSource: {
     fontSize: '0.65rem',
     color: COLORS.textDim,
+  },
+
+  // Network Visualization
+  networkContainer: {
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+    padding: '2rem',
+    marginBottom: '1.5rem',
+    position: 'relative' as const,
+  },
+  networkSvg: {
+    width: '100%',
+    height: '400px',
+    minHeight: '300px',
+  },
+  networkLegend: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.5rem',
+    marginTop: '1rem',
+    paddingTop: '1rem',
+    borderTop: `1px solid ${COLORS.border}`,
+  },
+  networkLegendItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    fontSize: '0.8rem',
+    color: COLORS.textMuted,
+  },
+  networkLegendDot: {
+    width: '12px',
+    height: '12px',
+    borderRadius: '50%',
+    flexShrink: 0,
+  },
+  networkLegendText: {
+    fontSize: '0.8rem',
+    color: COLORS.textMuted,
+  },
+  networkInsights: {
+    marginTop: '1.5rem',
+    paddingTop: '1.5rem',
+    borderTop: `1px solid ${COLORS.border}`,
+  },
+  networkInsightTitle: {
+    fontSize: '0.9rem',
+    fontWeight: 700,
+    color: COLORS.text,
+    marginBottom: '1rem',
+  },
+  networkInsightGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '1rem',
+  },
+  networkInsightItem: {
+    fontSize: '0.8rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.6,
+    padding: '0.75rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '6px',
+    border: `1px solid ${COLORS.border}`,
   },
 
   // Fiscal Sustainability Card
