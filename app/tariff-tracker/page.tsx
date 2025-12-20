@@ -304,7 +304,7 @@ export default function TariffTrackerPage() {
             </div>
             <div style={styles.upliftSummaryRight}>
               <div style={styles.upliftSummaryLabel}>Currently Tracked in Pipeline</div>
-              <div style={styles.upliftSummaryValue} style={{ ...styles.upliftSummaryValue, color: COLORS.accent }}>
+              <div style={{ ...styles.upliftSummaryValue, color: COLORS.accent }}>
                 ${(TOTAL_INVESTMENT_TRACKED / 1000).toFixed(2)}T
               </div>
               <div style={styles.upliftSummaryNote}>{PHYSICAL_UPLIFT_COVERAGE}% coverage of required uplift</div>
