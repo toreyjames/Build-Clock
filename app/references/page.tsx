@@ -37,90 +37,97 @@ const REFERENCES: Reference[] = [
   {
     id: 'prerequisites-ai',
     title: 'Prerequisites, Labor Gaps, and the AI Imperative',
-    description: 'Why automation and AI are strategic necessities in the build economy. Maps prerequisite dependencies, labor gaps, and demonstrates why AI-enabled automation is the only path to competitive advantage.',
-    category: 'Strategic Analysis',
+    description: 'Within the AI Manhattan Project framework, this paper maps how each prerequisite sector (power, chips, water, grid, critical minerals) serves the strategic driver — AI data centers. Analyzes labor cost gaps (China $6-8/hr vs. U.S. $30/hr) and demonstrates why AI-enabled automation is the only path to competitive advantage for each "player" in the ecosystem.',
+    category: 'AI Manhattan Framework',
     filename: 'PREREQUISITES_AND_AI_IMPERATIVE.md',
     keyInsights: [
+      'AI data centers are the strategic driver — all prerequisites serve this demand',
       'China has 4-5x labor cost advantage in prerequisite sectors',
-      'AI/automation is not optional — it\'s a strategic necessity',
-      'Value chain mapping reveals critical bottlenecks',
+      'AI/automation is not optional — it\'s a strategic necessity for each sector',
+      'Dependency mapping reveals how sectors depend on each other',
       'SFL Scientific positioning within prerequisite automation',
     ],
   },
   {
+    id: 'sector-dependencies',
+    title: 'Sector Dependencies: Industries as Players in AI Manhattan',
+    description: 'Detailed analysis positioning each industry (semiconductors, power/nuclear, grid/transmission, water, critical minerals) as "players" in the AI Manhattan Project with varying strategic importance and dependencies. Maps how chips need power and water, power needs grid and nuclear, grid needs transformers and critical minerals — all serving the central demand driver: AI data centers.',
+    category: 'AI Manhattan Framework',
+    filename: 'SECTOR_DEPENDENCIES_ANALYSIS.md',
+    keyInsights: [
+      'Each sector\'s role and importance in the AI Manhattan ecosystem',
+      'Dependency chains: how sectors depend on each other',
+      'Value chain mapping reveals critical bottlenecks between sectors',
+      'Strategic positioning of each "player" relative to AI data centers',
+      'OT requirements and interdependencies by sector',
+    ],
+  },
+  {
     id: 'ot-security',
-    title: 'Build Economy OT Security Section',
-    description: 'Real OT cyber attacks and why AI/connectivity increases risk. Emphasizes the OT security imperative in the build economy with documented case studies.',
-    category: 'OT Security',
+    title: 'OT Security in the AI Manhattan Buildout',
+    description: 'Real OT cyber attacks and why AI/connectivity increases risk across all sectors in the AI Manhattan Project. Emphasizes the OT security imperative with documented case studies, framed within the context of building thousands of new facilities (data centers, fabs, power plants, grid infrastructure) that all interconnect.',
+    category: 'AI Manhattan Framework',
     filename: 'BUILD_ECONOMY_OT_SECURITY_SECTION.md',
     keyInsights: [
       'Stuxnet, Triton, Colonial Pipeline — real attacks with physical impact',
-      'AI/connectivity expands attack surface in new facilities',
-      'Security-by-design vs. bolt-on approach',
-      'Build cycle creates thousands of new OT environments',
+      'AI/connectivity expands attack surface across all AI Manhattan sectors',
+      'Security-by-design vs. bolt-on approach for interconnected infrastructure',
+      'Build cycle creates thousands of new OT environments across sectors',
+      'Inter-sector dependencies create new attack vectors',
     ],
   },
   {
     id: 'niche-opportunities',
-    title: 'Deloitte Niche Opportunities in the Build Economy',
-    description: 'Identifies 5 niche opportunities where Deloitte can establish unique positioning: OT Asset Canonization, Commissioning-to-Operate OT Security, Industrial AI Security, EPC/Vendor OT Security Governance, and Build Cycle Intelligence.',
+    title: 'Deloitte Niche Opportunities in AI Manhattan',
+    description: 'Identifies 5 niche opportunities where Deloitte can establish unique positioning within the AI Manhattan Project: OT Asset Canonization, Commissioning-to-Operate OT Security, Industrial AI Security, EPC/Vendor OT Security Governance, and Build Cycle Intelligence. Framed around serving the AI Manhattan ecosystem across all sectors.',
     category: 'Business Development',
     filename: 'DELOITTE_NICHE_OPPORTUNITIES.md',
     keyInsights: [
-      'Assurance Twin is unique differentiator',
-      'Greenfield security-by-design opportunity',
-      'Industrial AI Security is emerging niche',
-      'Build Cycle Intelligence connects policy to services',
-    ],
-  },
-  {
-    id: 'sector-dependencies',
-    title: 'Sector Dependencies Analysis',
-    description: 'Detailed analysis of sector-specific dependencies and value chain bottlenecks across rare earths, batteries, nuclear, and other critical sectors.',
-    category: 'Sector Analysis',
-    filename: 'SECTOR_DEPENDENCIES_ANALYSIS.md',
-    keyInsights: [
-      'Sector-by-sector value chain mapping',
-      'Prerequisite identification methodology',
-      'Labor gap quantification',
-      'OT requirements by sector',
+      'Assurance Twin is unique differentiator across AI Manhattan sectors',
+      'Greenfield security-by-design opportunity across all infrastructure',
+      'Industrial AI Security is emerging niche for all prerequisite sectors',
+      'Build Cycle Intelligence connects policy to services across the ecosystem',
+      'Positioning within the AI Manhattan framework',
     ],
   },
   {
     id: 'state-research',
-    title: 'State Research Framework',
-    description: 'Framework for analyzing state-level industrial policy, incentives, and competitive positioning in the build economy.',
+    title: 'State Research Framework: AI Manhattan Alignment',
+    description: 'Framework for analyzing state-level industrial policy, incentives, and competitive positioning — reframed to assess how states are positioning themselves to capture AI Manhattan investment. Evaluates which states are winning AI data centers, fabs, power projects, and how they\'re aligning prerequisites.',
     category: 'Research Methodology',
     filename: 'STATE_RESEARCH_FRAMEWORK.md',
     keyInsights: [
-      'State-level policy tracking',
-      'Incentive comparison framework',
-      'Competitive positioning analysis',
+      'State-level AI Manhattan investment tracking',
+      'Which states are winning in each sector (data centers, fabs, power, grid)',
+      'Incentive alignment with AI Manhattan prerequisites',
+      'Competitive positioning analysis within the framework',
     ],
   },
   {
     id: 'gdp-impact',
-    title: 'GDP Impact Validation',
-    description: 'Methodology and validation for GDP impact calculations, multiplier effects, and economic modeling of the build economy.',
+    title: 'GDP Impact Validation: AI Manhattan Economic Framework',
+    description: 'Methodology and validation for GDP impact calculations, multiplier effects, and economic modeling — reframed to show how AI Manhattan investments (across all prerequisite sectors) contribute to GDP growth to reduce debt-to-GDP ratio. Shows how each sector\'s investments multiply through the economy.',
     category: 'Economic Analysis',
     filename: 'GDP_IMPACT_VALIDATION_NEEDED.md',
     keyInsights: [
-      'CBO-validated multiplier ranges',
-      'GDP impact calculation methodology',
-      'Federal spending composition analysis',
-      'Economic modeling framework',
+      'CBO-validated multiplier ranges for AI Manhattan sectors',
+      'GDP impact calculation methodology across the ecosystem',
+      'How sector interdependencies affect multiplier effects',
+      'Federal spending composition analysis aligned with AI Manhattan',
+      'Economic modeling framework for the entire project',
     ],
   },
   {
     id: 'data-guide',
-    title: 'Data Update Guide',
-    description: 'Technical guide for updating Build Clock data, maintaining the single source of truth, and ensuring consistency across pages.',
+    title: 'Data Update Guide: AI Manhattan Alignment',
+    description: 'Technical guide for updating Build Clock data, maintaining the single source of truth, and ensuring consistency — updated to reflect AI Manhattan alignment requirements. All opportunities must align with AI Manhattan prerequisites (semiconductors, data centers, power, grid, water, critical minerals).',
     category: 'Technical Documentation',
     filename: 'DATA_UPDATE_GUIDE.md',
     keyInsights: [
-      'Single source of truth architecture',
-      'Automatic calculation methodology',
-      'Data update workflow',
+      'Single source of truth architecture for AI Manhattan sectors',
+      'Automatic calculation methodology aligned with framework',
+      'Data update workflow ensuring AI Manhattan alignment',
+      'Sector classification within the dependency structure',
     ],
   },
 ]
@@ -288,7 +295,7 @@ export default function ReferencesPage() {
                 <span style={{ color: COLORS.accent }}>BUILD</span> CLOCK
               </Link>
             </h1>
-            <p style={styles.subtitle}>Reference Papers & Research</p>
+            <p style={styles.subtitle}>Reference Papers & Research: AI Manhattan Project Framework</p>
           </div>
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <Link href="/" style={styles.radarLink}>
@@ -297,19 +304,24 @@ export default function ReferencesPage() {
             <Link href="/opportunities" style={styles.radarLink}>
               Opportunity Radar →
             </Link>
-            <Link href="/sectors" style={styles.radarLink}>
-              Sector Deep-Dives →
-            </Link>
-            <Link href="/policy-gaps" style={styles.radarLink}>
-              Policy Gaps →
+            <Link href="/ai-opportunities" style={styles.radarLink}>
+              SFL →
             </Link>
           </div>
         </header>
 
         <section style={styles.introSection}>
           <p style={styles.introText}>
-            This page contains the research papers, analysis frameworks, and strategic documents that underpin the Build Clock analysis. 
-            These references provide detailed methodology, sector deep-dives, and business development insights for Deloitte's positioning in the build economy.
+            <strong>The AI Manhattan Project</strong> — the strategic buildout of AI data centers and supporting infrastructure — 
+            serves as the overarching framework for all industrial investment. Each industry (semiconductors, power, grid, water, 
+            critical minerals) functions as a "player" with varying strategic importance and dependencies on one another. These 
+            reference papers analyze how each sector contributes to the AI Manhattan ecosystem, their interdependencies, and the 
+            strategic positioning opportunities within this framework.
+          </p>
+          <p style={styles.introText}>
+            The papers below provide detailed methodology, sector analysis, and business development insights, all framed within 
+            the AI Manhattan Project context — where AI data centers are the strategic driver, and everything else exists to 
+            serve that demand.
           </p>
         </section>
 
@@ -354,4 +366,7 @@ export default function ReferencesPage() {
     </main>
   )
 }
+
+
+
 

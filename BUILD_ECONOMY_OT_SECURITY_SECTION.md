@@ -288,3 +288,6 @@ The build cycle is here. The security requirement is clear. The question is whet
 7. U.S. Department of Defense. "Joint Guidance: Principles for the Secure Integration of AI in OT." December 2024.
 
 
+
+
+

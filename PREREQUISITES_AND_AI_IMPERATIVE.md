@@ -409,10 +409,20 @@ fabrication       pumps, valves,       commission            operations
 
 #### Why AI/Automation Is Necessary
 
-**1. Construction Automation**
-- **AI for welding:** Automated welding systems (reduce labor content, improve quality)
-- **AI for inspection:** Automated inspection systems (reduce labor content, improve quality)
-- **Result:** Faster construction, lower costs, competitive despite higher labor rates
+**1. QA & Documentation Automation (Construction Phase) — PRIMARY BOTTLENECK**
+- **AI for QA documentation:** Automated tracking of welds, components, inspections (NQA-1 compliance)
+- **AI for inspection throughput:** Accelerates inspection cycles, reduces documentation bottlenecks
+- **AI for compliance reporting:** Automated generation of regulatory documentation
+- **AI for licensing acceleration:** Automated document generation, compliance checking, regulatory workflow optimization (enables 30-50% faster licensing = 1-2 years earlier deployment)
+- **Result:** Faster construction timelines (20-30% reduction), lower costs through reduced delays, 30-50% faster licensing, competitive despite higher labor rates
+- **Why this is the PRIMARY bottleneck:** Physical welding/inspection automation exists and is improving. The gap is compliance/documentation throughput — thousands of welds/components require NQA-1 certified documentation, manual tracking is slow, licensing delays gate deployment. This gates deployment speed more than physical tasks.
+
+**2. Physical Construction AI — SECONDARY (but valuable)**
+- **AI vision systems:** Automated defect detection in welds, quality inspection (reduces manual inspection labor)
+- **AI-controlled welding:** Robotic welding systems with AI quality control
+- **AI for component manufacturing:** AI + 3D printing slashes component construction time (weeks → days)
+- **Result:** 10-20% quality improvement, 15-25% faster physical processes
+- **Why this is SECONDARY:** Physical automation exists and is improving (Palantir NOS, AI + 3D printing, automated inspection systems). QA/documentation automation remains the bigger bottleneck that gates deployment speed — compliance throughput, licensing acceleration are the critical gaps.
 
 **2. Predictive Maintenance**
 - **AI for operations:** Predict equipment failures before they happen (pumps, valves, I&C systems)
@@ -555,7 +565,7 @@ renewables)                            protection        smart meters      EVs, 
 | **Rare Earths** | China: $6-8/hr vs. U.S.: $30/hr | AI process optimization, automated quality control | Competitive costs despite higher labor rates |
 | **Semiconductors** | Taiwan: $15-20/hr vs. U.S.: $30/hr | AI yield optimization, automated quality testing | Competitive yield, lower defect rates |
 | **Batteries** | China: $6-8/hr vs. U.S.: $30/hr | AI process optimization, automated cell assembly | Competitive costs, higher quality |
-| **Nuclear** | South Korea: $10-15/hr vs. U.S.: $30/hr | AI construction automation, predictive maintenance | Faster construction, lower costs |
+| **Nuclear** | South Korea: $10-15/hr vs. U.S.: $30/hr | **AI QA/documentation automation (PRIMARY bottleneck — compliance throughput, licensing acceleration gates deployment more than physical tasks)**, physical construction AI (secondary), predictive maintenance | Faster construction, lower costs, 30-50% faster licensing |
 | **Grid** | China: $6-8/hr vs. U.S.: $30/hr | AI grid optimization, automated maintenance | Higher efficiency, lower costs |
 
 ### Why AI Is Not Optional

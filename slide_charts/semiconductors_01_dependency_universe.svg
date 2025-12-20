@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      .bg { fill:#0a0f14; }
+      .card { fill:#0d1117; stroke:#21262d; stroke-width:2; }
+      .title { fill:#e6edf3; font:700 34px "Segoe UI", Arial, sans-serif; }
+      .subtitle { fill:#7d8590; font:500 16px "Segoe UI", Arial, sans-serif; }
+      .label { fill:#e6edf3; font:700 14px "Segoe UI", Arial, sans-serif; letter-spacing:0.5px; }
+      .small { fill:#7d8590; font:500 12px "Segoe UI", Arial, sans-serif; }
+      .accent { fill:#86BC25; }
+      .accentText { fill:#86BC25; font:700 13px "Segoe UI", Arial, sans-serif; }
+      .node { fill:#0d1117; stroke:#86BC25; stroke-width:2; }
+      .nodeDim { fill:#0d1117; stroke:#30363d; stroke-width:2; }
+      .arrow { stroke:#58a6ff; stroke-width:2.5; fill:none; opacity:0.9; }
+      .arrowDim { stroke:#484f58; stroke-width:2; fill:none; opacity:0.7; }
+    </style>
+    <marker id="arrowHead" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#58a6ff"/>
+    </marker>
+    <marker id="arrowHeadDim" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#484f58"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1600" height="900"/>
+
+  <!-- Header -->
+  <text class="title" x="64" y="86">Semiconductors: Dependency Universe</text>
+  <text class="subtitle" x="64" y="116">1:1 production ratio by 2030 is a system goal. If any upstream dependency fails, 1:1 fails.</text>
+  <text class="subtitle" x="64" y="140">SFL Scientific (Deloitte) • Visual: prerequisite “Marvel map”</text>
+
+  <!-- Central win condition -->
+  <rect class="node" x="1040" y="360" width="500" height="180" rx="18"/>
+  <text class="label" x="1070" y="405">WIN CONDITION</text>
+  <text class="accentText" x="1070" y="435">1:1 PRODUCTION RATIO (2030)</text>
+  <text class="small" x="1070" y="462">Domestic output must match imports.</text>
+  <text class="small" x="1070" y="482">Gated by upstream prerequisites + in-fab yield/throughput.</text>
+  <rect x="1070" y="505" width="220" height="22" rx="11" fill="#86BC2522" stroke="#86BC25"/>
+  <text class="accentText" x="1082" y="521">AI STRATEGIC AUTONOMY</text>
+
+  <!-- Left column nodes -->
+  <rect class="nodeDim" x="64" y="210" width="360" height="86" rx="14"/>
+  <text class="label" x="92" y="245">GRID + TRANSFORMERS</text>
+  <text class="small" x="92" y="268">Energize fabs; interconnect queues</text>
+
+  <rect class="nodeDim" x="64" y="320" width="360" height="86" rx="14"/>
+  <text class="label" x="92" y="355">WATER → UPW</text>
+  <text class="small" x="92" y="378">Hard prerequisite for cleanrooms</text>
+
+  <rect class="nodeDim" x="64" y="430" width="360" height="86" rx="14"/>
+  <text class="label" x="92" y="465">CHEMICALS + GASES</text>
+  <text class="small" x="92" y="488">Photoresist/etchants + N₂/Ar, etc.</text>
+
+  <rect class="nodeDim" x="64" y="540" width="360" height="86" rx="14"/>
+  <text class="label" x="92" y="575">WAFERS</text>
+  <text class="small" x="92" y="598">Feedstock; advanced-node dependency</text>
+
+  <rect class="nodeDim" x="64" y="650" width="360" height="86" rx="14"/>
+  <text class="label" x="92" y="685">RARE EARTHS → MAGNETS</text>
+  <text class="small" x="92" y="708">Precision motors/actuators ecosystem</text>
+
+  <!-- Middle column nodes -->
+  <rect class="node" x="472" y="250" width="500" height="96" rx="14"/>
+  <text class="label" x="500" y="286">EQUIPMENT (EUV / ETCH / DEPO / METROLOGY)</text>
+  <text class="small" x="500" y="310">Capacity + node capability • long lead times • precision supply chain</text>
+
+  <rect class="node" x="472" y="370" width="500" height="96" rx="14"/>
+  <text class="label" x="500" y="406">FAB COMMISSIONING → QUALIFICATION</text>
+  <text class="small" x="500" y="430">Bring-up, calibration, recipe stability, change control</text>
+
+  <rect class="node" x="472" y="490" width="500" height="96" rx="14"/>
+  <text class="label" x="500" y="526">YIELD + THROUGHPUT</text>
+  <text class="small" x="500" y="550">The only metric that matters: wafers out at spec, at rate</text>
+
+  <rect class="node" x="472" y="610" width="500" height="96" rx="14"/>
+  <text class="label" x="500" y="646">PACKAGING / OSAT → SHIP</text>
+  <text class="small" x="500" y="670">Test throughput + escape rates gate deliveries</text>
+
+  <!-- Cross-cutting band -->
+  <rect class="card" x="472" y="730" width="1068" height="110" rx="18"/>
+  <text class="label" x="500" y="772">CROSS-CUTTING: WORKFORCE • PERMITTING • OT/CYBER • VENDOR ACCESS</text>
+  <text class="small" x="500" y="798">If you can’t staff it, permit it, secure it, and govern vendor access — you don’t ship.</text>
+  <text class="small" x="500" y="820">This is where “system integration” wins or dies.</text>
+
+  <!-- Arrows from prerequisites to equipment -->
+  <path class="arrowDim" marker-end="url(#arrowHeadDim)" d="M 424 252 C 455 252, 455 280, 472 298"/>
+  <path class="arrowDim" marker-end="url(#arrowHeadDim)" d="M 424 362 C 455 362, 455 330, 472 310"/>
+  <path class="arrowDim" marker-end="url(#arrowHeadDim)" d="M 424 472 C 455 472, 455 350, 472 322"/>
+  <path class="arrowDim" marker-end="url(#arrowHeadDim)" d="M 424 582 C 455 582, 455 370, 472 334"/>
+  <path class="arrowDim" marker-end="url(#arrowHeadDim)" d="M 424 692 C 455 692, 455 390, 472 346"/>
+
+  <!-- Main kill chain arrows -->
+  <path class="arrow" marker-end="url(#arrowHead)" d="M 972 298 C 1008 300, 1006 340, 1040 390"/>
+  <path class="arrow" marker-end="url(#arrowHead)" d="M 972 418 C 1010 418, 1006 430, 1040 430"/>
+  <path class="arrow" marker-end="url(#arrowHead)" d="M 972 538 C 1010 538, 1006 500, 1040 470"/>
+  <path class="arrow" marker-end="url(#arrowHead)" d="M 972 658 C 1010 658, 1006 560, 1040 505"/>
+
+  <!-- Internal chain arrows -->
+  <path class="arrow" marker-end="url(#arrowHead)" d="M 722 346 L 722 370"/>
+  <path class="arrow" marker-end="url(#arrowHead)" d="M 722 466 L 722 490"/>
+  <path class="arrow" marker-end="url(#arrowHead)" d="M 722 586 L 722 610"/>
+
+  <!-- Footer -->
+  <text class="small" x="64" y="872">SFL Scientific | Deloitte Development LLC • Build Clock • SVG (slide-ready)</text>
+</svg>
+
+
+

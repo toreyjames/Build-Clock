@@ -43,3 +43,6 @@ For truly automatic updates, you could:
 For now, manual updates to `lib/data/opportunities.ts` will automatically update both pages.
 
 
+
+
+

@@ -283,16 +283,32 @@ const AI_OPPORTUNITIES: SectorAIOpportunities[] = [
     aiUseCases: [
       {
         id: 'construction-automation',
-        name: 'Construction Automation',
-        description: 'AI for automated welding, inspection, and quality control in reactor construction, reducing labor content.',
+        name: 'QA & Documentation Automation (Construction Phase) — PRIMARY BOTTLENECK',
+        description: 'AI automates QA documentation, inspection tracking, and compliance reporting during reactor construction. **This is the PRIMARY bottleneck:** thousands of welds/components require NQA-1 certified documentation, manual tracking is slow, licensing delays gate deployment. Physical automation exists; the gap is compliance/documentation throughput.',
         valueChainStage: 'Reactor Construction',
-        laborImpact: 'Reduces construction labor (typically 30-40% of construction workforce)',
-        roi: '20-30% construction cost reduction, 15-25% faster construction, payback: immediate',
-        sflPositioning: 'AI for construction automation — enables competitive construction costs despite higher U.S. labor rates',
+        laborImpact: 'Reduces QA documentation labor (typically 20-30% of construction workforce), accelerates inspection throughput, enables faster licensing',
+        roi: '20-30% faster construction timelines, 15-25% cost reduction through reduced delays, 30-50% faster licensing (1-2 years earlier deployment), payback: immediate',
+        sflPositioning: 'AI for QA/documentation automation — **addresses the PRIMARY bottleneck:** compliance throughput, licensing acceleration. This gates deployment speed more than physical tasks.',
         examples: [
           'TerraPower Natrium reactor (Kemmerer, WY)',
           'X-energy Xe-100 reactor (Seadrift, TX)',
           'Three Mile Island restart',
+          'Microsoft/Idaho National Lab AI for permitting acceleration',
+        ],
+      },
+      {
+        id: 'physical-construction-ai',
+        name: 'Physical Construction AI (Welding, Inspection, Components) — SECONDARY',
+        description: 'AI-powered vision systems for automated defect detection in welds, AI-controlled welding systems, AI for component manufacturing optimization. **Valuable but secondary:** improves quality and speed of physical processes, but QA/documentation throughput remains the bigger bottleneck.',
+        valueChainStage: 'Reactor Construction',
+        laborImpact: 'Reduces need for manual welders/inspectors, improves quality consistency',
+        roi: '10-20% quality improvement, 15-25% faster physical processes, payback: 12-18 months',
+        sflPositioning: 'AI for physical construction processes — improves quality and speed, but **QA/documentation automation is the bigger bottleneck** that gates deployment',
+        examples: [
+          'AI vision systems for weld inspection (automated defect detection)',
+          'AI-controlled robotic welding systems',
+          'AI + 3D printing for component manufacturing (slashes time from weeks to days)',
+          'Palantir Nuclear Operating System (AI-driven construction software)',
         ],
       },
       {
@@ -375,12 +391,13 @@ const AI_OPPORTUNITIES: SectorAIOpportunities[] = [
         ],
       },
     ],
-    strategicRationale: 'South Korea has $10-15/hr construction labor vs. U.S. $30/hr = 2-3x cost disadvantage. AI construction automation, fuel optimization, and predictive maintenance are essential to compete.',
+    strategicRationale: 'South Korea has $10-15/hr construction labor vs. U.S. $30/hr = 2-3x cost disadvantage. **QA/documentation automation is the PRIMARY bottleneck** (compliance throughput, licensing acceleration gates deployment more than physical tasks). Physical construction AI is valuable but secondary. Heartbeat AI targets the critical gap: licensing acceleration, QA throughput automation, operations optimization.',
     sflServices: [
       'Heartbeat AI: Licensing acceleration',
       'Heartbeat AI: QA automation',
       'Heartbeat AI: Operations optimization',
-      'Construction automation AI (welding, inspection)',
+      'QA/documentation automation AI (construction phase)',
+      'Physical construction AI (welding, inspection, component manufacturing)',
       'Fuel optimization AI',
       'Predictive maintenance AI',
       'Safety system AI',
@@ -482,11 +499,8 @@ export default function AIOpportunitiesPage() {
             <p style={styles.subtitle}>AI Application Opportunities: Positioning SFL Scientific</p>
           </div>
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <Link href="/sectors" style={styles.radarLink}>
-              ← Back to Sectors
-            </Link>
-            <Link href="/policy-gaps" style={styles.radarLink}>
-              Policy Gaps →
+            <Link href="/" style={styles.radarLink}>
+              ← Build Clock
             </Link>
             <Link href="/opportunities" style={styles.radarLink}>
               Opportunity Radar →
@@ -498,21 +512,22 @@ export default function AIOpportunitiesPage() {
         </header>
 
         <section style={styles.introSection}>
-          <h2 style={styles.introTitle}>AI Opportunities in Prerequisites</h2>
+          <h2 style={styles.introTitle}>AI Opportunities in AI Manhattan Prerequisites</h2>
           <p style={styles.introText}>
-            The Build Clock reveals <strong>$800B+ in industrial investment</strong>, but many projects depend on 
-            <strong> prerequisites</strong> that don't exist in the U.S. — rare earth refining, battery materials processing, 
-            HALEU fuel production, transmission infrastructure.
+            The <strong>AI Manhattan Project</strong> — the strategic buildout of AI data centers and supporting infrastructure — 
+            drives $657B+ in tracked industrial investment across prerequisites: semiconductors, power generation, grid transmission, 
+            water systems, and critical minerals.
           </p>
           <p style={styles.introText}>
-            <strong>The challenge:</strong> China and other countries have <strong>$6-8/hour labor</strong> vs. U.S. 
-            <strong> $30/hour</strong> = <strong>3-5x cost disadvantage</strong>.
+            <strong>The challenge:</strong> Building this infrastructure in the U.S. faces a <strong>$6-8/hour labor cost</strong> 
+            disadvantage vs. China's <strong>$30/hour</strong> U.S. rates — a <strong>3-5x cost gap</strong> that makes many 
+            projects uneconomical without automation.
           </p>
           <p style={styles.introText}>
-            <strong>The solution:</strong> <strong>AI and automation are not optional</strong> — they are strategic necessities 
-            to offset labor cost disadvantages and accelerate development. <strong>SFL Scientific</strong> can position AI 
-            applications at the <strong>core of these prerequisite processes</strong> — where they're not just efficiency gains, 
-            but competitive requirements.
+            <strong>The solution:</strong> <strong>AI and automation are strategic necessities</strong> to offset labor cost 
+            disadvantages and enable the physical infrastructure required for AI's GDP growth potential. <strong>SFL Scientific</strong> 
+            can position AI applications at the <strong>core of these prerequisite processes</strong> — where they're not just 
+            efficiency gains, but competitive requirements for the AI Manhattan buildout.
           </p>
         </section>
 

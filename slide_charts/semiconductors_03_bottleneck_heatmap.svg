@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      .bg { fill:#0a0f14; }
+      .title { fill:#e6edf3; font:700 34px "Segoe UI", Arial, sans-serif; }
+      .subtitle { fill:#7d8590; font:500 16px "Segoe UI", Arial, sans-serif; }
+      .card { fill:#0d1117; stroke:#21262d; stroke-width:2; }
+      .hdr { fill:#e6edf3; font:700 14px "Segoe UI", Arial, sans-serif; letter-spacing:0.5px; }
+      .txt { fill:#e6edf3; font:600 13px "Segoe UI", Arial, sans-serif; }
+      .small { fill:#7d8590; font:500 12px "Segoe UI", Arial, sans-serif; }
+      .crit { fill:#ff7b72; }
+      .high { fill:#d29922; }
+      .med { fill:#58a6ff; }
+      .low { fill:#3fb950; }
+      .legend { fill:#7d8590; font:600 12px "Segoe UI", Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1600" height="900"/>
+  <text class="title" x="64" y="86">2030 Bottleneck Heatmap</text>
+  <text class="subtitle" x="64" y="116">What actually gates 1:1 production ratio (not “nice to have”)</text>
+  <text class="subtitle" x="64" y="140">Severity is about schedule + throughput risk to the system goal.</text>
+
+  <rect class="card" x="64" y="190" width="1472" height="620" rx="18"/>
+
+  <!-- Column headers -->
+  <text class="hdr" x="96" y="232">LAYER</text>
+  <text class="hdr" x="640" y="232">SEVERITY</text>
+  <text class="hdr" x="860" y="232">WHY IT GATES</text>
+  <text class="hdr" x="1320" y="232">HEARTBEAT AI WEDGE</text>
+
+  <!-- Rows helper function simulated by manual placement -->
+  <!-- Row 1 -->
+  <text class="txt" x="96" y="290">Transformers + interconnect</text>
+  <rect x="640" y="265" width="170" height="34" rx="10" class="crit" opacity="0.18"/>
+  <text class="txt" x="660" y="288" fill="#ff7b72">CRITICAL</text>
+  <text class="small" x="860" y="288">Can’t energize new capacity → commissioning stalls</text>
+  <text class="small" x="1320" y="288">Orchestrator + Reliability (planning + uptime)</text>
+
+  <!-- Row 2 -->
+  <text class="txt" x="96" y="352">EUV / lithography equipment</text>
+  <rect x="640" y="327" width="170" height="34" rx="10" class="crit" opacity="0.18"/>
+  <text class="txt" x="660" y="350" fill="#ff7b72">CRITICAL</text>
+  <text class="small" x="860" y="350">Node progression + capacity gated by tool availability</text>
+  <text class="small" x="1320" y="350">Reliability + QA (utilization + evidence)</text>
+
+  <!-- Row 3 -->
+  <text class="txt" x="96" y="414">UPW (water)</text>
+  <rect x="640" y="389" width="170" height="34" rx="10" class="high" opacity="0.20"/>
+  <text class="txt" x="660" y="412" fill="#d29922">HIGH</text>
+  <text class="small" x="860" y="412">Hard prerequisite; instability drives scrap and downtime</text>
+  <text class="small" x="1320" y="412">Edge + Reliability + Yield</text>
+
+  <!-- Row 4 -->
+  <text class="txt" x="96" y="476">Specialty chemicals + gases</text>
+  <rect x="640" y="451" width="170" height="34" rx="10" class="high" opacity="0.20"/>
+  <text class="txt" x="660" y="474" fill="#d29922">HIGH</text>
+  <text class="small" x="860" y="474">Supply fragility halts throughput; chemistry drives yield</text>
+  <text class="small" x="1320" y="474">Edge + Yield + QA</text>
+
+  <!-- Row 5 -->
+  <text class="txt" x="96" y="538">Wafers</text>
+  <rect x="640" y="513" width="170" height="34" rx="10" class="high" opacity="0.20"/>
+  <text class="txt" x="660" y="536" fill="#d29922">HIGH</text>
+  <text class="small" x="860" y="536">Feedstock constraints + quality variation affect output</text>
+  <text class="small" x="1320" y="536">QA + Twin (traceability + planning)</text>
+
+  <!-- Row 6 -->
+  <text class="txt" x="96" y="600">Packaging / OSAT</text>
+  <rect x="640" y="575" width="170" height="34" rx="10" class="high" opacity="0.20"/>
+  <text class="txt" x="660" y="598" fill="#d29922">HIGH</text>
+  <text class="small" x="860" y="598">Output can’t ship; test throughput + escapes gate delivery</text>
+  <text class="small" x="1320" y="598">QA + Yield (test optimization)</text>
+
+  <!-- Row 7 -->
+  <text class="txt" x="96" y="662">Rare earths → magnets</text>
+  <rect x="640" y="637" width="170" height="34" rx="10" class="high" opacity="0.20"/>
+  <text class="txt" x="660" y="660" fill="#d29922">HIGH</text>
+  <text class="small" x="860" y="660">Scaling risk across precision equipment ecosystem</text>
+  <text class="small" x="1320" y="660">Edge + QA + Security (new plants)</text>
+
+  <!-- Row 8 -->
+  <text class="txt" x="96" y="724">Workforce + permitting + OT security</text>
+  <rect x="640" y="699" width="170" height="34" rx="10" class="high" opacity="0.20"/>
+  <text class="txt" x="660" y="722" fill="#d29922">HIGH</text>
+  <text class="small" x="860" y="722">Schedule + risk; vendor access + compliance friction</text>
+  <text class="small" x="1320" y="722">Copilot + Security + Orchestrator</text>
+
+  <!-- Legend -->
+  <rect x="64" y="830" width="1472" height="50" rx="16" class="card"/>
+  <text class="legend" x="96" y="862">Legend:</text>
+  <rect x="170" y="846" width="24" height="24" rx="6" class="crit" opacity="0.35"/>
+  <text class="legend" x="204" y="862">Critical</text>
+  <rect x="290" y="846" width="24" height="24" rx="6" class="high" opacity="0.35"/>
+  <text class="legend" x="324" y="862">High</text>
+  <rect x="390" y="846" width="24" height="24" rx="6" class="med" opacity="0.35"/>
+  <text class="legend" x="424" y="862">Medium</text>
+  <rect x="510" y="846" width="24" height="24" rx="6" class="low" opacity="0.35"/>
+  <text class="legend" x="544" y="862">Low</text>
+
+  <text class="small" x="64" y="892">SFL Scientific | Deloitte Development LLC • Build Clock • SVG (slide-ready)</text>
+</svg>
+
+
+

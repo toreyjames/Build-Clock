@@ -519,3 +519,6 @@ For each sector, we should create a deep-dive that includes:
 **The insight:** The build economy isn't just about building end products. It's about building the **prerequisites** that enable end products. And every prerequisite needs OT security.
 
 
+
+
+

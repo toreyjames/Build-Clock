@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      .bg { fill:#0a0f14; }
+      .panel { fill:#0d1117; stroke:#21262d; stroke-width:2; }
+      .title { fill:#e6edf3; font:700 34px "Segoe UI", Arial, sans-serif; }
+      .subtitle { fill:#7d8590; font:500 16px "Segoe UI", Arial, sans-serif; }
+      .label { fill:#e6edf3; font:700 14px "Segoe UI", Arial, sans-serif; letter-spacing:0.5px; }
+      .small { fill:#7d8590; font:500 12px "Segoe UI", Arial, sans-serif; }
+      .accent { fill:#86BC25; }
+      .accentText { fill:#86BC25; font:700 13px "Segoe UI", Arial, sans-serif; }
+      .chip { fill:#0d1117; stroke:#86BC25; stroke-width:2; }
+      .module { fill:#86BC2514; stroke:#86BC25; stroke-width:2; }
+      .moduleTitle { fill:#e6edf3; font:700 13px "Segoe UI", Arial, sans-serif; }
+      .moduleText { fill:#7d8590; font:500 12px "Segoe UI", Arial, sans-serif; }
+      .link { stroke:#58a6ff; stroke-width:2.5; fill:none; opacity:0.9; }
+    </style>
+    <marker id="arrowHead" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#58a6ff"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1600" height="900"/>
+
+  <text class="title" x="64" y="86">Heartbeat AI: Operating System for the Universe</text>
+  <text class="subtitle" x="64" y="116">Not a single model. A set of modules that compress time-to-energize → qualify → yield → ship → comply.</text>
+  <text class="subtitle" x="64" y="140">SFL Scientific (Deloitte) • System-level product map</text>
+
+  <!-- Win condition -->
+  <rect class="chip" x="1120" y="84" width="416" height="84" rx="16"/>
+  <text class="label" x="1148" y="118">WIN: 1:1 PRODUCTION RATIO (2030)</text>
+  <text class="small" x="1148" y="142">Domestic output matches imports • AI strategic autonomy</text>
+
+  <!-- Universe band -->
+  <rect class="panel" x="64" y="190" width="1472" height="190" rx="18"/>
+  <text class="label" x="92" y="226">THE DEPENDENCY UNIVERSE (WHERE PROJECTS DIE)</text>
+  <text class="small" x="92" y="250">Grid/transformers • UPW • gases • specialty chemicals • wafers • rare earths/magnets • equipment • packaging • OT/cyber/vendor access</text>
+
+  <!-- Pain points -->
+  <rect class="panel" x="64" y="410" width="520" height="420" rx="18"/>
+  <text class="label" x="92" y="448">SYSTEM PAIN POINTS (THE REAL GATES)</text>
+  <text class="small" x="92" y="476">These are the clocks that decide whether 2030 is possible.</text>
+
+  <rect class="module" x="92" y="500" width="464" height="60" rx="14"/>
+  <text class="moduleTitle" x="114" y="532">TIME-TO-ENERGIZE</text>
+  <text class="moduleText" x="114" y="552">Interconnect + transformers delay commissioning</text>
+
+  <rect class="module" x="92" y="574" width="464" height="60" rx="14"/>
+  <text class="moduleTitle" x="114" y="606">TIME-TO-QUALIFY</text>
+  <text class="moduleText" x="114" y="626">Tool calibration + recipe stability drag revenue</text>
+
+  <rect class="module" x="92" y="648" width="464" height="60" rx="14"/>
+  <text class="moduleTitle" x="114" y="680">TIME-TO-YIELD</text>
+  <text class="moduleText" x="114" y="700">Excursions, scrap, unstable UPW/gas/chemistry</text>
+
+  <rect class="module" x="92" y="722" width="464" height="60" rx="14"/>
+  <text class="moduleTitle" x="114" y="754">TIME-TO-SHIP / TIME-TO-COMPLY</text>
+  <text class="moduleText" x="114" y="774">Packaging/test bottlenecks + evidence/approvals</text>
+
+  <!-- Modules -->
+  <rect class="panel" x="612" y="410" width="924" height="420" rx="18"/>
+  <text class="label" x="640" y="448">HEARTBEAT AI MODULES (THE PRODUCT)</text>
+  <text class="small" x="640" y="476">Each module attacks a system gate. Together they act like an operating system.</text>
+
+  <!-- Row 1 -->
+  <rect class="module" x="640" y="500" width="285" height="92" rx="14"/>
+  <text class="moduleTitle" x="660" y="530">EDGE</text>
+  <text class="moduleText" x="660" y="552">Secure OT data acquisition</text>
+  <text class="moduleText" x="660" y="572">Historians, SCADA, sensors</text>
+
+  <rect class="module" x="950" y="500" width="285" height="92" rx="14"/>
+  <text class="moduleTitle" x="970" y="530">TWIN</text>
+  <text class="moduleText" x="970" y="552">Capacity + process “what-if”</text>
+  <text class="moduleText" x="970" y="572">Ramp planning + constraints</text>
+
+  <rect class="module" x="1260" y="500" width="276" height="92" rx="14"/>
+  <text class="moduleTitle" x="1280" y="530">ORCHESTRATOR</text>
+  <text class="moduleText" x="1280" y="552">Commission → qualify workflows</text>
+  <text class="moduleText" x="1280" y="572">Change control + approvals</text>
+
+  <!-- Row 2 -->
+  <rect class="module" x="640" y="610" width="285" height="92" rx="14"/>
+  <text class="moduleTitle" x="660" y="640">YIELD</text>
+  <text class="moduleText" x="660" y="662">Defect prediction + prevention</text>
+  <text class="moduleText" x="660" y="682">Excursion detection</text>
+
+  <rect class="module" x="950" y="610" width="285" height="92" rx="14"/>
+  <text class="moduleTitle" x="970" y="640">RELIABILITY</text>
+  <text class="moduleText" x="970" y="662">Predictive maintenance</text>
+  <text class="moduleText" x="970" y="682">Tool utilization</text>
+
+  <rect class="module" x="1260" y="610" width="276" height="92" rx="14"/>
+  <text class="moduleTitle" x="1280" y="640">QA</text>
+  <text class="moduleText" x="1280" y="662">Traceability + evidence</text>
+  <text class="moduleText" x="1280" y="682">Reduce escapes</text>
+
+  <!-- Row 3 -->
+  <rect class="module" x="640" y="720" width="285" height="92" rx="14"/>
+  <text class="moduleTitle" x="660" y="750">SECURITY</text>
+  <text class="moduleText" x="660" y="772">AI/OT integration security</text>
+  <text class="moduleText" x="660" y="792">Vendor governance</text>
+
+  <rect class="module" x="950" y="720" width="586" height="92" rx="14"/>
+  <text class="moduleTitle" x="970" y="750">COPILOT</text>
+  <text class="moduleText" x="970" y="772">Technician guidance + SOPs</text>
+  <text class="moduleText" x="970" y="792">Lower labor hours per wafer</text>
+
+  <!-- Links from pain points to modules -->
+  <path class="link" marker-end="url(#arrowHead)" d="M 556 530 C 610 530, 610 546, 640 546"/>
+  <path class="link" marker-end="url(#arrowHead)" d="M 556 604 C 610 604, 610 546, 640 546"/>
+  <path class="link" marker-end="url(#arrowHead)" d="M 556 678 C 610 678, 610 656, 640 656"/>
+  <path class="link" marker-end="url(#arrowHead)" d="M 556 752 C 610 752, 610 766, 640 766"/>
+
+  <!-- Footer -->
+  <text class="small" x="64" y="872">SFL Scientific | Deloitte Development LLC • Build Clock • SVG (slide-ready)</text>
+</svg>
+
+
+

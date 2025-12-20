@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Heartbeat AI for Semiconductors (System-Level)</title>
+  <style>
+    body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.5; margin: 1in; color: #000; background: #fff; }
+    h1 { font-size: 20pt; font-weight: 700; margin: 12pt 0 6pt; color: #86BC25; border-bottom: 3px solid #86BC25; padding-bottom: 6pt; }
+    h2 { font-size: 16pt; font-weight: 700; margin: 12pt 0 6pt; color: #86BC25; }
+    p { margin: 6pt 0; }
+    table { border-collapse: collapse; width: 100%; margin: 10pt 0 14pt; }
+    td, th { border: 1px solid #000; padding: 8pt; text-align: left; vertical-align: top; }
+    th { background-color: #86BC25; color: #fff; font-weight: 700; }
+    strong { font-weight: 700; color: #2E7D32; }
+    hr { border: none; border-top: 2px solid #86BC25; margin: 12pt 0; }
+    code { font-family: Consolas, 'Courier New', monospace; font-size: 10pt; }
+    .deloitte-header { background-color: #86BC25; color: #fff; padding: 8pt; text-align: center; font-size: 9pt; font-weight: 700; margin-bottom: 12pt; }
+    .deloitte-footer { background-color: #2E7D32; color: #fff; padding: 8pt; text-align: center; font-size: 9pt; margin-top: 24pt; }
+  </style>
+</head>
+<body>
+  <div class="deloitte-header">SFL Scientific | Deloitte Development LLC</div>
+
+  <h1>Heartbeat AI for Semiconductors (System-Level)</h1>
+  <h2>The Operating System for the Dependency Universe</h2>
+
+  <p><strong>Goal:</strong> 1:1 production ratio by 2030 is a <strong>system goal</strong> (grid + water + chemicals + equipment + fabs + packaging + security) — not a fab-only goal.</p>
+
+  <p><strong>Slide-ready graphics (SVG):</strong></p>
+  <ul>
+    <li><code>slide_charts/semiconductors_01_dependency_universe.svg</code></li>
+    <li><code>slide_charts/semiconductors_02_heartbeat_overlay.svg</code></li>
+    <li><code>slide_charts/semiconductors_03_bottleneck_heatmap.svg</code></li>
+    <li><code>slide_charts/semiconductors_04_engagement_matrix.svg</code></li>
+  </ul>
+
+  <hr />
+
+  <h2>System Pain Points (What Actually Breaks 2030)</h2>
+  <table>
+    <tr><th>System pain point</th><th>What it breaks</th><th>Where it shows up</th><th>Observable signal</th></tr>
+    <tr><td><strong>Time-to-energize</strong></td><td>New capacity can’t start</td><td>Grid interconnect + transformers</td><td>Delayed energization; commissioning stalls</td></tr>
+    <tr><td><strong>Time-to-qualify</strong></td><td>Tools don’t produce revenue</td><td>EUV/etch/depo + calibration</td><td>Long qualification; unstable processes</td></tr>
+    <tr><td><strong>Time-to-yield</strong></td><td>Output below plan</td><td>Fab ops + UPW + gases + chemicals</td><td>Scrap spikes; low yield; rework</td></tr>
+    <tr><td><strong>Time-to-ship</strong></td><td>“Fab output” can’t ship</td><td>Packaging/OSAT + test</td><td>Test bottlenecks; escape rates</td></tr>
+    <tr><td><strong>Time-to-comply</strong></td><td>Schedule + risk</td><td>OT/cyber + vendor access</td><td>Audit friction; approval delays</td></tr>
+    <tr><td><strong>Supply fragility</strong></td><td>Sudden production halts</td><td>Wafers + chemicals + gases + magnets</td><td>Stockouts; price spikes</td></tr>
+  </table>
+
+  <hr />
+
+  <h2>Heartbeat AI = Modules (The Product)</h2>
+  <table>
+    <tr><th>Heartbeat module</th><th>What it does</th><th>OT/IT touchpoints</th><th>KPIs it moves</th></tr>
+    <tr><td><strong>Heartbeat Edge</strong></td><td>Secure data acquisition across plants</td><td>Historians, SCADA, PLCs, sensors</td><td>Data completeness; latency; uptime</td></tr>
+    <tr><td><strong>Heartbeat Twin</strong></td><td>Process + capacity digital twin</td><td>MES + historian + engineering models</td><td>Time-to-qualify; plan accuracy</td></tr>
+    <tr><td><strong>Heartbeat Yield</strong></td><td>Predictive yield + defect prevention</td><td>Metrology + process logs + MES</td><td>Yield %, scrap %, excursion rate</td></tr>
+    <tr><td><strong>Heartbeat Reliability</strong></td><td>Predictive maintenance + utilization</td><td>CMMS + SCADA + sensors</td><td>MTBF/MTTR; tool utilization</td></tr>
+    <tr><td><strong>Heartbeat QA</strong></td><td>Traceability + evidence automation</td><td>QMS + MES + docs</td><td>Cycle time; escape rate</td></tr>
+    <tr><td><strong>Heartbeat Orchestrator</strong></td><td>Commissioning→qualification workflows</td><td>Ticketing + approvals + QMS</td><td>Time-to-energize; time-to-comply</td></tr>
+    <tr><td><strong>Heartbeat Security</strong></td><td>AI/OT security + vendor governance</td><td>IAM + remote access + OT network</td><td>Vendor-risk closure; incident rate</td></tr>
+    <tr><td><strong>Heartbeat Copilot</strong></td><td>Guided work + knowledge</td><td>SOPs + logs + training</td><td>Labor hours/wafer; MTTR</td></tr>
+  </table>
+
+  <hr />
+
+  <h2>KPI Dashboard (How We Prove It Works)</h2>
+  <table>
+    <tr><th>Gate</th><th>KPI</th><th>Target improvement</th><th>Heartbeat lever</th></tr>
+    <tr><td>Energize</td><td>Interconnect/commissioning cycle time</td><td>20–30% faster</td><td>Orchestrator + Reliability</td></tr>
+    <tr><td>Qualify</td><td>Tool qualification duration</td><td>15–25% faster</td><td>Twin + Reliability</td></tr>
+    <tr><td>Yield</td><td>Yield % / excursion rate</td><td>5–10% yield uplift</td><td>Yield + QA</td></tr>
+    <tr><td>Ship</td><td>Test throughput / escape rate</td><td>10–20% throughput; fewer escapes</td><td>QA + Twin</td></tr>
+    <tr><td>Comply</td><td>Evidence cycle time</td><td>30–50% faster</td><td>QA + Orchestrator</td></tr>
+    <tr><td>Secure</td><td>Vendor-risk closure time</td><td>30–50% faster</td><td>Security + Orchestrator</td></tr>
+  </table>
+
+  <hr />
+
+  <h2>The Core “So What”</h2>
+  <p><strong>Winning 1:1 by 2030 is a systems integration problem.</strong> Heartbeat AI is the product that turns a fragmented dependency universe into a coordinated build-and-run system.</p>
+
+  <div class="deloitte-footer">SFL Scientific | Deloitte Development LLC<br />Copyright © 2025 Deloitte Development LLC. All rights reserved.</div>
+</body>
+</html>
+
+
+

@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      .bg { fill:#0a0f14; }
+      .title { fill:#e6edf3; font:700 34px "Segoe UI", Arial, sans-serif; }
+      .subtitle { fill:#7d8590; font:500 16px "Segoe UI", Arial, sans-serif; }
+      .card { fill:#0d1117; stroke:#21262d; stroke-width:2; }
+      .hdr { fill:#e6edf3; font:700 14px "Segoe UI", Arial, sans-serif; letter-spacing:0.5px; }
+      .txt { fill:#e6edf3; font:600 13px "Segoe UI", Arial, sans-serif; }
+      .small { fill:#7d8590; font:500 12px "Segoe UI", Arial, sans-serif; }
+      .ok { fill:#3fb950; }
+      .gap { fill:#ff7b72; }
+      .mid { fill:#d29922; }
+      .pill { opacity:0.18; }
+      .accentText { fill:#86BC25; font:700 13px "Segoe UI", Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1600" height="900"/>
+  <text class="title" x="64" y="86">Deloitte Engagement Matrix (Where Heartbeat AI Changes the Game)</text>
+  <text class="subtitle" x="64" y="116">Goal: move from horizontal support → owning the system gates (energize, qualify, yield, ship, comply).</text>
+
+  <rect class="card" x="64" y="170" width="1472" height="660" rx="18"/>
+
+  <!-- Headers -->
+  <text class="hdr" x="96" y="214">SYSTEM STAGE</text>
+  <text class="hdr" x="520" y="214">GATE TO 2030</text>
+  <text class="hdr" x="900" y="214">CURRENT DELOITTE POSITION</text>
+  <text class="hdr" x="1220" y="214">HEARTBEAT AI ENTRY</text>
+
+  <!-- Rows -->
+  <!-- 1 -->
+  <text class="txt" x="96" y="276">Grid / interconnect / transformers</text>
+  <text class="small" x="520" y="276">Time-to-energize</text>
+  <rect class="gap pill" x="900" y="252" width="250" height="34" rx="10"/>
+  <text class="txt" x="920" y="275" fill="#ff7b72">GAP</text>
+  <text class="small" x="1220" y="276">Orchestrator + Reliability (planning, commissioning, uptime)</text>
+
+  <!-- 2 -->
+  <text class="txt" x="96" y="342">UPW / gases / chemicals plants</text>
+  <text class="small" x="520" y="342">Time-to-yield (stability)</text>
+  <rect class="gap pill" x="900" y="318" width="250" height="34" rx="10"/>
+  <text class="txt" x="920" y="341" fill="#ff7b72">GAP</text>
+  <text class="small" x="1220" y="342">Edge + Yield + QA (process + QC automation)</text>
+
+  <!-- 3 -->
+  <text class="txt" x="96" y="408">Equipment ecosystem (OEM + install)</text>
+  <text class="small" x="520" y="408">Time-to-qualify</text>
+  <rect class="mid pill" x="900" y="384" width="250" height="34" rx="10"/>
+  <text class="txt" x="920" y="407" fill="#d29922">PARTIAL</text>
+  <text class="small" x="1220" y="408">Reliability + QA + Security (vendor governance)</text>
+
+  <!-- 4 -->
+  <text class="txt" x="96" y="474">Fab operations (yield + throughput)</text>
+  <text class="small" x="520" y="474">Time-to-yield / steady-state output</text>
+  <rect class="gap pill" x="900" y="450" width="250" height="34" rx="10"/>
+  <text class="txt" x="920" y="473" fill="#ff7b72">GAP</text>
+  <text class="small" x="1220" y="474">Yield + Reliability + Twin (yield ramp OS)</text>
+
+  <!-- 5 -->
+  <text class="txt" x="96" y="540">Packaging / OSAT</text>
+  <text class="small" x="520" y="540">Time-to-ship</text>
+  <rect class="mid pill" x="900" y="516" width="250" height="34" rx="10"/>
+  <text class="txt" x="920" y="539" fill="#d29922">PARTIAL</text>
+  <text class="small" x="1220" y="540">QA + Yield (test throughput + escapes)</text>
+
+  <!-- 6 -->
+  <text class="txt" x="96" y="606">OT / cyber / vendor access</text>
+  <text class="small" x="520" y="606">Time-to-comply + prevent shutdown</text>
+  <rect class="ok pill" x="900" y="582" width="250" height="34" rx="10"/>
+  <text class="txt" x="920" y="605" fill="#3fb950">STRONG</text>
+  <text class="small" x="1220" y="606">Security + Orchestrator (controls + evidence)</text>
+
+  <!-- 7 -->
+  <text class="txt" x="96" y="672">Workforce (technicians + ops)</text>
+  <text class="small" x="520" y="672">Labor hours per wafer</text>
+  <rect class="mid pill" x="900" y="648" width="250" height="34" rx="10"/>
+  <text class="txt" x="920" y="671" fill="#d29922">PARTIAL</text>
+  <text class="small" x="1220" y="672">Copilot (guided work + faster resolution)</text>
+
+  <!-- Bottom callout -->
+  <rect class="card" x="96" y="724" width="1408" height="86" rx="18"/>
+  <text class="accentText" x="126" y="762">TAKEAWAY:</text>
+  <text class="small" x="238" y="762">Heartbeat AI is how we move from “services around fabs” → owning the gates that decide 2030.</text>
+  <text class="small" x="238" y="784">If we can’t accelerate energize/qualify/yield/ship/comply, we don’t have a real 1:1 story.</text>
+
+  <text class="small" x="64" y="892">SFL Scientific | Deloitte Development LLC • Build Clock • SVG (slide-ready)</text>
+</svg>
+
+
+

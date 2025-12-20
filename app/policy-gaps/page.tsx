@@ -488,7 +488,7 @@ export default function PolicyGapsPage() {
               </div>
               <div style={{ fontSize: '0.78rem', color: COLORS.textMuted, lineHeight: 1.5 }}>
                 <strong>Players:</strong> Centrus (HALEU), TerraPower, X-energy, BWX<br/>
-                <strong>SFL AI:</strong> Fuel optimization, construction automation<br/>
+                <strong>SFL AI:</strong> Fuel optimization, QA/documentation automation<br/>
                 <strong>Deloitte:</strong> NRC compliance, OT security, I&C systems
               </div>
             </div>
