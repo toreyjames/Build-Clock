@@ -440,9 +440,6 @@ export default function SectorsPage() {
             <Link href="/ai-opportunities" style={{ ...styles.radarLink, backgroundColor: COLORS.blue + '22', borderColor: COLORS.blue, color: COLORS.blue }}>
               AI Use Cases (SFL) →
             </Link>
-            <Link href="/references" style={styles.radarLink}>
-              References →
-            </Link>
           </div>
         </header>
 

@@ -1151,9 +1151,6 @@ export default function BuildClockPage() {
             <Link href="/ai-opportunities" style={styles.radarLink}>
               SFL →
             </Link>
-            <Link href="/references" style={styles.radarLink}>
-              References →
-            </Link>
           </div>
         </header>
 

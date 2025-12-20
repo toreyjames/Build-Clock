@@ -505,9 +505,6 @@ export default function AIOpportunitiesPage() {
             <Link href="/opportunities" style={styles.radarLink}>
               Opportunity Radar →
             </Link>
-            <Link href="/references" style={styles.radarLink}>
-              References →
-            </Link>
           </div>
         </header>
 
