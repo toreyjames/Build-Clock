@@ -747,7 +747,6 @@ export default function HeartPage() {
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <Link href="/" style={styles.navLink}>← Home</Link>
-            <Link href="/tariff-tracker" style={styles.navLink}>Infrastructure →</Link>
             <Link href="/opportunities" style={styles.navLink}>Pipeline →</Link>
           </div>
         </header>
@@ -961,8 +960,8 @@ export default function HeartPage() {
             <strong>The infrastructure is the body. The AI solving problems is the heart. Together, they transform America.</strong>
           </p>
           <div style={styles.ctaButtons}>
-            <Link href="/tariff-tracker" style={styles.ctaButton}>
-              See the Infrastructure →
+            <Link href="/" style={styles.ctaButton}>
+              See What We&apos;re Building →
             </Link>
             <Link href="/opportunities" style={styles.ctaButtonSecondary}>
               Explore the Pipeline
