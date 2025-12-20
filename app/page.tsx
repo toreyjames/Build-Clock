@@ -758,31 +758,31 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
   
   const nodes = [
     // INPUTS TO THE HEART (what feeds it) - spread wide across top
-    { id: 'data', label: 'Data', sublabel: 'Training & Learning', icon: '📊', color: '#4fc3f7', x: 12, y: 8, size: 'small', sector: null },
-    { id: 'problems', label: 'Problems', sublabel: 'Cancer, Education...', icon: '🎯', color: COLORS.warning, x: 50, y: 3, size: 'small', sector: null },
-    { id: 'talent', label: 'Talent', sublabel: 'Smartest People', icon: '👨‍🔬', color: COLORS.accent, x: 88, y: 8, size: 'small', sector: null },
+    { id: 'data', label: 'Data', sublabel: 'Training & Learning', icon: '📊', color: '#4fc3f7', x: 8, y: 5, size: 'small', sector: null },
+    { id: 'problems', label: 'Problems', sublabel: 'Cancer, Education...', icon: '🎯', color: COLORS.warning, x: 50, y: 2, size: 'small', sector: null },
+    { id: 'talent', label: 'Talent', sublabel: 'Smartest People', icon: '👨‍🔬', color: COLORS.accent, x: 92, y: 5, size: 'small', sector: null },
     
-    // The Heart - The PURPOSE (AI solving problems)
-    { id: 'heart', label: 'The Heart', sublabel: 'AI Solving Problems', icon: '❤️', color: '#f85149', x: 50, y: 18, size: 'large', sector: null },
+    // The Heart - The PURPOSE (AI solving problems) - more space from inputs
+    { id: 'heart', label: 'The Heart', sublabel: 'AI Solving Problems', icon: '❤️', color: '#f85149', x: 50, y: 22, size: 'large', sector: null },
     
-    // The Brain - Data Centers that run the models
-    { id: 'brain', label: 'The Brain', sublabel: 'AI Data Centers', icon: '🧠', color: COLORS.purple, x: 50, y: 38, size: 'large', sector: 'data-centers' },
+    // The Brain - Data Centers - more space from heart
+    { id: 'brain', label: 'The Brain', sublabel: 'AI Data Centers', icon: '🧠', color: COLORS.purple, x: 50, y: 48, size: 'large', sector: 'data-centers' },
     
     // INFRASTRUCTURE RING: What the Brain needs - spread wider
-    { id: 'power', label: 'Power', sublabel: '100MW+ per DC', icon: '⚡', color: COLORS.warning, x: 50, y: 58, size: 'medium', sector: 'clean-energy' },
-    { id: 'chips', label: 'AI Chips', sublabel: 'GPUs, TPUs, ASICs', icon: '🔬', color: COLORS.blue, x: 82, y: 45, size: 'medium', sector: 'semiconductors' },
-    { id: 'water', label: 'Water', sublabel: 'Cooling Systems', icon: '💧', color: '#4fc3f7', x: 18, y: 45, size: 'medium', sector: 'water-utilities' },
-    { id: 'storage', label: 'Storage', sublabel: 'Battery Backup', icon: '🔋', color: COLORS.accent, x: 18, y: 62, size: 'medium', sector: 'ev-battery' },
+    { id: 'power', label: 'Power', sublabel: '100MW+ per DC', icon: '⚡', color: COLORS.warning, x: 50, y: 72, size: 'medium', sector: 'clean-energy' },
+    { id: 'chips', label: 'AI Chips', sublabel: 'GPUs, TPUs, ASICs', icon: '🔬', color: COLORS.blue, x: 85, y: 55, size: 'medium', sector: 'semiconductors' },
+    { id: 'water', label: 'Water', sublabel: 'Cooling Systems', icon: '💧', color: '#4fc3f7', x: 15, y: 55, size: 'medium', sector: 'water-utilities' },
+    { id: 'storage', label: 'Storage', sublabel: 'Battery Backup', icon: '🔋', color: COLORS.accent, x: 15, y: 75, size: 'medium', sector: 'ev-battery' },
     
     // OUTER RING: Prerequisites - spread to edges
-    { id: 'nuclear', label: 'Nuclear', sublabel: 'Clean Baseload', icon: '⚛️', color: '#ff7043', x: 30, y: 80, size: 'small', sector: 'nuclear' },
-    { id: 'grid', label: 'Grid', sublabel: 'Transmission', icon: '🔌', color: COLORS.warning, x: 50, y: 80, size: 'small', sector: 'clean-energy' },
-    { id: 'transformers', label: 'Transformers', sublabel: '2-3yr lead times', icon: '🔧', color: COLORS.warning, x: 70, y: 80, size: 'small', sector: 'clean-energy' },
-    { id: 'rare-earths', label: 'Rare Earths', sublabel: 'Magnets & Materials', icon: '🧲', color: '#ab47bc', x: 95, y: 58, size: 'small', sector: 'critical-minerals' },
-    { id: 'chemicals', label: 'Chemicals', sublabel: 'Process Materials', icon: '🧪', color: '#26a69a', x: 95, y: 38, size: 'small', sector: 'chemicals' },
-    { id: 'upw', label: 'Ultra-Pure Water', sublabel: 'Fab Requirements', icon: '🚰', color: '#4fc3f7', x: 5, y: 58, size: 'small', sector: 'water-utilities' },
-    { id: 'water-rights', label: 'Water Rights', sublabel: 'Allocation', icon: '💧', color: '#4fc3f7', x: 5, y: 38, size: 'small', sector: 'water-utilities' },
-    { id: 'workforce', label: 'Workforce', sublabel: '$30 vs $6/hr gap', icon: '👷', color: COLORS.danger, x: 5, y: 92, size: 'small', sector: null },
+    { id: 'nuclear', label: 'Nuclear', sublabel: 'Clean Baseload', icon: '⚛️', color: '#ff7043', x: 30, y: 90, size: 'small', sector: 'nuclear' },
+    { id: 'grid', label: 'Grid', sublabel: 'Transmission', icon: '🔌', color: COLORS.warning, x: 50, y: 90, size: 'small', sector: 'clean-energy' },
+    { id: 'transformers', label: 'Transformers', sublabel: '2-3yr lead times', icon: '🔧', color: COLORS.warning, x: 70, y: 90, size: 'small', sector: 'clean-energy' },
+    { id: 'rare-earths', label: 'Rare Earths', sublabel: 'Magnets & Materials', icon: '🧲', color: '#ab47bc', x: 95, y: 70, size: 'small', sector: 'critical-minerals' },
+    { id: 'chemicals', label: 'Chemicals', sublabel: 'Process Materials', icon: '🧪', color: '#26a69a', x: 95, y: 45, size: 'small', sector: 'chemicals' },
+    { id: 'upw', label: 'Ultra-Pure Water', sublabel: 'Fab Requirements', icon: '🚰', color: '#4fc3f7', x: 5, y: 70, size: 'small', sector: 'water-utilities' },
+    { id: 'water-rights', label: 'Water Rights', sublabel: 'Allocation', icon: '💧', color: '#4fc3f7', x: 5, y: 45, size: 'small', sector: 'water-utilities' },
+    { id: 'workforce', label: 'Workforce', sublabel: '$30 vs $6/hr gap', icon: '👷', color: COLORS.danger, x: 90, y: 90, size: 'small', sector: null },
   ]
 
   // Connections show dependency flow
@@ -859,7 +859,7 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
 
       <svg 
         viewBox="0 0 100 100" 
-        style={{ ...styles.networkSvg, height: '550px' }}
+        style={{ ...styles.networkSvg, height: '650px' }}
         preserveAspectRatio="xMidYMid meet"
       >
         {/* Defs */}
