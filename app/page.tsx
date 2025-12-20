@@ -1128,6 +1128,9 @@ export default function BuildClockPage() {
             </p>
           </div>
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <Link href="/heart" style={{ ...styles.radarLink, backgroundColor: 'rgba(248, 81, 73, 0.15)', borderColor: '#f85149' }}>
+              ❤️ The Heart →
+            </Link>
             <Link href="/opportunities" style={styles.radarLink}>
               Opportunity Radar →
             </Link>
@@ -1194,6 +1197,58 @@ export default function BuildClockPage() {
           </p>
           
           <AIImpactTargets />
+        </section>
+
+        {/* ================================================================ */}
+        {/* SECTION 4: THE HEART - AI Solving America's Problems */}
+        {/* ================================================================ */}
+        <section style={styles.section}>
+          <div style={styles.narrativeHeader}>
+            <span style={styles.narrativeStep}>04</span>
+            <span style={styles.narrativeLabel}>THE HEART</span>
+          </div>
+          <h2 style={styles.sectionTitle}>What This Is All For</h2>
+          <p style={styles.sectionSubtitle}>
+            The infrastructure is the body. AI solving America's hardest problems is the heart.
+          </p>
+          
+          {/* Heart Callout */}
+          <div style={{
+            background: 'radial-gradient(ellipse at center, rgba(248, 81, 73, 0.15) 0%, transparent 70%)',
+            border: `1px solid ${COLORS.danger}`,
+            borderRadius: '16px',
+            padding: '2.5rem',
+            textAlign: 'center',
+            marginTop: '1.5rem',
+          }}>
+            <span style={{ fontSize: '4rem', display: 'block', marginBottom: '1rem' }}>❤️</span>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 1rem 0', color: COLORS.text }}>
+              The Heart: AI Solving America's Hardest Problems
+            </h3>
+            <p style={{ fontSize: '1rem', color: COLORS.textMuted, maxWidth: '700px', margin: '0 auto 1.5rem auto', lineHeight: 1.7 }}>
+              Every chip fab, data center, and power plant we track exists to enable AI models that solve real problems:
+              <strong style={{ color: COLORS.text }}> detecting cancer years earlier</strong>,
+              <strong style={{ color: COLORS.text }}> discovering cures in years not decades</strong>,
+              <strong style={{ color: COLORS.text }}> educating every child their way</strong>,
+              <strong style={{ color: COLORS.text }}> bringing manufacturing home</strong>.
+            </p>
+            <p style={{ fontSize: '0.9rem', color: COLORS.textDim, maxWidth: '600px', margin: '0 auto 2rem auto', lineHeight: 1.6 }}>
+              This isn't magic — it's pattern recognition at inhuman scale. But it only works if we build the infrastructure.
+              The data centers, chips, and power we track are the body that keeps this heart beating.
+            </p>
+            <Link href="/heart" style={{
+              display: 'inline-block',
+              padding: '0.75rem 1.5rem',
+              backgroundColor: COLORS.danger,
+              color: COLORS.text,
+              textDecoration: 'none',
+              borderRadius: '8px',
+              fontWeight: 600,
+              fontSize: '0.9rem',
+            }}>
+              Explore What We're Building For →
+            </Link>
+          </div>
         </section>
 
         {/* ================================================================ */}
