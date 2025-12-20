@@ -950,6 +950,143 @@ export default function HeartPage() {
           </div>
         </section>
 
+        {/* What Successful Physics AI Teaches Us */}
+        <section style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <div style={styles.sectionKicker}>LESSONS FROM WHAT WORKS</div>
+            <h2 style={styles.sectionTitle}>What Successful AI in Physics Shows Us</h2>
+            <p style={styles.sectionSubtitle}>AI that works in physics (like AlphaFold for protein folding) follows a pattern we can apply here</p>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1.5rem',
+            marginBottom: '2rem',
+          }}>
+            {/* AlphaFold Pattern */}
+            <div style={{
+              backgroundColor: COLORS.bgCard,
+              border: `1px solid ${COLORS.blue}`,
+              borderRadius: '12px',
+              padding: '1.5rem',
+            }}>
+              <h3 style={{
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                color: COLORS.blue,
+                margin: '0 0 0.75rem 0',
+              }}>
+                🔬 AlphaFold Pattern
+              </h3>
+              <p style={{
+                fontSize: '0.85rem',
+                color: COLORS.textMuted,
+                margin: '0 0 0.75rem 0',
+                lineHeight: 1.6,
+              }}>
+                Predicts protein structures by incorporating physics (bond angles, distances) into the AI itself, not just learning from data.
+              </p>
+              <div style={{
+                fontSize: '0.8rem',
+                color: COLORS.textDim,
+                fontStyle: 'italic',
+              }}>
+                ✅ Physics-informed architecture<br/>
+                ✅ Validated against experiments<br/>
+                ✅ Continuous improvement loop
+              </div>
+            </div>
+
+            {/* Modulus Pattern */}
+            <div style={{
+              backgroundColor: COLORS.bgCard,
+              border: `1px solid ${COLORS.purple}`,
+              borderRadius: '12px',
+              padding: '1.5rem',
+            }}>
+              <h3 style={{
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                color: COLORS.purple,
+                margin: '0 0 0.75rem 0',
+              }}>
+                ⚡ Modulus Pattern
+              </h3>
+              <p style={{
+                fontSize: '0.85rem',
+                color: COLORS.textMuted,
+                margin: '0 0 0.75rem 0',
+                lineHeight: 1.6,
+              }}>
+                Simulates fluid dynamics by putting physics equations (Navier-Stokes) into the AI loss function, so it can&apos;t violate physical laws.
+              </p>
+              <div style={{
+                fontSize: '0.8rem',
+                color: COLORS.textDim,
+                fontStyle: 'italic',
+              }}>
+                ✅ Physics in loss function<br/>
+                ✅ Validated against solvers<br/>
+                ✅ Works across scenarios
+              </div>
+            </div>
+
+            {/* What This Means */}
+            <div style={{
+              backgroundColor: COLORS.bgCard,
+              border: `1px solid ${COLORS.accent}`,
+              borderRadius: '12px',
+              padding: '1.5rem',
+            }}>
+              <h3 style={{
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                color: COLORS.accent,
+                margin: '0 0 0.75rem 0',
+              }}>
+                ❤️ For Our Problems
+              </h3>
+              <p style={{
+                fontSize: '0.85rem',
+                color: COLORS.textMuted,
+                margin: '0 0 0.75rem 0',
+                lineHeight: 1.6,
+              }}>
+                Cancer detection AI should incorporate medical imaging physics. Education AI should incorporate learning science. Energy AI should incorporate grid physics.
+              </p>
+              <div style={{
+                fontSize: '0.8rem',
+                color: COLORS.textDim,
+                fontStyle: 'italic',
+              }}>
+                ✅ Domain knowledge in AI<br/>
+                ✅ Not just data-driven<br/>
+                ✅ Validated in real world
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            backgroundColor: COLORS.bgCardAlt,
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: '12px',
+            padding: '1.5rem',
+            marginTop: '1.5rem',
+          }}>
+            <p style={{
+              fontSize: '0.95rem',
+              color: COLORS.textMuted,
+              lineHeight: 1.7,
+              margin: 0,
+            }}>
+              <strong style={{ color: COLORS.text }}>The pattern:</strong> Successful AI in physics doesn&apos;t just learn from data — it incorporates physics into the model itself. 
+              For cancer detection, that means incorporating medical imaging physics. For education, that means incorporating learning science. 
+              For energy, that means incorporating grid physics. <strong style={{ color: COLORS.accent }}>Not just data-driven — physics-informed.</strong>
+            </p>
+          </div>
+        </section>
+
         {/* Problems Grid */}
         <section style={styles.section}>
           <div style={styles.sectionHeader}>
