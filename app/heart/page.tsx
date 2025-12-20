@@ -772,7 +772,7 @@ export default function HeartPage() {
         {/* Problems Grid */}
         <section style={styles.section}>
           <div style={styles.sectionHeader}>
-            <div style={styles.sectionKicker}>AMERICA'S HARDEST PROBLEMS</div>
+            <div style={styles.sectionKicker}>AMERICA&apos;S HARDEST PROBLEMS</div>
             <h2 style={styles.sectionTitle}>What AI Can Solve</h2>
             <p style={styles.sectionSubtitle}>Select a problem to see how AI solves it — and what infrastructure it requires</p>
           </div>

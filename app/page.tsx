@@ -750,8 +750,8 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null)
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
 
-  // THE UNIVERSE: AI Manhattan Project at center drives everything
-  // AI Data Centers (center) → needs Power, Chips, Water, Storage
+  // THE UNIVERSE: The Heart at center - AI solving problems drives everything
+  // The Heart (center) → needs Data Centers, Power, Chips, Water, Storage
   // Power → needs Nuclear (baseload), Grid (transmission), Transformers (interconnect)
   // Chips → needs Fabs, Rare Earths (magnets), Chemicals (process), Ultra-Pure Water
   // Water → needs Water Rights, Treatment, Ultra-Pure Water systems
@@ -759,8 +759,8 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
   // All → needs OT systems, Workforce (automation to offset $30 vs $6/hr gap)
   
   const nodes = [
-    // CENTER: The Manhattan Project
-    { id: 'ai-datacenters', label: 'AI Data Centers', sublabel: 'The Manhattan Project', icon: '🧠', color: COLORS.purple, x: 50, y: 50, size: 'large', sector: 'data-centers' },
+    // CENTER: The Heart - What we're building for
+    { id: 'heart', label: 'The Heart', sublabel: 'AI Solving Problems', icon: '❤️', color: '#f85149', x: 50, y: 50, size: 'large', sector: null },
     
     // INNER RING: Direct dependencies (what AI needs immediately)
     { id: 'power', label: 'Power', sublabel: '100MW+ per DC', icon: '⚡', color: COLORS.warning, x: 50, y: 28, size: 'medium', sector: 'clean-energy' },
@@ -781,11 +781,11 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
 
   // Connections show dependency flow: FROM what's needed TO what needs it
   const connections = [
-    // AI Data Centers needs...
-    { from: 'ai-datacenters', to: 'power', label: 'needs', type: 'primary' },
-    { from: 'ai-datacenters', to: 'chips', label: 'needs', type: 'primary' },
-    { from: 'ai-datacenters', to: 'water', label: 'needs', type: 'primary' },
-    { from: 'ai-datacenters', to: 'storage', label: 'needs', type: 'primary' },
+    // The Heart needs...
+    { from: 'heart', to: 'power', label: 'needs', type: 'primary' },
+    { from: 'heart', to: 'chips', label: 'needs', type: 'primary' },
+    { from: 'heart', to: 'water', label: 'needs', type: 'primary' },
+    { from: 'heart', to: 'storage', label: 'needs', type: 'primary' },
     
     // SECONDARY: Power needs (outer ring)
     { from: 'power', to: 'nuclear', label: 'baseload', type: 'secondary' },
@@ -805,7 +805,7 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
     { from: 'storage', to: 'rare-earths', label: 'magnets', type: 'secondary' },
     
     // CONSTRAINT: Workforce gap affects everything
-    { from: 'workforce', to: 'ai-datacenters', label: '$30 vs $6/hr', type: 'constraint' },
+    { from: 'workforce', to: 'heart', label: '$30 vs $6/hr', type: 'constraint' },
     { from: 'workforce', to: 'chips', label: 'automation', type: 'constraint' },
     
     // FEEDBACK: Nuclear feeds grid
@@ -918,7 +918,7 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
           const isHovered = hoveredNode === node.id
           const isSelected = selectedNode === node.id
           const isActive = isHovered || isSelected
-          const isCenter = node.id === 'ai-datacenters'
+          const isCenter = node.id === 'heart'
           const baseRadius = node.size === 'large' ? 6 : node.size === 'medium' ? 4 : 3
 
           return (
@@ -1006,7 +1006,7 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
         <div style={styles.networkInsightTitle}>The Dependency Chain</div>
         <div style={styles.networkInsightGrid}>
           <div style={styles.networkInsightItem}>
-            <strong style={{ color: COLORS.purple }}>AI Data Centers</strong> are the demand driver. Stargate ($500B), Microsoft, Google, Amazon—they need everything below to exist.
+            <strong style={{ color: '#f85149' }}>The Heart</strong> is why we build. AI solving cancer, education, energy, manufacturing—these breakthroughs need everything below to exist.
           </div>
           <div style={styles.networkInsightItem}>
             <strong style={{ color: COLORS.warning }}>Power</strong> is the first constraint. 100MW+ per data center. Grid can't handle it. Nuclear provides clean baseload. Transformers have 2-3 year lead times—critical bottleneck.
@@ -1151,9 +1151,9 @@ export default function BuildClockPage() {
             <span style={styles.narrativeStep}>01</span>
             <span style={styles.narrativeLabel}>THE SYSTEM</span>
           </div>
-          <h2 style={styles.sectionTitle}>The AI Manhattan Project: What It Takes to Build</h2>
+          <h2 style={styles.sectionTitle}>The Heart: What We&apos;re Building For</h2>
           <p style={styles.sectionSubtitle}>
-            AI data centers are the strategic driver. Everything else—power, chips, water, rare earths—exists to serve this demand.
+            AI solving America&apos;s hardest problems is the heart. Everything else—power, chips, water, rare earths—exists to keep it beating.
           </p>
           
           {/* Interactive Dependency Network - AI at Center */}
