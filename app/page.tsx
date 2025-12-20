@@ -757,32 +757,32 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
   // Those need: Nuclear, Grid, Transformers, Rare Earths, etc.
   
   const nodes = [
-    // TOP: The Heart - The PURPOSE (AI solving problems)
-    { id: 'heart', label: 'The Heart', sublabel: 'AI Solving Problems', icon: '❤️', color: '#f85149', x: 50, y: 12, size: 'large', sector: null },
+    // INPUTS TO THE HEART (what feeds it) - spread across top
+    { id: 'data', label: 'Data', sublabel: 'Training & Learning', icon: '📊', color: '#4fc3f7', x: 15, y: 10, size: 'small', sector: null },
+    { id: 'problems', label: 'Problems', sublabel: 'Cancer, Education...', icon: '🎯', color: COLORS.warning, x: 50, y: 5, size: 'small', sector: null },
+    { id: 'talent', label: 'Talent', sublabel: 'Smartest People', icon: '👨‍🔬', color: COLORS.accent, x: 85, y: 10, size: 'small', sector: null },
     
-    // INPUTS TO THE HEART (what feeds it)
-    { id: 'data', label: 'Data', sublabel: 'Training & Learning', icon: '📊', color: '#4fc3f7', x: 25, y: 8, size: 'small', sector: null },
-    { id: 'talent', label: 'Talent', sublabel: 'Smartest People', icon: '👨‍🔬', color: COLORS.accent, x: 75, y: 8, size: 'small', sector: null },
-    { id: 'problems', label: 'Problems', sublabel: 'Cancer, Education...', icon: '🎯', color: COLORS.warning, x: 50, y: 2, size: 'small', sector: null },
+    // The Heart - The PURPOSE (AI solving problems)
+    { id: 'heart', label: 'The Heart', sublabel: 'AI Solving Problems', icon: '❤️', color: '#f85149', x: 50, y: 22, size: 'large', sector: null },
     
-    // MIDDLE: The Brain - Data Centers that run the models
-    { id: 'brain', label: 'The Brain', sublabel: 'AI Data Centers', icon: '🧠', color: COLORS.purple, x: 50, y: 38, size: 'large', sector: 'data-centers' },
+    // The Brain - Data Centers that run the models
+    { id: 'brain', label: 'The Brain', sublabel: 'AI Data Centers', icon: '🧠', color: COLORS.purple, x: 50, y: 42, size: 'large', sector: 'data-centers' },
     
     // INFRASTRUCTURE RING: What the Brain needs
-    { id: 'power', label: 'Power', sublabel: '100MW+ per DC', icon: '⚡', color: COLORS.warning, x: 50, y: 55, size: 'medium', sector: 'clean-energy' },
-    { id: 'chips', label: 'AI Chips', sublabel: 'GPUs, TPUs, ASICs', icon: '🔬', color: COLORS.blue, x: 75, y: 45, size: 'medium', sector: 'semiconductors' },
-    { id: 'water', label: 'Water', sublabel: 'Cooling Systems', icon: '💧', color: '#4fc3f7', x: 25, y: 45, size: 'medium', sector: 'water-utilities' },
-    { id: 'storage', label: 'Storage', sublabel: 'Battery Backup', icon: '🔋', color: COLORS.accent, x: 25, y: 60, size: 'medium', sector: 'ev-battery' },
+    { id: 'power', label: 'Power', sublabel: '100MW+ per DC', icon: '⚡', color: COLORS.warning, x: 50, y: 60, size: 'medium', sector: 'clean-energy' },
+    { id: 'chips', label: 'AI Chips', sublabel: 'GPUs, TPUs, ASICs', icon: '🔬', color: COLORS.blue, x: 78, y: 50, size: 'medium', sector: 'semiconductors' },
+    { id: 'water', label: 'Water', sublabel: 'Cooling Systems', icon: '💧', color: '#4fc3f7', x: 22, y: 50, size: 'medium', sector: 'water-utilities' },
+    { id: 'storage', label: 'Storage', sublabel: 'Battery Backup', icon: '🔋', color: COLORS.accent, x: 22, y: 65, size: 'medium', sector: 'ev-battery' },
     
     // OUTER RING: Prerequisites (what the infrastructure needs)
-    { id: 'nuclear', label: 'Nuclear', sublabel: 'Clean Baseload', icon: '⚛️', color: '#ff7043', x: 35, y: 70, size: 'small', sector: 'nuclear' },
-    { id: 'grid', label: 'Grid', sublabel: 'Transmission', icon: '🔌', color: COLORS.warning, x: 50, y: 70, size: 'small', sector: 'clean-energy' },
-    { id: 'transformers', label: 'Transformers', sublabel: '2-3yr lead times', icon: '🔧', color: COLORS.warning, x: 65, y: 70, size: 'small', sector: 'clean-energy' },
-    { id: 'rare-earths', label: 'Rare Earths', sublabel: 'Magnets & Materials', icon: '🧲', color: '#ab47bc', x: 90, y: 55, size: 'small', sector: 'critical-minerals' },
-    { id: 'chemicals', label: 'Chemicals', sublabel: 'Process Materials', icon: '🧪', color: '#26a69a', x: 90, y: 40, size: 'small', sector: 'chemicals' },
-    { id: 'upw', label: 'Ultra-Pure Water', sublabel: 'Fab Requirements', icon: '🚰', color: '#4fc3f7', x: 10, y: 55, size: 'small', sector: 'water-utilities' },
-    { id: 'water-rights', label: 'Water Rights', sublabel: 'Allocation', icon: '💧', color: '#4fc3f7', x: 10, y: 40, size: 'small', sector: 'water-utilities' },
-    { id: 'workforce', label: 'Workforce', sublabel: '$30 vs $6/hr gap', icon: '👷', color: COLORS.danger, x: 85, y: 25, size: 'small', sector: null },
+    { id: 'nuclear', label: 'Nuclear', sublabel: 'Clean Baseload', icon: '⚛️', color: '#ff7043', x: 35, y: 78, size: 'small', sector: 'nuclear' },
+    { id: 'grid', label: 'Grid', sublabel: 'Transmission', icon: '🔌', color: COLORS.warning, x: 50, y: 78, size: 'small', sector: 'clean-energy' },
+    { id: 'transformers', label: 'Transformers', sublabel: '2-3yr lead times', icon: '🔧', color: COLORS.warning, x: 65, y: 78, size: 'small', sector: 'clean-energy' },
+    { id: 'rare-earths', label: 'Rare Earths', sublabel: 'Magnets & Materials', icon: '🧲', color: '#ab47bc', x: 92, y: 60, size: 'small', sector: 'critical-minerals' },
+    { id: 'chemicals', label: 'Chemicals', sublabel: 'Process Materials', icon: '🧪', color: '#26a69a', x: 92, y: 45, size: 'small', sector: 'chemicals' },
+    { id: 'upw', label: 'Ultra-Pure Water', sublabel: 'Fab Requirements', icon: '🚰', color: '#4fc3f7', x: 8, y: 60, size: 'small', sector: 'water-utilities' },
+    { id: 'water-rights', label: 'Water Rights', sublabel: 'Allocation', icon: '💧', color: '#4fc3f7', x: 8, y: 45, size: 'small', sector: 'water-utilities' },
+    { id: 'workforce', label: 'Workforce', sublabel: '$30 vs $6/hr gap', icon: '👷', color: COLORS.danger, x: 8, y: 90, size: 'small', sector: null },
   ]
 
   // Connections show dependency flow
