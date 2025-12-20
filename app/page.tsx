@@ -853,7 +853,7 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
           AI Data Center Buildout: $500B+ Stargate & Hyperscalers
         </div>
         <div style={{ fontSize: '0.85rem', color: COLORS.textMuted, marginTop: '0.25rem' }}>
-          Everything below exists to serve this demand. Follow the connections.
+          Follow the lines to see what we need to build.
         </div>
       </div>
 
@@ -1017,25 +1017,25 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
 
       {/* Key Insights - What This Means */}
       <div style={styles.networkInsights}>
-        <div style={styles.networkInsightTitle}>The Dependency Chain</div>
+        <div style={styles.networkInsightTitle}>How It All Connects</div>
         <div style={styles.networkInsightGrid}>
           <div style={styles.networkInsightItem}>
-            <strong style={{ color: '#f85149' }}>The Heart</strong> solves problems—fed by data and talent. <strong style={{ color: COLORS.purple }}>The Brain</strong> (data centers) runs the models. All infrastructure below exists to keep the brain running so the heart can beat.
+            <strong style={{ color: '#f85149' }}>❤️ Heart</strong> = AI solving big problems (cancer, education). <strong style={{ color: COLORS.purple }}>🧠 Brain</strong> = data centers that run it. Everything else keeps them going.
           </div>
           <div style={styles.networkInsightItem}>
-            <strong style={{ color: COLORS.warning }}>Power</strong> is the first constraint. 100MW+ per data center. Grid can't handle it. Nuclear provides clean baseload. Transformers have 2-3 year lead times—critical bottleneck.
+            <strong style={{ color: COLORS.warning }}>⚡ Power</strong> comes first. Each data center needs a small city&apos;s worth of electricity. Nuclear is clean. The grid needs upgrades.
           </div>
           <div style={styles.networkInsightItem}>
-            <strong style={{ color: COLORS.blue }}>Chips</strong> need fabs, which need rare earths (magnets), chemicals (process materials), and ultra-pure water. 2-3 year equipment lead times. Every fab needs MES, SCADA, OT systems.
+            <strong style={{ color: COLORS.blue }}>🔬 Chips</strong> need factories, special metals, chemicals, and ultra-pure water. Takes 2-3 years to build.
           </div>
           <div style={styles.networkInsightItem}>
-            <strong style={{ color: '#4fc3f7' }}>Water</strong> is critical for cooling and fab operations. Water rights allocation is contested. Ultra-pure water systems are prerequisites for semiconductor fabs.
+            <strong style={{ color: '#4fc3f7' }}>💧 Water</strong> cools the computers and makes the chips. We need a lot of it, very clean.
           </div>
           <div style={styles.networkInsightItem}>
-            <strong style={{ color: COLORS.danger }}>Workforce Gap</strong> ($30 vs $6/hr) means automation isn't optional—it's strategic necessity. AI solves its own prerequisite problem through industrial AI and OT automation.
+            <strong style={{ color: COLORS.danger }}>👷 Workers</strong> cost more here than overseas. So we use AI and robots to build faster and smarter.
           </div>
           <div style={styles.networkInsightItem}>
-            <strong style={{ color: COLORS.accent }}>The Pattern:</strong> Every node needs OT systems. Every connection represents a dependency that can fail. Understanding this universe reveals where to invest and where bottlenecks will emerge.
+            <strong style={{ color: COLORS.accent }}>🔗 The Chain:</strong> If one piece breaks, the whole thing slows down. We track it all so nothing gets missed.
           </div>
         </div>
       </div>
@@ -1138,7 +1138,7 @@ export default function BuildClockPage() {
               <span style={{ color: COLORS.accent }}>BUILD</span> CLOCK
             </h1>
             <p style={styles.subtitle}>
-              U.S. Industrial Capacity Tracker
+              AI Manhattan Project Tracker
             </p>
           </div>
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -1165,9 +1165,9 @@ export default function BuildClockPage() {
             <span style={styles.narrativeStep}>01</span>
             <span style={styles.narrativeLabel}>THE SYSTEM</span>
           </div>
-          <h2 style={styles.sectionTitle}>Heart &amp; Brain: Purpose and Power</h2>
+          <h2 style={styles.sectionTitle}>What We&apos;re Building</h2>
           <p style={styles.sectionSubtitle}>
-            The Heart is AI solving problems. The Brain is data centers running the models. Everything else exists to keep them working.
+            The Heart solves problems. The Brain runs the AI. Everything else keeps them working.
           </p>
           
           {/* Interactive Dependency Network - AI at Center */}
@@ -1189,9 +1189,9 @@ export default function BuildClockPage() {
             <span style={styles.narrativeStep}>02</span>
             <span style={styles.narrativeLabel}>FUNDING STATUS</span>
           </div>
-          <h2 style={styles.sectionTitle}>How Tariffs Are Paying for AI Manhattan</h2>
+          <h2 style={styles.sectionTitle}>How We&apos;re Paying For It</h2>
           <p style={styles.sectionSubtitle}>
-            Real-time tracking of investment gaps and funding sources
+            Tariffs fund the build. Here&apos;s what we need and what we have.
           </p>
           
           <TariffFundingTracker />
@@ -1205,9 +1205,9 @@ export default function BuildClockPage() {
             <span style={styles.narrativeStep}>03</span>
             <span style={styles.narrativeLabel}>THE WHY</span>
           </div>
-          <h2 style={styles.sectionTitle}>Why AI Manhattan: The End Goal</h2>
+          <h2 style={styles.sectionTitle}>Why It Matters</h2>
           <p style={styles.sectionSubtitle}>
-            Real stated targets for AI's impact in the physical world
+            What AI can do for America once we build it.
           </p>
           
           <AIImpactTargets />
@@ -1221,9 +1221,9 @@ export default function BuildClockPage() {
             <span style={styles.narrativeStep}>04</span>
             <span style={styles.narrativeLabel}>THE HEART</span>
           </div>
-          <h2 style={styles.sectionTitle}>What This Is All For</h2>
+          <h2 style={styles.sectionTitle}>The Heart of It All</h2>
           <p style={styles.sectionSubtitle}>
-            The infrastructure is the body. AI solving America's hardest problems is the heart.
+            AI that cures cancer, teaches kids, and powers homes. That&apos;s why we build.
           </p>
           
           {/* Heart Callout */}
@@ -1237,18 +1237,17 @@ export default function BuildClockPage() {
           }}>
             <span style={{ fontSize: '4rem', display: 'block', marginBottom: '1rem' }}>❤️</span>
             <h3 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 1rem 0', color: COLORS.text }}>
-              The Heart: AI Solving America's Hardest Problems
+              AI That Changes Everything
             </h3>
             <p style={{ fontSize: '1rem', color: COLORS.textMuted, maxWidth: '700px', margin: '0 auto 1.5rem auto', lineHeight: 1.7 }}>
-              Every chip fab, data center, and power plant we track exists to enable AI models that solve real problems:
-              <strong style={{ color: COLORS.text }}> detecting cancer years earlier</strong>,
-              <strong style={{ color: COLORS.text }}> discovering cures in years not decades</strong>,
-              <strong style={{ color: COLORS.text }}> educating every child their way</strong>,
-              <strong style={{ color: COLORS.text }}> bringing manufacturing home</strong>.
+              We&apos;re building AI that can:
+              <strong style={{ color: COLORS.text }}> find cancer before you feel sick</strong>,
+              <strong style={{ color: COLORS.text }}> discover new medicines faster</strong>,
+              <strong style={{ color: COLORS.text }}> teach every kid in a way they understand</strong>,
+              <strong style={{ color: COLORS.text }}> bring factories back to America</strong>.
             </p>
             <p style={{ fontSize: '0.9rem', color: COLORS.textDim, maxWidth: '600px', margin: '0 auto 2rem auto', lineHeight: 1.6 }}>
-              This isn't magic — it's pattern recognition at inhuman scale. But it only works if we build the infrastructure.
-              The data centers, chips, and power we track are the body that keeps this heart beating.
+              AI learns patterns from huge amounts of data. The more we build, the smarter it gets, the more problems it solves.
             </p>
             <Link href="/heart" style={{
               display: 'inline-block',
@@ -1260,7 +1259,7 @@ export default function BuildClockPage() {
               fontWeight: 600,
               fontSize: '0.9rem',
             }}>
-              Explore What We're Building For →
+              See What AI Will Do →
             </Link>
           </div>
         </section>
