@@ -750,45 +750,52 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null)
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
 
-  // THE UNIVERSE: Heart → Brain → Infrastructure
-  // Heart (AI solving problems) → needs Brain (Data Centers)
-  // Brain (Data Centers) → needs Power, Chips, Water, Storage
-  // Power → needs Nuclear (baseload), Grid (transmission), Transformers (interconnect)
-  // Chips → needs Fabs, Rare Earths (magnets), Chemicals (process), Ultra-Pure Water
-  // Water → needs Water Rights, Treatment, Ultra-Pure Water systems
-  // Storage → needs Rare Earths (magnets), Battery Materials
-  // All → needs OT systems, Workforce (automation to offset $30 vs $6/hr gap)
+  // THE UNIVERSE: Inputs → Heart → Brain → Infrastructure
+  // Heart needs: Data, Talent, Problems to solve
+  // Heart runs on: Brain (Data Centers)
+  // Brain needs: Power, Chips, Water, Storage
+  // Those need: Nuclear, Grid, Transformers, Rare Earths, etc.
   
   const nodes = [
-    // CENTER: The Heart - The PURPOSE (AI solving problems)
-    { id: 'heart', label: 'The Heart', sublabel: 'AI Solving Problems', icon: '❤️', color: '#f85149', x: 50, y: 42, size: 'large', sector: null },
+    // TOP: The Heart - The PURPOSE (AI solving problems)
+    { id: 'heart', label: 'The Heart', sublabel: 'AI Solving Problems', icon: '❤️', color: '#f85149', x: 50, y: 12, size: 'large', sector: null },
     
-    // The Brain - Data Centers that run the models
-    { id: 'brain', label: 'The Brain', sublabel: 'AI Data Centers', icon: '🧠', color: COLORS.purple, x: 50, y: 58, size: 'large', sector: 'data-centers' },
+    // INPUTS TO THE HEART (what feeds it)
+    { id: 'data', label: 'Data', sublabel: 'Training & Learning', icon: '📊', color: '#4fc3f7', x: 25, y: 8, size: 'small', sector: null },
+    { id: 'talent', label: 'Talent', sublabel: 'Smartest People', icon: '👨‍🔬', color: COLORS.accent, x: 75, y: 8, size: 'small', sector: null },
+    { id: 'problems', label: 'Problems', sublabel: 'Cancer, Education...', icon: '🎯', color: COLORS.warning, x: 50, y: 2, size: 'small', sector: null },
     
-    // INNER RING: What the Brain needs
-    { id: 'power', label: 'Power', sublabel: '100MW+ per DC', icon: '⚡', color: COLORS.warning, x: 50, y: 22, size: 'medium', sector: 'clean-energy' },
-    { id: 'chips', label: 'AI Chips', sublabel: 'GPUs, TPUs, ASICs', icon: '🔬', color: COLORS.blue, x: 75, y: 40, size: 'medium', sector: 'semiconductors' },
-    { id: 'water', label: 'Water', sublabel: 'Cooling Systems', icon: '💧', color: '#4fc3f7', x: 75, y: 60, size: 'medium', sector: 'water-utilities' },
-    { id: 'storage', label: 'Storage', sublabel: 'Battery Backup', icon: '🔋', color: COLORS.accent, x: 50, y: 78, size: 'medium', sector: 'ev-battery' },
+    // MIDDLE: The Brain - Data Centers that run the models
+    { id: 'brain', label: 'The Brain', sublabel: 'AI Data Centers', icon: '🧠', color: COLORS.purple, x: 50, y: 38, size: 'large', sector: 'data-centers' },
     
-    // OUTER RING: Prerequisites (what the inner ring needs)
-    { id: 'nuclear', label: 'Nuclear', sublabel: 'Clean Baseload', icon: '⚛️', color: '#ff7043', x: 25, y: 15, size: 'small', sector: 'nuclear' },
-    { id: 'grid', label: 'Grid', sublabel: 'Transmission', icon: '🔌', color: COLORS.warning, x: 50, y: 8, size: 'small', sector: 'clean-energy' },
-    { id: 'transformers', label: 'Transformers', sublabel: '2-3yr lead times', icon: '🔧', color: COLORS.warning, x: 75, y: 15, size: 'small', sector: 'clean-energy' },
-    { id: 'rare-earths', label: 'Rare Earths', sublabel: 'Magnets & Materials', icon: '🧲', color: '#ab47bc', x: 92, y: 50, size: 'small', sector: 'critical-minerals' },
-    { id: 'chemicals', label: 'Chemicals', sublabel: 'Process Materials', icon: '🧪', color: '#26a69a', x: 88, y: 70, size: 'small', sector: 'chemicals' },
-    { id: 'upw', label: 'Ultra-Pure Water', sublabel: 'Fab Operations', icon: '🚰', color: '#4fc3f7', x: 25, y: 85, size: 'small', sector: 'water-utilities' },
-    { id: 'water-rights', label: 'Water Rights', sublabel: 'Allocation', icon: '💧', color: '#4fc3f7', x: 8, y: 65, size: 'small', sector: 'water-utilities' },
-    { id: 'workforce', label: 'Workforce', sublabel: '$30 vs $6/hr → AI', icon: '👷', color: COLORS.danger, x: 8, y: 35, size: 'small', sector: null },
+    // INFRASTRUCTURE RING: What the Brain needs
+    { id: 'power', label: 'Power', sublabel: '100MW+ per DC', icon: '⚡', color: COLORS.warning, x: 50, y: 55, size: 'medium', sector: 'clean-energy' },
+    { id: 'chips', label: 'AI Chips', sublabel: 'GPUs, TPUs, ASICs', icon: '🔬', color: COLORS.blue, x: 75, y: 45, size: 'medium', sector: 'semiconductors' },
+    { id: 'water', label: 'Water', sublabel: 'Cooling Systems', icon: '💧', color: '#4fc3f7', x: 25, y: 45, size: 'medium', sector: 'water-utilities' },
+    { id: 'storage', label: 'Storage', sublabel: 'Battery Backup', icon: '🔋', color: COLORS.accent, x: 25, y: 60, size: 'medium', sector: 'ev-battery' },
+    
+    // OUTER RING: Prerequisites (what the infrastructure needs)
+    { id: 'nuclear', label: 'Nuclear', sublabel: 'Clean Baseload', icon: '⚛️', color: '#ff7043', x: 35, y: 70, size: 'small', sector: 'nuclear' },
+    { id: 'grid', label: 'Grid', sublabel: 'Transmission', icon: '🔌', color: COLORS.warning, x: 50, y: 70, size: 'small', sector: 'clean-energy' },
+    { id: 'transformers', label: 'Transformers', sublabel: '2-3yr lead times', icon: '🔧', color: COLORS.warning, x: 65, y: 70, size: 'small', sector: 'clean-energy' },
+    { id: 'rare-earths', label: 'Rare Earths', sublabel: 'Magnets & Materials', icon: '🧲', color: '#ab47bc', x: 90, y: 55, size: 'small', sector: 'critical-minerals' },
+    { id: 'chemicals', label: 'Chemicals', sublabel: 'Process Materials', icon: '🧪', color: '#26a69a', x: 90, y: 40, size: 'small', sector: 'chemicals' },
+    { id: 'upw', label: 'Ultra-Pure Water', sublabel: 'Fab Requirements', icon: '🚰', color: '#4fc3f7', x: 10, y: 55, size: 'small', sector: 'water-utilities' },
+    { id: 'water-rights', label: 'Water Rights', sublabel: 'Allocation', icon: '💧', color: '#4fc3f7', x: 10, y: 40, size: 'small', sector: 'water-utilities' },
+    { id: 'workforce', label: 'Workforce', sublabel: '$30 vs $6/hr gap', icon: '👷', color: COLORS.danger, x: 85, y: 25, size: 'small', sector: null },
   ]
 
-  // Connections show dependency flow: FROM what's needed TO what needs it
+  // Connections show dependency flow
   const connections = [
-    // The Heart needs the Brain
+    // INPUTS feed the Heart
+    { from: 'problems', to: 'heart', label: 'defines', type: 'primary' },
+    { from: 'data', to: 'heart', label: 'trains', type: 'primary' },
+    { from: 'talent', to: 'heart', label: 'builds', type: 'primary' },
+    
+    // The Heart runs on the Brain
     { from: 'heart', to: 'brain', label: 'runs on', type: 'primary' },
     
-    // The Brain needs...
+    // The Brain needs infrastructure
     { from: 'brain', to: 'power', label: 'needs', type: 'primary' },
     { from: 'brain', to: 'chips', label: 'needs', type: 'primary' },
     { from: 'brain', to: 'water', label: 'needs', type: 'primary' },
@@ -1013,7 +1020,7 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
         <div style={styles.networkInsightTitle}>The Dependency Chain</div>
         <div style={styles.networkInsightGrid}>
           <div style={styles.networkInsightItem}>
-            <strong style={{ color: '#f85149' }}>The Heart</strong> is why we build—AI solving cancer, education, energy, manufacturing. <strong style={{ color: COLORS.purple }}>The Brain</strong> (data centers) is what runs it. Everything else exists to keep the brain running so the heart can beat.
+            <strong style={{ color: '#f85149' }}>The Heart</strong> solves problems—fed by data and talent. <strong style={{ color: COLORS.purple }}>The Brain</strong> (data centers) runs the models. All infrastructure below exists to keep the brain running so the heart can beat.
           </div>
           <div style={styles.networkInsightItem}>
             <strong style={{ color: COLORS.warning }}>Power</strong> is the first constraint. 100MW+ per data center. Grid can't handle it. Nuclear provides clean baseload. Transformers have 2-3 year lead times—critical bottleneck.
