@@ -768,6 +768,188 @@ export default function HeartPage() {
           </div>
         </section>
 
+        {/* What Works Now vs. What We Need */}
+        <section style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <div style={styles.sectionKicker}>THE REALITY CHECK</div>
+            <h2 style={styles.sectionTitle}>What AI Can Do Now vs. What We Need to Build</h2>
+            <p style={styles.sectionSubtitle}>AI isn&apos;t magic. Here&apos;s what actually works — and what we still need to figure out.</p>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '1.5rem',
+            marginBottom: '2rem',
+          }}>
+            {/* What Works Now */}
+            <div style={{
+              backgroundColor: COLORS.bgCard,
+              border: `1px solid ${COLORS.accentDim}`,
+              borderRadius: '12px',
+              padding: '1.5rem',
+            }}>
+              <h3 style={{
+                fontSize: '1.25rem',
+                fontWeight: 600,
+                color: COLORS.accent,
+                margin: '0 0 1rem 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}>
+                <span>✅</span> What Works Now
+              </h3>
+              <ul style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+              }}>
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: COLORS.textMuted,
+                  lineHeight: 1.5,
+                }}>
+                  <span style={{ color: COLORS.accent }}>•</span>
+                  <span><strong style={{ color: COLORS.text }}>Clear wins:</strong> AI is great at problems with clear answers — drug molecules that bind to targets, energy grids that stay stable, manufacturing defects that are obvious.</span>
+                </li>
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: COLORS.textMuted,
+                  lineHeight: 1.5,
+                }}>
+                  <span style={{ color: COLORS.accent }}>•</span>
+                  <span><strong style={{ color: COLORS.text }}>Local AI:</strong> AI that runs on your computer (like doctors&apos; workstations, school computers) works better than cloud-only — it sees your data, your context, your tools.</span>
+                </li>
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: COLORS.textMuted,
+                  lineHeight: 1.5,
+                }}>
+                  <span style={{ color: COLORS.accent }}>•</span>
+                  <span><strong style={{ color: COLORS.text }}>Specialized apps:</strong> AI apps built for specific problems (cancer detection app, education app) work better than trying to use one general AI for everything.</span>
+                </li>
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: COLORS.textMuted,
+                  lineHeight: 1.5,
+                }}>
+                  <span style={{ color: COLORS.accent }}>•</span>
+                  <span><strong style={{ color: COLORS.text }}>Visual outputs:</strong> AI that shows you images, diagrams, and visualizations (not just text) helps doctors, teachers, and engineers understand what it&apos;s thinking.</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* What We Need to Build */}
+            <div style={{
+              backgroundColor: COLORS.bgCard,
+              border: `1px solid ${COLORS.warning}`,
+              borderRadius: '12px',
+              padding: '1.5rem',
+            }}>
+              <h3 style={{
+                fontSize: '1.25rem',
+                fontWeight: 600,
+                color: COLORS.warning,
+                margin: '0 0 1rem 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}>
+                <span>🔨</span> What We Need to Build
+              </h3>
+              <ul style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+              }}>
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: COLORS.textMuted,
+                  lineHeight: 1.5,
+                }}>
+                  <span style={{ color: COLORS.warning }}>•</span>
+                  <span><strong style={{ color: COLORS.text }}>Long-term tracking:</strong> Cancer detection success shows up 2-3 years later. We need systems that track outcomes for years, not just train on today&apos;s data.</span>
+                </li>
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: COLORS.textMuted,
+                  lineHeight: 1.5,
+                }}>
+                  <span style={{ color: COLORS.warning }}>•</span>
+                  <span><strong style={{ color: COLORS.text }}>Human-AI teams:</strong> AI is brilliant in some areas, confused in others. We need doctors, teachers, and engineers working with AI, not replaced by it.</span>
+                </li>
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: COLORS.textMuted,
+                  lineHeight: 1.5,
+                }}>
+                  <span style={{ color: COLORS.warning }}>•</span>
+                  <span><strong style={{ color: COLORS.text }}>Real-world testing:</strong> AI that aces tests but fails in real hospitals or classrooms isn&apos;t useful. We need validation in the real world, not just benchmarks.</span>
+                </li>
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: COLORS.textMuted,
+                  lineHeight: 1.5,
+                }}>
+                  <span style={{ color: COLORS.warning }}>•</span>
+                  <span><strong style={{ color: COLORS.text }}>Data infrastructure:</strong> AI needs the right data at the right time. We need systems that gather patient history, student records, factory data — and keep it private and secure.</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div style={{
+            backgroundColor: COLORS.bgCardAlt,
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: '12px',
+            padding: '1.5rem',
+            marginTop: '1.5rem',
+          }}>
+            <p style={{
+              fontSize: '0.95rem',
+              color: COLORS.textMuted,
+              lineHeight: 1.7,
+              margin: 0,
+            }}>
+              <strong style={{ color: COLORS.text }}>The bottom line:</strong> AI can solve these problems, but only if we build the right infrastructure. 
+              Not just data centers and chips — but systems that track long-term outcomes, connect AI to real-world tools, 
+              and keep humans in the loop. That&apos;s what the AI Manhattan Project is really about: building AI that actually works, 
+              not just AI that looks good on paper.
+            </p>
+          </div>
+        </section>
+
         {/* Problems Grid */}
         <section style={styles.section}>
           <div style={styles.sectionHeader}>
