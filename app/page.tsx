@@ -757,32 +757,32 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
   // Those need: Nuclear, Grid, Transformers, Rare Earths, etc.
   
   const nodes = [
-    // INPUTS TO THE HEART (what feeds it) - spread across top
-    { id: 'data', label: 'Data', sublabel: 'Training & Learning', icon: '📊', color: '#4fc3f7', x: 15, y: 10, size: 'small', sector: null },
-    { id: 'problems', label: 'Problems', sublabel: 'Cancer, Education...', icon: '🎯', color: COLORS.warning, x: 50, y: 5, size: 'small', sector: null },
-    { id: 'talent', label: 'Talent', sublabel: 'Smartest People', icon: '👨‍🔬', color: COLORS.accent, x: 85, y: 10, size: 'small', sector: null },
+    // INPUTS TO THE HEART (what feeds it) - spread wide across top
+    { id: 'data', label: 'Data', sublabel: 'Training & Learning', icon: '📊', color: '#4fc3f7', x: 12, y: 8, size: 'small', sector: null },
+    { id: 'problems', label: 'Problems', sublabel: 'Cancer, Education...', icon: '🎯', color: COLORS.warning, x: 50, y: 3, size: 'small', sector: null },
+    { id: 'talent', label: 'Talent', sublabel: 'Smartest People', icon: '👨‍🔬', color: COLORS.accent, x: 88, y: 8, size: 'small', sector: null },
     
     // The Heart - The PURPOSE (AI solving problems)
-    { id: 'heart', label: 'The Heart', sublabel: 'AI Solving Problems', icon: '❤️', color: '#f85149', x: 50, y: 22, size: 'large', sector: null },
+    { id: 'heart', label: 'The Heart', sublabel: 'AI Solving Problems', icon: '❤️', color: '#f85149', x: 50, y: 18, size: 'large', sector: null },
     
     // The Brain - Data Centers that run the models
-    { id: 'brain', label: 'The Brain', sublabel: 'AI Data Centers', icon: '🧠', color: COLORS.purple, x: 50, y: 42, size: 'large', sector: 'data-centers' },
+    { id: 'brain', label: 'The Brain', sublabel: 'AI Data Centers', icon: '🧠', color: COLORS.purple, x: 50, y: 38, size: 'large', sector: 'data-centers' },
     
-    // INFRASTRUCTURE RING: What the Brain needs
-    { id: 'power', label: 'Power', sublabel: '100MW+ per DC', icon: '⚡', color: COLORS.warning, x: 50, y: 60, size: 'medium', sector: 'clean-energy' },
-    { id: 'chips', label: 'AI Chips', sublabel: 'GPUs, TPUs, ASICs', icon: '🔬', color: COLORS.blue, x: 78, y: 50, size: 'medium', sector: 'semiconductors' },
-    { id: 'water', label: 'Water', sublabel: 'Cooling Systems', icon: '💧', color: '#4fc3f7', x: 22, y: 50, size: 'medium', sector: 'water-utilities' },
-    { id: 'storage', label: 'Storage', sublabel: 'Battery Backup', icon: '🔋', color: COLORS.accent, x: 22, y: 65, size: 'medium', sector: 'ev-battery' },
+    // INFRASTRUCTURE RING: What the Brain needs - spread wider
+    { id: 'power', label: 'Power', sublabel: '100MW+ per DC', icon: '⚡', color: COLORS.warning, x: 50, y: 58, size: 'medium', sector: 'clean-energy' },
+    { id: 'chips', label: 'AI Chips', sublabel: 'GPUs, TPUs, ASICs', icon: '🔬', color: COLORS.blue, x: 82, y: 45, size: 'medium', sector: 'semiconductors' },
+    { id: 'water', label: 'Water', sublabel: 'Cooling Systems', icon: '💧', color: '#4fc3f7', x: 18, y: 45, size: 'medium', sector: 'water-utilities' },
+    { id: 'storage', label: 'Storage', sublabel: 'Battery Backup', icon: '🔋', color: COLORS.accent, x: 18, y: 62, size: 'medium', sector: 'ev-battery' },
     
-    // OUTER RING: Prerequisites (what the infrastructure needs)
-    { id: 'nuclear', label: 'Nuclear', sublabel: 'Clean Baseload', icon: '⚛️', color: '#ff7043', x: 35, y: 78, size: 'small', sector: 'nuclear' },
-    { id: 'grid', label: 'Grid', sublabel: 'Transmission', icon: '🔌', color: COLORS.warning, x: 50, y: 78, size: 'small', sector: 'clean-energy' },
-    { id: 'transformers', label: 'Transformers', sublabel: '2-3yr lead times', icon: '🔧', color: COLORS.warning, x: 65, y: 78, size: 'small', sector: 'clean-energy' },
-    { id: 'rare-earths', label: 'Rare Earths', sublabel: 'Magnets & Materials', icon: '🧲', color: '#ab47bc', x: 92, y: 60, size: 'small', sector: 'critical-minerals' },
-    { id: 'chemicals', label: 'Chemicals', sublabel: 'Process Materials', icon: '🧪', color: '#26a69a', x: 92, y: 45, size: 'small', sector: 'chemicals' },
-    { id: 'upw', label: 'Ultra-Pure Water', sublabel: 'Fab Requirements', icon: '🚰', color: '#4fc3f7', x: 8, y: 60, size: 'small', sector: 'water-utilities' },
-    { id: 'water-rights', label: 'Water Rights', sublabel: 'Allocation', icon: '💧', color: '#4fc3f7', x: 8, y: 45, size: 'small', sector: 'water-utilities' },
-    { id: 'workforce', label: 'Workforce', sublabel: '$30 vs $6/hr gap', icon: '👷', color: COLORS.danger, x: 8, y: 90, size: 'small', sector: null },
+    // OUTER RING: Prerequisites - spread to edges
+    { id: 'nuclear', label: 'Nuclear', sublabel: 'Clean Baseload', icon: '⚛️', color: '#ff7043', x: 30, y: 80, size: 'small', sector: 'nuclear' },
+    { id: 'grid', label: 'Grid', sublabel: 'Transmission', icon: '🔌', color: COLORS.warning, x: 50, y: 80, size: 'small', sector: 'clean-energy' },
+    { id: 'transformers', label: 'Transformers', sublabel: '2-3yr lead times', icon: '🔧', color: COLORS.warning, x: 70, y: 80, size: 'small', sector: 'clean-energy' },
+    { id: 'rare-earths', label: 'Rare Earths', sublabel: 'Magnets & Materials', icon: '🧲', color: '#ab47bc', x: 95, y: 58, size: 'small', sector: 'critical-minerals' },
+    { id: 'chemicals', label: 'Chemicals', sublabel: 'Process Materials', icon: '🧪', color: '#26a69a', x: 95, y: 38, size: 'small', sector: 'chemicals' },
+    { id: 'upw', label: 'Ultra-Pure Water', sublabel: 'Fab Requirements', icon: '🚰', color: '#4fc3f7', x: 5, y: 58, size: 'small', sector: 'water-utilities' },
+    { id: 'water-rights', label: 'Water Rights', sublabel: 'Allocation', icon: '💧', color: '#4fc3f7', x: 5, y: 38, size: 'small', sector: 'water-utilities' },
+    { id: 'workforce', label: 'Workforce', sublabel: '$30 vs $6/hr gap', icon: '👷', color: COLORS.danger, x: 5, y: 92, size: 'small', sector: null },
   ]
 
   // Connections show dependency flow
@@ -859,7 +859,7 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
 
       <svg 
         viewBox="0 0 100 100" 
-        style={{ ...styles.networkSvg, height: '450px' }}
+        style={{ ...styles.networkSvg, height: '550px' }}
         preserveAspectRatio="xMidYMid meet"
       >
         {/* Defs */}
@@ -973,8 +973,8 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
               {/* Labels */}
               <text
                 x={node.x}
-                y={node.y + baseRadius + 3}
-                fontSize={isCenter ? 2.5 : 2}
+                y={node.y + baseRadius + 3.5}
+                fontSize={isCenter ? 2.2 : 1.8}
                 fill={isActive ? COLORS.text : COLORS.textMuted}
                 textAnchor="middle"
                 fontWeight={isActive || isCenter ? 700 : 500}
@@ -985,8 +985,8 @@ function StrategicGapsNetwork({ gaps }: { gaps: typeof STRATEGIC_GAPS }) {
               {(isActive || isCenter) && (
                 <text
                   x={node.x}
-                  y={node.y + baseRadius + 5.5}
-                  fontSize="1.6"
+                  y={node.y + baseRadius + 6}
+                  fontSize="1.4"
                   fill={COLORS.textDim}
                   textAnchor="middle"
                   style={{ pointerEvents: 'none' }}
