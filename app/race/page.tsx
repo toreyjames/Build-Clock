@@ -627,7 +627,7 @@ export default function RacePage() {
                               )}
                             </div>
                             <div style={styles.barValue}>
-                              {metric.us.prefix || ''}{metric.us.value}{metric.us.unit}
+                              {'prefix' in metric.us ? metric.us.prefix : ''}{metric.us.value}{metric.us.unit}
                             </div>
                           </div>
                           
@@ -646,7 +646,7 @@ export default function RacePage() {
                               />
                             </div>
                             <div style={styles.barValue}>
-                              {metric.china.prefix || ''}{metric.china.value}{metric.china.unit}
+                              {'prefix' in metric.china ? metric.china.prefix : ''}{metric.china.value}{metric.china.unit}
                             </div>
                           </div>
                         </div>
