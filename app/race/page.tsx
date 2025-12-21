@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { opportunities, calculateSectorPipeline } from '../../lib/data/opportunities'
 
 // ============================================================================
 // COLORS & THEME
@@ -498,6 +499,124 @@ const BOTTLENECKS = [
 ]
 
 // ============================================================================
+// US RESPONSE SCORECARD (Derived from tracked pipeline + policy drivers)
+// ============================================================================
+type ResponseStatus = 'moving' | 'partial' | 'stalled'
+
+function formatMoneyB(valueB: number): string {
+  if (valueB >= 1000) return `$${(valueB / 1000).toFixed(1)}T`
+  return `$${Math.round(valueB)}B`
+}
+
+function getStatusColor(status: ResponseStatus): string {
+  if (status === 'moving') return COLORS.accent
+  if (status === 'partial') return COLORS.warning
+  return COLORS.danger
+}
+
+function getStatusLabel(status: ResponseStatus): string {
+  if (status === 'moving') return 'MOVING'
+  if (status === 'partial') return 'PARTIAL'
+  return 'STALLED'
+}
+
+function sumPipelineBySectorKey(sectorKey: string): { projects: number; pipelineB: number } {
+  const opps = opportunities.filter(o => o.sector === sectorKey as any)
+  const pipelineB = opps.reduce((sum, o) => sum + o.investmentSize, 0) / 1000
+  return { projects: opps.length, pipelineB }
+}
+
+function countSignals(opts: { policyDriver?: string; service?: string; otUseCase?: string }): number {
+  return opportunities.filter(o => {
+    const policyOk = opts.policyDriver ? o.policyDriver?.includes(opts.policyDriver as any) : true
+    const serviceOk = opts.service ? o.services?.includes(opts.service as any) : true
+    const otOk = opts.otUseCase ? o.otUseCases?.includes(opts.otUseCase as any) : true
+    return policyOk && serviceOk && otOk
+  }).length
+}
+
+const US_RESPONSE = [
+  {
+    id: 'chips-equipment',
+    title: 'Semiconductor capacity (fobs + tools + ramp)',
+    bottleneck: 'Semiconductor Equipment',
+    icon: '🔬',
+    primarySectors: ['semiconductors', 'chemicals', 'water-utilities'],
+    signals: [
+      { label: 'CHIPS Act projects tracked', value: countSignals({ policyDriver: 'chips-act' }) },
+      { label: 'Core OT (MES/SCADA) projects', value: countSignals({ otUseCase: 'MES' }) + countSignals({ otUseCase: 'SCADA/PLC' }) },
+    ],
+    nextUnblocker: 'Execution: on-time ramp + tool lead times (DPA priority) + domestic inputs',
+    status: 'moving' as const,
+  },
+  {
+    id: 'grid-interconnection',
+    title: 'Grid & transmission buildout',
+    bottleneck: 'Grid Interconnection Queue',
+    icon: '🔌',
+    primarySectors: ['clean-energy'],
+    signals: [
+      { label: 'Grid/energy projects tracked', value: sumPipelineBySectorKey('clean-energy').projects },
+      { label: 'IIJA/IRA-driven projects tracked', value: countSignals({ policyDriver: 'iija' }) + countSignals({ policyDriver: 'ira' }) },
+    ],
+    nextUnblocker: 'Permitting + interconnection reform + transformer/substation scaling',
+    status: 'partial' as const,
+  },
+  {
+    id: 'transformers',
+    title: 'Transformer & substation supply chain',
+    bottleneck: 'Large Power Transformers',
+    icon: '🔧',
+    primarySectors: ['clean-energy'],
+    signals: [
+      { label: 'Grid/energy pipeline (tracked)', value: sumPipelineBySectorKey('clean-energy').projects },
+      { label: 'OT Cyber (critical infrastructure) signals', value: countSignals({ otUseCase: 'OT Cyber' }) },
+    ],
+    nextUnblocker: 'Domestic transformer manufacturing capacity + test labs + workforce',
+    status: 'partial' as const,
+  },
+  {
+    id: 'rare-earths',
+    title: 'Critical minerals processing',
+    bottleneck: 'Rare Earth Processing',
+    icon: '🧲',
+    primarySectors: ['critical-minerals'],
+    signals: [
+      { label: 'Critical minerals projects tracked', value: sumPipelineBySectorKey('critical-minerals').projects },
+      { label: 'Critical-minerals policy-driven projects', value: countSignals({ policyDriver: 'critical-minerals' }) },
+    ],
+    nextUnblocker: 'Midstream processing (separation/refining/magnets) + offtake commitments',
+    status: 'partial' as const,
+  },
+  {
+    id: 'upw',
+    title: 'Ultra-pure water + utilities for fabs',
+    bottleneck: 'Ultra-Pure Water Systems',
+    icon: '💧',
+    primarySectors: ['water-utilities', 'semiconductors'],
+    signals: [
+      { label: 'Water/utilities projects tracked', value: sumPipelineBySectorKey('water-utilities').projects },
+      { label: 'Semiconductor projects tracked', value: sumPipelineBySectorKey('semiconductors').projects },
+    ],
+    nextUnblocker: 'UPW build capacity near fab clusters + permitting + operators',
+    status: 'moving' as const,
+  },
+  {
+    id: 'skilled-trades',
+    title: 'Workforce capacity (craft + operators)',
+    bottleneck: 'Skilled Trades Workforce',
+    icon: '👷',
+    primarySectors: ['clean-energy', 'semiconductors', 'data-centers', 'nuclear'],
+    signals: [
+      { label: 'Projects requiring Workforce services', value: countSignals({ service: 'workforce' }) },
+      { label: 'Commissioning signals', value: countSignals({ otUseCase: 'Commissioning' }) },
+    ],
+    nextUnblocker: 'Apprenticeships at scale + immigration pathways + automation for inspection/QA',
+    status: 'partial' as const,
+  },
+] as const
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 export default function RacePage() {
@@ -772,6 +891,74 @@ export default function RacePage() {
                 </div>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* US Response Scorecard */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>Are We Addressing the Bottlenecks?</h2>
+          <p style={styles.sectionSubtitle}>
+            A simple truth test. This uses the tracked pipeline in <code style={{ color: COLORS.text }}>Opportunity Radar</code> as the signal of real-world execution.
+          </p>
+
+          <div style={styles.responseGrid}>
+            {US_RESPONSE.map((item) => {
+              const statusColor = getStatusColor(item.status)
+              const statusLabel = getStatusLabel(item.status)
+              const sectorTotals = item.primarySectors.map(sectorKey => ({
+                sectorKey,
+                ...sumPipelineBySectorKey(sectorKey),
+              }))
+
+              const pipelineTotalB = sectorTotals.reduce((sum, s) => sum + s.pipelineB, 0)
+              const projectsTotal = sectorTotals.reduce((sum, s) => sum + s.projects, 0)
+
+              return (
+                <div key={item.id} style={styles.responseCard}>
+                  <div style={styles.responseHeader}>
+                    <div style={styles.responseHeaderLeft}>
+                      <span style={styles.responseIcon}>{item.icon}</span>
+                      <div>
+                        <div style={styles.responseTitle}>{item.title}</div>
+                        <div style={styles.responseBottleneck}>Bottleneck: {item.bottleneck}</div>
+                      </div>
+                    </div>
+                    <div style={{ ...styles.responseStatus, borderColor: statusColor, color: statusColor }}>
+                      {statusLabel}
+                    </div>
+                  </div>
+
+                  <div style={styles.responseTopline}>
+                    <div style={styles.responseToplineItem}>
+                      <div style={styles.responseToplineLabel}>Tracked pipeline (proxy)</div>
+                      <div style={{ ...styles.responseToplineValue, color: COLORS.accent }}>{formatMoneyB(pipelineTotalB)}</div>
+                    </div>
+                    <div style={styles.responseToplineItem}>
+                      <div style={styles.responseToplineLabel}>Tracked projects</div>
+                      <div style={styles.responseToplineValue}>{projectsTotal}</div>
+                    </div>
+                  </div>
+
+                  <div style={styles.responseSignals}>
+                    {item.signals.map((s, idx) => (
+                      <div key={idx} style={styles.responseSignal}>
+                        <div style={styles.responseSignalLabel}>{s.label}</div>
+                        <div style={styles.responseSignalValue}>{s.value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={styles.responseNext}>
+                    <strong>Next unblocker:</strong> {item.nextUnblocker}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div style={styles.responseNote}>
+            <strong>Interpretation:</strong> “Moving” means there is substantial tracked execution signal (projects + capital) in the relevant sectors.
+            “Partial” means capital exists, but the critical path is still policy / permitting / supply chain / workforce. “Stalled” would indicate little-to-no execution signal.
           </div>
         </section>
 
@@ -1460,6 +1647,122 @@ const styles: Record<string, React.CSSProperties> = {
   footerDivider: {
     margin: '0 0.75rem',
     color: COLORS.border,
+  },
+
+  // US Response Scorecard
+  responseGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '1.5rem',
+  },
+  responseCard: {
+    padding: '1.5rem',
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '12px',
+  },
+  responseHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '1rem',
+    marginBottom: '1rem',
+    paddingBottom: '1rem',
+    borderBottom: `1px solid ${COLORS.border}`,
+  },
+  responseHeaderLeft: {
+    display: 'flex',
+    gap: '0.75rem',
+    alignItems: 'center',
+  },
+  responseIcon: {
+    fontSize: '1.75rem',
+  },
+  responseTitle: {
+    fontSize: '1.05rem',
+    fontWeight: 800,
+    color: COLORS.text,
+    marginBottom: '0.15rem',
+  },
+  responseBottleneck: {
+    fontSize: '0.8rem',
+    color: COLORS.textMuted,
+  },
+  responseStatus: {
+    fontSize: '0.75rem',
+    fontWeight: 800,
+    padding: '0.3rem 0.6rem',
+    borderRadius: '999px',
+    border: `2px solid ${COLORS.border}`,
+    letterSpacing: '0.05em',
+    backgroundColor: COLORS.bg,
+    whiteSpace: 'nowrap' as const,
+  },
+  responseTopline: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '1rem',
+    marginBottom: '1rem',
+  },
+  responseToplineItem: {
+    padding: '0.75rem',
+    backgroundColor: COLORS.bg,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+  },
+  responseToplineLabel: {
+    fontSize: '0.7rem',
+    color: COLORS.textDim,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.04em',
+    marginBottom: '0.25rem',
+  },
+  responseToplineValue: {
+    fontSize: '1.25rem',
+    fontWeight: 900,
+    color: COLORS.text,
+  },
+  responseSignals: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '0.75rem',
+    marginBottom: '1rem',
+  },
+  responseSignal: {
+    padding: '0.75rem',
+    backgroundColor: COLORS.bg,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '8px',
+  },
+  responseSignalLabel: {
+    fontSize: '0.75rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.3,
+    marginBottom: '0.35rem',
+  },
+  responseSignalValue: {
+    fontSize: '1.1rem',
+    fontWeight: 800,
+    color: COLORS.text,
+  },
+  responseNext: {
+    fontSize: '0.85rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.6,
+    padding: '0.85rem',
+    backgroundColor: COLORS.bg,
+    borderRadius: '8px',
+    borderLeft: `3px solid ${COLORS.warning}`,
+  },
+  responseNote: {
+    marginTop: '1.5rem',
+    padding: '1rem',
+    backgroundColor: COLORS.bgCard,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: '10px',
+    fontSize: '0.85rem',
+    color: COLORS.textMuted,
+    lineHeight: 1.6,
   },
 }
 
