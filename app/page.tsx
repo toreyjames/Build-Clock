@@ -1142,14 +1142,14 @@ export default function BuildClockPage() {
             </p>
           </div>
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <Link href="/race" style={{ ...styles.radarLink, backgroundColor: 'rgba(59, 130, 246, 0.15)', borderColor: '#3b82f6' }}>
+              🇺🇸 US vs China →
+            </Link>
             <Link href="/heart" style={{ ...styles.radarLink, backgroundColor: 'rgba(248, 81, 73, 0.15)', borderColor: '#f85149' }}>
               ❤️ The Heart →
             </Link>
             <Link href="/opportunities" style={styles.radarLink}>
               Opportunity Radar →
-            </Link>
-            <Link href="/ai-opportunities" style={styles.radarLink}>
-              SFL →
             </Link>
           </div>
         </header>
