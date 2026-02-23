@@ -17,6 +17,39 @@ interface Insight {
 
 const INSIGHTS: Insight[] = [
   {
+    id: 'stargate-stall',
+    date: '2026-02-22',
+    title: 'Stargate Project Stalls: $500B AI Infrastructure Promise Unraveling',
+    category: 'risk',
+    summary: 'The much-hyped Stargate AI infrastructure project - announced with Trump in Jan 2025 as a $500B initiative - has failed to complete a single data center deal. Partner conflicts, funding questions, and execution failures signal this may never materialize at scale.',
+    analysis: [
+      'Stargate announced Jan 2025: SoftBank, OpenAI, Oracle, MGX - promised $500B AI infrastructure',
+      'Aug 2025: SoftBank CEO Son admitted project "behind schedule" to investors',
+      'No data center deals completed 6+ months after announcement',
+      'Oracle CEO Ellison: "Stargate is not formed yet" - no actual joint venture exists',
+      'SoftBank halted acquisition talks with Switch (data center company) Jan 2026',
+      'Partner clashes: SoftBank wants control, OpenAI wants speed, Oracle sidelined',
+      'Funding structure unclear - SoftBank promised $19B but hasn\'t deployed',
+      'WSJ investigation revealed "failed to complete a single data center deal"',
+      'Meanwhile: Microsoft, Amazon, Google actually building - $200B+ committed and executing',
+    ],
+    implications: [
+      'Don\'t chase Stargate-related work - vaporware risk is high',
+      'Hyperscalers (MSFT, AMZN, GOOG) are the real buildout - focus there',
+      'Validates thesis: Execution > Announcements in AI infrastructure',
+      'Watch for Stargate partners doing deals separately (SoftBank, Oracle pivoting)',
+      'OpenAI may need to find new infrastructure partners - potential opportunity',
+      'Trump administration credibility on AI infrastructure somewhat damaged',
+      'This is why we track actual permits, PPAs, interconnection requests - not press releases',
+      'Risk: If Stargate narrative collapses publicly, could cool AI infrastructure hype broadly',
+    ],
+    sources: [
+      { title: 'Bloomberg: Stargate Behind Schedule', url: 'https://www.bloomberg.com/news/articles/2025-08-05/softbank-ceo-son-says-stargate-ai-project-running-behind-schedule' },
+      { title: 'WSJ: Stargate Failed to Complete Single Deal', url: 'https://www.wsj.com/tech/ai/stargate-trump-openai-project-struggles-60cb4c82' },
+    ],
+    relatedPillars: ['ai-compute', 'power'],
+  },
+  {
     id: 'post-industrial-grid',
     date: '2026-02-21',
     title: 'The Grid Was Built for a World That No Longer Exists',
