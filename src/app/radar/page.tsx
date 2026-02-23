@@ -117,7 +117,7 @@ const SECTOR_CONTEXT: Record<GenesisPillar, {
 interface ActivityEntry {
   id: string;
   timestamp: string;
-  type: 'status-change' | 'note-added' | 'note-updated' | 'created';
+  type: 'status-change' | 'note-added' | 'note-updated' | 'created' | 'jupiter-push' | 'jupiter-sync' | 'jupiter-update';
   details: string;
   previousValue?: string;
   newValue?: string;
@@ -129,7 +129,33 @@ interface OppTracking {
   notes: string;
   lastUpdated: string;
   activity: ActivityEntry[];
+  // Jupiter sync fields
+  salesforce_id?: string;
+  salesforce_synced_at?: string;
+  pursuit_lead?: string;
+  win_probability?: number;
 }
+
+// Jupiter Modal data
+interface JupiterModalData {
+  isOpen: boolean;
+  opportunity: ActionableOpportunity | null;
+  title: string;
+  entity: string;
+  amount: number | null;
+  closeDate: string | null;
+  description: string;
+  pursuitLead: string;
+  winProbability: number;
+}
+
+const WIN_PROBABILITY_OPTIONS = [
+  { value: 10, label: '10% - Long Shot' },
+  { value: 25, label: '25% - Possible' },
+  { value: 50, label: '50% - Competitive' },
+  { value: 75, label: '75% - Strong Position' },
+  { value: 90, label: '90% - Near Certain' },
+];
 
 function formatCurrency(value: number | null): string {
   if (!value) return 'TBD';
@@ -280,6 +306,114 @@ export default function RadarPage() {
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   const [showSetup, setShowSetup] = useState(false);
   const [cloudEnabled, setCloudEnabled] = useState<boolean | null>(null);
+
+  // Jupiter Modal state
+  const [jupiterModal, setJupiterModal] = useState<JupiterModalData>({
+    isOpen: false,
+    opportunity: null,
+    title: '',
+    entity: '',
+    amount: null,
+    closeDate: null,
+    description: '',
+    pursuitLead: '',
+    winProbability: 50,
+  });
+  const [jupiterPushing, setJupiterPushing] = useState(false);
+  const [jupiterError, setJupiterError] = useState<string | null>(null);
+
+  // Open Jupiter Modal
+  const openJupiterModal = (opp: ActionableOpportunity) => {
+    setJupiterModal({
+      isOpen: true,
+      opportunity: opp,
+      title: opp.title,
+      entity: opp.entity,
+      amount: opp.estimatedValue,
+      closeDate: opp.responseDeadline,
+      description: `${opp.deloitteAngle}\n\nOT Scope: ${opp.otScope}`,
+      pursuitLead: tracking[opp.id]?.pursuit_lead || '',
+      winProbability: tracking[opp.id]?.win_probability || 50,
+    });
+    setJupiterError(null);
+  };
+
+  // Close Jupiter Modal
+  const closeJupiterModal = () => {
+    setJupiterModal(prev => ({ ...prev, isOpen: false }));
+    setJupiterError(null);
+  };
+
+  // Push to Jupiter
+  const handlePushToJupiter = async () => {
+    if (!jupiterModal.opportunity || !jupiterModal.pursuitLead) {
+      setJupiterError('Pursuit Lead is required');
+      return;
+    }
+
+    setJupiterPushing(true);
+    setJupiterError(null);
+
+    try {
+      const response = await fetch('/api/webhooks/push-to-jupiter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          opportunity_id: jupiterModal.opportunity.id,
+          title: jupiterModal.title,
+          entity: jupiterModal.entity,
+          amount: jupiterModal.amount,
+          close_date: jupiterModal.closeDate,
+          description: jupiterModal.description,
+          pursuit_lead: jupiterModal.pursuitLead,
+          win_probability: jupiterModal.winProbability,
+          genesis_pillar: jupiterModal.opportunity.genesisPillar,
+          ot_systems: jupiterModal.opportunity.otSystems,
+          regulatory_drivers: jupiterModal.opportunity.regulatoryDrivers,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Update local tracking
+        const oppId = jupiterModal.opportunity.id;
+        const now = new Date().toISOString();
+
+        setTracking(prev => ({
+          ...prev,
+          [oppId]: {
+            ...prev[oppId],
+            status: prev[oppId]?.status === 'on-radar' ? 'contacted' : prev[oppId]?.status || 'contacted',
+            pursuit_lead: jupiterModal.pursuitLead,
+            win_probability: jupiterModal.winProbability,
+            lastUpdated: now,
+            activity: [
+              ...(prev[oppId]?.activity || []),
+              {
+                id: `act-${Date.now()}`,
+                timestamp: now,
+                type: 'jupiter-push' as const,
+                details: `Pushed to Jupiter by ${jupiterModal.pursuitLead}`,
+              },
+            ],
+          },
+        }));
+
+        // Mark for cloud save
+        setPendingSaves(prev => new Set(prev).add(oppId));
+
+        closeJupiterModal();
+      } else {
+        setJupiterError(result.error || 'Failed to push to Jupiter');
+      }
+    } catch (error) {
+      console.error('Error pushing to Jupiter:', error);
+      setJupiterError('Network error. Please try again.');
+    } finally {
+      setJupiterPushing(false);
+    }
+  };
 
   // Load tracking data from Supabase (with localStorage fallback)
   useEffect(() => {
@@ -797,11 +931,11 @@ export default function RadarPage() {
                 <div className="text-lg font-bold text-cyan-400">{formatCurrency(totalPipeline)}</div>
               </div>
 
-              <Link href="/insights" className="px-2 py-1 rounded bg-purple-500/20 hover:bg-purple-500/30 text-xs text-purple-300 border border-purple-500/30">
-                Insights
+              <Link href="/" className="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-xs text-gray-300">
+                ← Command Center
               </Link>
-              <Link href="/quantified" className="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-xs text-gray-300">
-                Roadmap
+              <Link href="/strategy" className="px-2 py-1 rounded bg-purple-500/20 hover:bg-purple-500/30 text-xs text-purple-300 border border-purple-500/30">
+                Strategy
               </Link>
             </div>
           </div>
@@ -938,6 +1072,171 @@ CREATE POLICY "Allow all access" ON opportunity_tracking
         </div>
       )}
 
+      {/* Jupiter Push Modal */}
+      {jupiterModal.isOpen && jupiterModal.opportunity && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#12121a] rounded-xl border border-gray-700 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-800 bg-gradient-to-r from-orange-500/10 to-amber-500/10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">☁️</span>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Push to Jupiter</h2>
+                    <p className="text-sm text-gray-400">Create opportunity in Salesforce (Jupiter)</p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeJupiterModal}
+                  className="text-gray-400 hover:text-white text-xl w-8 h-8 flex items-center justify-center rounded hover:bg-gray-700"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Error Message */}
+              {jupiterError && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">
+                  {jupiterError}
+                </div>
+              )}
+
+              {/* Opportunity Info (Read-only) */}
+              <div className="bg-gray-800/50 rounded-lg p-4 space-y-3">
+                <h3 className="text-xs text-gray-500 font-medium">OPPORTUNITY</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-500">Name</label>
+                    <input
+                      type="text"
+                      value={jupiterModal.title}
+                      onChange={(e) => setJupiterModal(prev => ({ ...prev, title: e.target.value }))}
+                      className="w-full mt-1 px-3 py-2 bg-[#0a0a0f] border border-gray-700 rounded-lg text-white text-sm focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500">Account</label>
+                    <input
+                      type="text"
+                      value={jupiterModal.entity}
+                      onChange={(e) => setJupiterModal(prev => ({ ...prev, entity: e.target.value }))}
+                      className="w-full mt-1 px-3 py-2 bg-[#0a0a0f] border border-gray-700 rounded-lg text-white text-sm focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-500">Amount</label>
+                    <input
+                      type="text"
+                      value={jupiterModal.amount ? `$${jupiterModal.amount.toLocaleString()}` : 'TBD'}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, '');
+                        setJupiterModal(prev => ({ ...prev, amount: val ? parseInt(val) : null }));
+                      }}
+                      className="w-full mt-1 px-3 py-2 bg-[#0a0a0f] border border-gray-700 rounded-lg text-white text-sm focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500">Close Date</label>
+                    <input
+                      type="date"
+                      value={jupiterModal.closeDate || ''}
+                      onChange={(e) => setJupiterModal(prev => ({ ...prev, closeDate: e.target.value }))}
+                      className="w-full mt-1 px-3 py-2 bg-[#0a0a0f] border border-gray-700 rounded-lg text-white text-sm focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pursuit Info (Required) */}
+              <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 space-y-3">
+                <h3 className="text-xs text-orange-400 font-medium">PURSUIT DETAILS</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-400">Pursuit Lead <span className="text-red-400">*</span></label>
+                    <input
+                      type="text"
+                      value={jupiterModal.pursuitLead}
+                      onChange={(e) => setJupiterModal(prev => ({ ...prev, pursuitLead: e.target.value }))}
+                      placeholder="Your name"
+                      className="w-full mt-1 px-3 py-2 bg-[#0a0a0f] border border-gray-700 rounded-lg text-white text-sm focus:border-orange-500 focus:outline-none placeholder-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Win Probability</label>
+                    <select
+                      value={jupiterModal.winProbability}
+                      onChange={(e) => setJupiterModal(prev => ({ ...prev, winProbability: parseInt(e.target.value) }))}
+                      className="w-full mt-1 px-3 py-2 bg-[#0a0a0f] border border-gray-700 rounded-lg text-white text-sm focus:border-orange-500 focus:outline-none"
+                    >
+                      {WIN_PROBABILITY_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="text-xs text-gray-500">Description (Deloitte Angle + OT Scope)</label>
+                <textarea
+                  value={jupiterModal.description}
+                  onChange={(e) => setJupiterModal(prev => ({ ...prev, description: e.target.value }))}
+                  rows={4}
+                  className="w-full mt-1 px-3 py-2 bg-[#0a0a0f] border border-gray-700 rounded-lg text-white text-sm focus:border-orange-500 focus:outline-none resize-none"
+                />
+              </div>
+
+              {/* Genesis Context */}
+              <div className="bg-gray-800/30 rounded-lg p-3 text-xs text-gray-500">
+                <div className="flex items-center gap-4">
+                  <span><strong>Pillar:</strong> {GENESIS_PILLAR_INFO[jupiterModal.opportunity.genesisPillar].label}</span>
+                  <span><strong>OT Systems:</strong> {jupiterModal.opportunity.otSystems?.map(s => OT_SYSTEM_LABELS[s]).join(', ') || 'None'}</span>
+                </div>
+                <div className="mt-1">
+                  <strong>Regulatory:</strong> {jupiterModal.opportunity.regulatoryDrivers?.map(r => REGULATORY_LABELS[r]).join(', ') || 'None'}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-800 bg-gray-900/50 flex items-center justify-between">
+              <p className="text-gray-500 text-xs">
+                This will fire a webhook to Power Automate to create the Jupiter record.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={closeJupiterModal}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white text-sm transition-colors"
+                  disabled={jupiterPushing}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePushToJupiter}
+                  disabled={jupiterPushing || !jupiterModal.pursuitLead}
+                  className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {jupiterPushing ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                      Pushing...
+                    </>
+                  ) : (
+                    <>
+                      <span>☁️</span>
+                      Push to Jupiter
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="max-w-[1800px] mx-auto px-6 py-6">
         {viewMode === 'live' ? (
           /* LIVE FEED VIEW */
@@ -973,6 +1272,7 @@ CREATE POLICY "Allow all access" ON opportunity_tracking
             setSelectedOpp={setSelectedOpp}
             agents={agents}
             actionItems={actionItems}
+            openJupiterModal={openJupiterModal}
           />
         ) : (
         <div className="grid grid-cols-12 gap-6">
@@ -1544,9 +1844,11 @@ function DashboardView({
   setSelectedOpp,
   agents,
   actionItems,
+  openJupiterModal,
 }: {
   opportunities: ActionableOpportunity[];
   tracking: Record<string, OppTracking>;
+  openJupiterModal: (opp: ActionableOpportunity) => void;
   updateStatus: (oppId: string, status: OppStatus) => void;
   selectedOpp: ActionableOpportunity | null;
   setSelectedOpp: (opp: ActionableOpportunity) => void;
@@ -1837,28 +2139,48 @@ function DashboardView({
             <div className="flex items-center gap-3">
               <span className="text-xl">{GENESIS_PILLAR_INFO[selectedOpp.genesisPillar].icon}</span>
               <div>
-                <h3 className="font-bold text-white">{selectedOpp.title}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-white">{selectedOpp.title}</h3>
+                  {tracking[selectedOpp.id]?.salesforce_id && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30 flex items-center gap-1">
+                      <span>✓</span> Jupiter
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-gray-400">{selectedOpp.entity} • {formatCurrency(selectedOpp.estimatedValue)}</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              {stages.map(stage => {
-                const config = STATUS_CONFIG[stage];
-                const isActive = (tracking[selectedOpp.id]?.status || 'on-radar') === stage;
-                return (
-                  <button
-                    key={stage}
-                    onClick={() => updateStatus(selectedOpp.id, stage)}
-                    className={`px-3 py-1 rounded text-xs font-medium transition-all ${
-                      isActive
-                        ? `${config.bg} ${config.color} border border-current`
-                        : 'bg-gray-800 text-gray-500 hover:text-white'
-                    }`}
-                  >
-                    {config.label}
-                  </button>
-                );
-              })}
+            <div className="flex items-center gap-3">
+              <div className="flex gap-2">
+                {stages.map(stage => {
+                  const config = STATUS_CONFIG[stage];
+                  const isActive = (tracking[selectedOpp.id]?.status || 'on-radar') === stage;
+                  return (
+                    <button
+                      key={stage}
+                      onClick={() => updateStatus(selectedOpp.id, stage)}
+                      className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                        isActive
+                          ? `${config.bg} ${config.color} border border-current`
+                          : 'bg-gray-800 text-gray-500 hover:text-white'
+                      }`}
+                    >
+                      {config.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Push to Jupiter button - shows after contacted status */}
+              {(['contacted', 'meeting', 'proposal'].includes(tracking[selectedOpp.id]?.status || 'on-radar')) &&
+                !tracking[selectedOpp.id]?.salesforce_id && (
+                <button
+                  onClick={() => openJupiterModal(selectedOpp)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-400 hover:to-amber-400 transition-all flex items-center gap-1.5 shadow-lg shadow-orange-500/20"
+                >
+                  <span>☁️</span>
+                  Push to Jupiter
+                </button>
+              )}
             </div>
           </div>
 
