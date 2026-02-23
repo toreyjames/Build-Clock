@@ -1,3 +1,40 @@
+// Genesis Program Framework - The AI Manhattan Project
+// Two layers: Infrastructure (build AI) + Applications (apply AI to national challenges)
+
+// INFRASTRUCTURE PILLARS - Build the AI capacity
+export type InfraPillar =
+  | 'ai-compute'      // Data centers, hyperscale, AI infrastructure
+  | 'power'           // Nuclear, grid, generation - feeds compute
+  | 'semiconductors'  // Fabs - enable compute
+  | 'cooling'         // Water, thermal management - sustains compute
+  | 'supply-chain';   // Critical minerals, materials - builds everything
+
+// APPLICATION PILLARS - Apply AI to national challenges (Genesis Mission)
+export type AppPillar =
+  | 'defense'         // DARPA, Palantir, Anduril, autonomous systems
+  | 'healthcare'      // Drug discovery, diagnostics, autonomous labs
+  | 'energy-systems'  // Grid optimization, nuclear design, fusion
+  | 'manufacturing'   // Reshoring, automation, robotics
+  | 'research';       // Scientific acceleration, autonomous labs
+
+// Combined type for all pillars
+export type GenesisPillar = InfraPillar | AppPillar;
+
+// Helper to identify pillar layer
+export type PillarLayer = 'infrastructure' | 'application';
+export const PILLAR_LAYER: Record<GenesisPillar, PillarLayer> = {
+  'ai-compute': 'infrastructure',
+  'power': 'infrastructure',
+  'semiconductors': 'infrastructure',
+  'cooling': 'infrastructure',
+  'supply-chain': 'infrastructure',
+  'defense': 'application',
+  'healthcare': 'application',
+  'energy-systems': 'application',
+  'manufacturing': 'application',
+  'research': 'application',
+};
+
 export type Sector =
   | 'data-centers'
   | 'nuclear'
@@ -7,38 +44,122 @@ export type Sector =
   | 'water'
   | 'ev-battery'
   | 'clean-energy'
-  | 'manufacturing';
+  | 'manufacturing'
+  | 'defense'
+  | 'pharma-biotech'
+  | 'healthcare'
+  | 'research-labs'
+  | 'aerospace';
 
 export type ProcurementStage =
-  | 'announced'
-  | 'planning'
-  | 'rfp-open'
-  | 'awarded'
-  | 'construction'
-  | 'operational';
+  | 'pre-solicitation'  // Early - position now
+  | 'rfp-open'          // Active - respond now
+  | 'evaluation'        // Waiting - follow up
+  | 'awarded'           // Won/lost - if won, staff up
+  | 'execution'         // In progress - delivery
+  | 'operational';      // Running - O&M opportunities
 
-export type OTRelevance = 'high' | 'medium' | 'low';
+export type OTRelevance = 'critical' | 'high' | 'medium' | 'low';
+
+export type Urgency = 'this-week' | 'this-month' | 'this-quarter' | 'this-year' | 'watching';
+
+// Regulatory frameworks that drive OT security requirements
+export type RegulatoryDriver =
+  | 'nerc-cip'      // Electric utilities - mandatory
+  | 'nrc-cyber'     // Nuclear - 10 CFR 73.54
+  | 'cfats'         // Chemical facilities
+  | 'mtsa'          // Maritime
+  | 'tsa-pipeline'  // Pipeline security directives
+  | 'fedramp'       // Federal cloud
+  | 'cmmc'          // Defense contractors
+  | 'executive-order'; // EO mandates
+
+// OT/ICS systems that Deloitte can secure
+export type OTSystem =
+  | 'scada'
+  | 'dcs'
+  | 'plc'
+  | 'hmi'
+  | 'historian'
+  | 'ems'           // Energy management system
+  | 'bms'           // Building management system
+  | 'mes'           // Manufacturing execution system
+  | 'sis';          // Safety instrumented system
+
+// Deloitte service offerings
+export type DeloitteService =
+  | 'ot-assessment'
+  | 'ics-architecture'
+  | 'nerc-cip-compliance'
+  | 'nuclear-cyber'
+  | 'incident-response'
+  | 'soc-integration'
+  | 'network-segmentation'
+  | 'secure-remote-access'
+  | 'vendor-risk'
+  | 'tabletop-exercises';
 
 export interface Opportunity {
   id: string;
   title: string;
-  description: string;
-  entity: string; // Company or agency
+  subtitle: string;  // One-liner on what this is
+
+  // Genesis connection
+  genesisPillar: GenesisPillar;
+  genesisConnection: string;  // How does this connect to the AI buildout?
+
+  // Basic info
+  entity: string;
+  entityType: 'federal' | 'utility' | 'enterprise' | 'state-local';
   sector: Sector;
-  procurementStage: ProcurementStage;
-  otRelevance: OTRelevance;
-  otRelevanceReason: string;
-  estimatedValue: number | null; // in USD
   location: string;
   state: string;
-  policyAlignment: string[]; // CHIPS, IRA, Genesis, etc.
-  source: 'sam.gov' | 'news' | 'sec' | 'doe' | 'manual';
-  sourceUrl: string;
+
+  // The money
+  estimatedValue: number | null;
+  contractType: 'prime' | 'subcontract' | 'direct' | 'unknown';
+  fundingSource: string;  // CHIPS, IRA, BIL, DOE, private, etc.
+
+  // Timeline & urgency
+  procurementStage: ProcurementStage;
+  urgency: Urgency;
+  keyDate: string | null;       // Next important date
+  keyDateDescription: string | null;  // What happens on that date
   postedDate: string;
   responseDeadline: string | null;
+
+  // OT Cyber specifics - this is the meat
+  otRelevance: OTRelevance;
+  otSystems: OTSystem[];
+  otScope: string;  // Detailed description of OT security needs
+  regulatoryDrivers: RegulatoryDriver[];
+  complianceRequirements: string;  // Specific compliance needs
+
+  // Deloitte angle
+  deloitteServices: DeloitteService[];
+  deloitteAngle: string;  // Why Deloitte? What's our differentiator?
+  existingRelationship: 'strong' | 'some' | 'none' | 'unknown';
+
+  // Competition & ecosystem
+  likelyPrimes: string[];
+  competitors: string[];
+  partnerOpportunities: string[];  // Who could we team with?
+
+  // Evidence & sources
+  sources: {
+    title: string;
+    url: string;
+    date: string;
+  }[];
+
+  // Strategic context - US vs China competition
+  gapsAddressed?: string[];  // IDs of strategic gaps this opportunity helps close
+
+  // Meta
   lastUpdated: string;
-  naicsCode?: string;
-  solicitationNumber?: string;
+  confidence: 'confirmed' | 'likely' | 'speculative';
+  notes: string;
+  source?: 'curated' | 'sam.gov';
 }
 
 export interface Signal {
@@ -48,119 +169,145 @@ export interface Signal {
   source: string;
   sourceUrl: string;
   publishedAt: string;
+  genesisPillar: GenesisPillar;
   sectors: Sector[];
-  signalType: 'policy' | 'funding' | 'contract' | 'news';
-  relevance: 'high' | 'medium' | 'low';
+  signalType: 'policy' | 'funding' | 'contract-award' | 'rfp' | 'news' | 'earnings';
+  relevance: OTRelevance;
+  actionRequired: string | null;  // What should Jason do about this?
 }
 
-export interface SAMOpportunity {
-  noticeId: string;
-  title: string;
-  solicitationNumber: string;
-  fullParentPathName: string;
-  postedDate: string;
-  type: string;
-  baseType: string;
-  archiveType: string;
-  archiveDate: string;
-  setAsideDescription: string;
-  responseDeadLine: string;
-  naicsCode: string;
-  classificationCode: string;
-  active: string;
-  description: string;
-  organizationType: string;
-  resourceLinks: string[];
-  uiLink: string;
-  officeAddress: {
-    city: string;
-    state: string;
-    zipcode: string;
-    countryCode: string;
-  };
-  placeOfPerformance?: {
-    city?: { name: string };
-    state?: { code: string; name: string };
-    country?: { code: string; name: string };
-  };
-  award?: {
-    amount: string;
-    date: string;
-    number: string;
-    awardee: {
-      name: string;
-      location: {
-        city: { name: string };
-        state: { code: string };
-      };
-    };
-  };
-}
-
-// OT Cyber relevance keywords for scoring
-export const OT_CYBER_KEYWORDS = {
-  high: [
-    'scada', 'ics', 'industrial control', 'operational technology', 'ot security',
-    'nerc cip', 'nuclear', 'power plant', 'grid security', 'substation',
-    'plc', 'dcs', 'hmi', 'rtu', 'critical infrastructure protection',
-    'cybersecurity assessment', 'penetration testing', 'vulnerability assessment',
-    'control system', 'energy management system', 'ems', 'nuclear regulatory',
-    'nrc', 'ferc', 'pipeline security', 'water treatment', 'wastewater'
-  ],
-  medium: [
-    'cybersecurity', 'network security', 'data center', 'cloud security',
-    'security operations', 'soc', 'incident response', 'threat detection',
-    'manufacturing', 'smart grid', 'renewable energy', 'battery storage',
-    'electric vehicle', 'charging infrastructure', 'semiconductor', 'fab'
-  ],
-  low: [
-    'it security', 'information security', 'compliance', 'audit',
-    'risk assessment', 'security awareness', 'identity management'
-  ]
+// Labels for display
+export const GENESIS_PILLAR_INFO: Record<GenesisPillar, { label: string; description: string; icon: string; layer: PillarLayer }> = {
+  // INFRASTRUCTURE PILLARS
+  'ai-compute': {
+    label: 'AI Compute',
+    description: 'Data centers, hyperscale infrastructure, AI training facilities',
+    icon: '🖥️',
+    layer: 'infrastructure'
+  },
+  'power': {
+    label: 'Power',
+    description: 'Nuclear, grid infrastructure, generation capacity to feed AI compute',
+    icon: '⚡',
+    layer: 'infrastructure'
+  },
+  'semiconductors': {
+    label: 'Semiconductors',
+    description: 'Chip fabrication enabling AI compute',
+    icon: '🔬',
+    layer: 'infrastructure'
+  },
+  'cooling': {
+    label: 'Cooling & Water',
+    description: 'Thermal management, water treatment sustaining compute and fabs',
+    icon: '💧',
+    layer: 'infrastructure'
+  },
+  'supply-chain': {
+    label: 'Supply Chain',
+    description: 'Critical minerals, rare earths, materials building everything',
+    icon: '⛏️',
+    layer: 'infrastructure'
+  },
+  // APPLICATION PILLARS
+  'defense': {
+    label: 'Defense & Security',
+    description: 'AI for national security, autonomous systems, battlefield AI',
+    icon: '🛡️',
+    layer: 'application'
+  },
+  'healthcare': {
+    label: 'Healthcare & Biotech',
+    description: 'AI drug discovery, diagnostics, autonomous labs, precision medicine',
+    icon: '🧬',
+    layer: 'application'
+  },
+  'energy-systems': {
+    label: 'Energy Systems',
+    description: 'AI grid optimization, smart grids, nuclear design, fusion research',
+    icon: '🔋',
+    layer: 'application'
+  },
+  'manufacturing': {
+    label: 'Manufacturing',
+    description: 'AI-powered reshoring, smart factories, automation, robotics',
+    icon: '🏭',
+    layer: 'application'
+  },
+  'research': {
+    label: 'Scientific Research',
+    description: 'Autonomous labs, materials discovery, accelerated R&D',
+    icon: '🔭',
+    layer: 'application'
+  }
 };
-
-// NAICS codes relevant to OT Cyber
-export const OT_RELEVANT_NAICS = [
-  '221111', // Nuclear Electric Power Generation
-  '221112', // Fossil Fuel Electric Power Generation
-  '221113', // Nuclear Electric Power Generation
-  '221114', // Solar Electric Power Generation
-  '221115', // Wind Electric Power Generation
-  '221116', // Geothermal Electric Power Generation
-  '221117', // Biomass Electric Power Generation
-  '221118', // Other Electric Power Generation
-  '221121', // Electric Bulk Power Transmission
-  '221122', // Electric Power Distribution
-  '221210', // Natural Gas Distribution
-  '221310', // Water Supply and Irrigation Systems
-  '221320', // Sewage Treatment Facilities
-  '237130', // Power and Communication Line Construction
-  '334413', // Semiconductor Manufacturing
-  '334511', // Search, Detection, Navigation, Guidance Systems
-  '518210', // Data Processing, Hosting
-  '541512', // Computer Systems Design
-  '541519', // Other Computer Related Services
-  '541690', // Other Scientific and Technical Consulting
-  '561621', // Security Systems Services
-];
 
 export const SECTOR_LABELS: Record<Sector, string> = {
   'data-centers': 'Data Centers',
-  'nuclear': 'Nuclear Energy',
-  'grid': 'Grid Infrastructure',
+  'nuclear': 'Nuclear',
+  'grid': 'Grid',
   'semiconductors': 'Semiconductors',
   'critical-minerals': 'Critical Minerals',
-  'water': 'Water Infrastructure',
+  'water': 'Water',
   'ev-battery': 'EV & Battery',
   'clean-energy': 'Clean Energy',
-  'manufacturing': 'Manufacturing'
+  'manufacturing': 'Manufacturing',
+  'defense': 'Defense',
+  'pharma-biotech': 'Pharma & Biotech',
+  'healthcare': 'Healthcare',
+  'research-labs': 'Research Labs',
+  'aerospace': 'Aerospace'
 };
 
 export const STAGE_LABELS: Record<ProcurementStage, string> = {
-  'announced': 'Announced',
-  'planning': 'Planning',
+  'pre-solicitation': 'Pre-Solicitation',
   'rfp-open': 'RFP Open',
+  'evaluation': 'Evaluation',
   'awarded': 'Awarded',
-  'construction': 'Construction',
+  'execution': 'Execution',
   'operational': 'Operational'
+};
+
+export const URGENCY_LABELS: Record<Urgency, { label: string; color: string }> = {
+  'this-week': { label: 'This Week', color: 'red' },
+  'this-month': { label: 'This Month', color: 'orange' },
+  'this-quarter': { label: 'This Quarter', color: 'yellow' },
+  'this-year': { label: 'This Year', color: 'blue' },
+  'watching': { label: 'Watching', color: 'gray' }
+};
+
+export const OT_SYSTEM_LABELS: Record<OTSystem, string> = {
+  'scada': 'SCADA',
+  'dcs': 'DCS',
+  'plc': 'PLC/RTU',
+  'hmi': 'HMI',
+  'historian': 'Historian',
+  'ems': 'Energy Management',
+  'bms': 'Building Management',
+  'mes': 'Manufacturing Execution',
+  'sis': 'Safety Systems'
+};
+
+export const REGULATORY_LABELS: Record<RegulatoryDriver, string> = {
+  'nerc-cip': 'NERC CIP',
+  'nrc-cyber': 'NRC 10 CFR 73.54',
+  'cfats': 'CFATS',
+  'mtsa': 'MTSA',
+  'tsa-pipeline': 'TSA Pipeline SD',
+  'fedramp': 'FedRAMP',
+  'cmmc': 'CMMC',
+  'executive-order': 'Executive Order'
+};
+
+export const DELOITTE_SERVICE_LABELS: Record<DeloitteService, string> = {
+  'ot-assessment': 'OT Security Assessment',
+  'ics-architecture': 'ICS Security Architecture',
+  'nerc-cip-compliance': 'NERC CIP Compliance',
+  'nuclear-cyber': 'Nuclear Cybersecurity',
+  'incident-response': 'ICS Incident Response',
+  'soc-integration': 'OT/IT SOC Integration',
+  'network-segmentation': 'Network Segmentation',
+  'secure-remote-access': 'Secure Remote Access',
+  'vendor-risk': 'OT Vendor Risk',
+  'tabletop-exercises': 'ICS Tabletop Exercises'
 };
