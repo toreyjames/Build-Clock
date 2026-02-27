@@ -311,3 +311,147 @@ export const DELOITTE_SERVICE_LABELS: Record<DeloitteService, string> = {
   'vendor-risk': 'OT Vendor Risk',
   'tabletop-exercises': 'ICS Tabletop Exercises'
 };
+
+// Deloitte Industry Sectors (aligned with practice structure)
+export type DeloitteIndustry =
+  | 'eri-power'        // Energy, Resources & Industrials - Power & Utilities
+  | 'eri-oil-gas'      // Energy, Resources & Industrials - Oil, Gas & Chemicals
+  | 'eri-industrial'   // Energy, Resources & Industrials - Industrial Products & Construction
+  | 'eri-mining'       // Energy, Resources & Industrials - Mining & Metals
+  | 'gps-defense'      // Government & Public Services - Defense, Security & Justice
+  | 'gps-civil'        // Government & Public Services - Civil Government
+  | 'tmt-tech'         // Technology, Media & Telecom - Technology
+  | 'lshc-pharma'      // Life Sciences & Health Care - Life Sciences
+  | 'consumer-auto'    // Consumer - Automotive
+  | 'consumer-products'; // Consumer - Consumer Products (Food, CPG)
+
+export const DELOITTE_INDUSTRY_INFO: Record<DeloitteIndustry, {
+  label: string;
+  shortLabel: string;
+  group: string;
+  icon: string;
+  color: string;
+}> = {
+  'eri-power': {
+    label: 'Power & Utilities',
+    shortLabel: 'Power',
+    group: 'Energy, Resources & Industrials',
+    icon: '⚡',
+    color: 'bg-yellow-500/20 text-yellow-400'
+  },
+  'eri-oil-gas': {
+    label: 'Oil, Gas & Chemicals',
+    shortLabel: 'Oil & Gas',
+    group: 'Energy, Resources & Industrials',
+    icon: '🛢️',
+    color: 'bg-orange-500/20 text-orange-400'
+  },
+  'eri-industrial': {
+    label: 'Industrial Products',
+    shortLabel: 'Industrial',
+    group: 'Energy, Resources & Industrials',
+    icon: '🏭',
+    color: 'bg-slate-500/20 text-slate-400'
+  },
+  'eri-mining': {
+    label: 'Mining & Metals',
+    shortLabel: 'Mining',
+    group: 'Energy, Resources & Industrials',
+    icon: '⛏️',
+    color: 'bg-stone-500/20 text-stone-400'
+  },
+  'gps-defense': {
+    label: 'Defense & Security',
+    shortLabel: 'Defense',
+    group: 'Government & Public Services',
+    icon: '🛡️',
+    color: 'bg-red-500/20 text-red-400'
+  },
+  'gps-civil': {
+    label: 'Civil Government',
+    shortLabel: 'Civil Gov',
+    group: 'Government & Public Services',
+    icon: '🏛️',
+    color: 'bg-blue-500/20 text-blue-400'
+  },
+  'tmt-tech': {
+    label: 'Technology',
+    shortLabel: 'Tech',
+    group: 'Technology, Media & Telecom',
+    icon: '💻',
+    color: 'bg-cyan-500/20 text-cyan-400'
+  },
+  'lshc-pharma': {
+    label: 'Life Sciences & Pharma',
+    shortLabel: 'Life Sci',
+    group: 'Life Sciences & Health Care',
+    icon: '💊',
+    color: 'bg-green-500/20 text-green-400'
+  },
+  'consumer-auto': {
+    label: 'Automotive',
+    shortLabel: 'Auto',
+    group: 'Consumer',
+    icon: '🚗',
+    color: 'bg-indigo-500/20 text-indigo-400'
+  },
+  'consumer-products': {
+    label: 'Consumer Products',
+    shortLabel: 'CPG',
+    group: 'Consumer',
+    icon: '📦',
+    color: 'bg-pink-500/20 text-pink-400'
+  }
+};
+
+// Map sectors/pillars to Deloitte industries
+export const SECTOR_TO_DELOITTE: Record<string, DeloitteIndustry> = {
+  // Grid/Power
+  'grid': 'eri-power',
+  'power': 'eri-power',
+  'nuclear': 'eri-power',
+  'clean-energy': 'eri-power',
+
+  // Oil & Gas / Chemicals
+  'chemicals': 'eri-oil-gas',
+  'oil-gas': 'eri-oil-gas',
+  'petrochemical': 'eri-oil-gas',
+
+  // Industrial / Manufacturing
+  'manufacturing': 'eri-industrial',
+  'industrial': 'eri-industrial',
+  'food-bev': 'eri-industrial',
+  'water': 'eri-industrial',
+
+  // Mining & Metals
+  'metals': 'eri-mining',
+  'minerals': 'eri-mining',
+  'critical-minerals': 'eri-mining',
+
+  // Defense
+  'defense': 'gps-defense',
+  'aerospace': 'gps-defense',
+
+  // Technology
+  'data-centers': 'tmt-tech',
+  'semiconductors': 'tmt-tech',
+  'ai-compute': 'tmt-tech',
+
+  // Pharma
+  'pharma': 'lshc-pharma',
+  'pharma-biotech': 'lshc-pharma',
+  'healthcare': 'lshc-pharma',
+
+  // Automotive
+  'ev-battery': 'consumer-auto',
+  'automotive': 'consumer-auto',
+
+  // Consumer Products
+  'consumer': 'consumer-products',
+  'cpg': 'consumer-products',
+};
+
+// Helper function to get Deloitte industry from sector
+export function getDeloitteIndustry(sector: string): DeloitteIndustry {
+  return SECTOR_TO_DELOITTE[sector] || 'eri-industrial';
+}

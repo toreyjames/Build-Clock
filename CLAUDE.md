@@ -1,6 +1,6 @@
-# Genesis Build Clock
+# OT Pipeline Tracker
 
-Opportunity tracking and market intelligence platform for Deloitte OT Cyber practice, focused on US critical infrastructure buildout (AI, power, nuclear, grid).
+Single-page OT opportunity pipeline tracker for commercial OT cyber practice. Scans for OT-relevant opportunities, qualifies with OT connection explanation, tracks pipeline stages, and pushes to Jupiter (Salesforce).
 
 ## Quick Reference
 
@@ -12,121 +12,136 @@ Opportunity tracking and market intelligence platform for Deloitte OT Cyber prac
 
 ```
 src/
-├── app/                    # Next.js App Router pages
-│   ├── page.tsx           # Landing/redirect
-│   ├── radar/page.tsx     # Live feed dashboard - real-time data sources
-│   ├── insights/page.tsx  # Strategic insights - market intelligence
-│   ├── goals/page.tsx     # US Strategic Goals tracker
-│   ├── strategic/page.tsx # Strategic gaps analysis
-│   ├── quantified/page.tsx # Roadmap/quantified gaps
-│   └── api/               # API routes
-│       ├── live-feed/     # Aggregates all data sources
+├── app/
+│   ├── page.tsx           # Redirects to /radar
+│   ├── radar/page.tsx     # OT Pipeline Tracker (main app)
+│   └── api/
+│       ├── live-feed/     # News & data aggregation
 │       ├── sam/           # SAM.gov opportunities
-│       ├── goals/         # Supabase goals CRUD
-│       ├── strategic-gaps/
-│       ├── quantified-gaps/
-│       ├── tracking/      # Opportunity tracking
-│       ├── agents/        # AI agent orchestration
-│       ├── signals/       # Market signals
-│       └── opportunities/
-├── lib/                   # Data fetching & utilities
-│   ├── sam-gov.ts        # SAM.gov API client
-│   ├── usaspending.ts    # USASpending.gov awards
-│   ├── grants-gov.ts     # Grants.gov opportunities
-│   ├── energy-gov.ts     # DOE announcements
-│   ├── news.ts           # Industry news aggregation
-│   ├── sec-filings.ts    # SEC 8-K filings
-│   ├── supabase.ts       # Supabase client
-│   ├── types.ts          # Shared TypeScript types
-│   ├── us-strategic-goals.ts
-│   ├── strategic-gaps.ts
-│   ├── quantified-gaps.ts
-│   └── agents/           # AI agent system
-│       ├── types.ts
-│       ├── agent-runner.ts
-│       └── sector-agents.ts
+│       ├── tracking/      # Opportunity tracking (Supabase)
+│       ├── opportunities/ # Curated opportunity data
+│       ├── v1/opportunities/ # Versioned API
+│       └── webhooks/      # Jupiter/Salesforce integration
+│           ├── push-to-jupiter/  # Push opportunity to CRM
+│           ├── jupiter-inbound/  # Receive updates from CRM
+│           └── jupiter-confirm/  # Confirm sync
+├── lib/
+│   ├── types.ts           # Core types (Opportunity, GenesisPillar, etc.)
+│   ├── opportunities-data.ts # 50+ curated opportunities
+│   ├── webhooks.ts        # Jupiter/Salesforce webhook system
+│   ├── sam-gov.ts         # SAM.gov API client
+│   ├── news.ts            # Google News RSS aggregation
+│   ├── supabase.ts        # Supabase client
+│   └── [data sources]     # usaspending, grants-gov, energy-gov, sec-filings
 └── components/ui/         # shadcn/ui components
 ```
 
-## Genesis Pillars (Domain Categories)
+## Features
 
-The platform tracks opportunities across these critical infrastructure sectors:
+### Pipeline Tracking
+- **Kanban View**: Visual pipeline board with 5 stages (On Radar → Contacted → Meeting → Proposal → Closed)
+- **Table View**: Spreadsheet-style list with inline status updates
+- **Status Workflow**: Track opportunities through sales pipeline
 
-- `power` - Grid, transmission, generation
-- `ai-compute` - Data centers, AI infrastructure
-- `semiconductors` - CHIPS Act, fab facilities
-- `cooling` - Data center & nuclear cooling
-- `supply-chain` - Critical supply chain security
-- `defense` - DoD OT cyber
-- `healthcare` - Medical device OT
-- `energy-systems` - Broader energy infrastructure
-- `manufacturing` - Industrial OT
-- `research` - R&D opportunities
+### OT Qualification
+- **"Why OT?" Panel**: Clear explanation of OT connection for each opportunity
+  - OT Systems: SCADA, DCS, PLC, HMI, Historian, EMS, BMS, MES, SIS
+  - Regulations: NERC CIP, NRC Cyber, CFATS, TSA Pipeline, FedRAMP, CMMC
+  - Scope: Detailed OT security needs description
+- **OT Relevance Score**: Visual indicator (Critical/High/Medium/Low)
 
-## Data Sources
+### Filtering
+- **Market**: Commercial (utilities, enterprise) vs Federal (DoD, DOE)
+- **Sector**: Power, AI Compute, Semiconductors, Defense, Energy Systems, Manufacturing
+- **OT Level**: Filter by OT relevance (All, High+, Critical only)
+- **Search**: Full-text search across opportunities
 
-| Source | Library | Refresh |
-|--------|---------|---------|
-| SAM.gov | `lib/sam-gov.ts` | API key required |
-| USASpending | `lib/usaspending.ts` | Public API |
-| Grants.gov | `lib/grants-gov.ts` | Public API |
-| Energy.gov | `lib/energy-gov.ts` | RSS scraping |
-| News | `lib/news.ts` | Web scraping |
-| SEC Filings | `lib/sec-filings.ts` | EDGAR API |
+### Jupiter Integration
+- **Push to Jupiter**: Create Salesforce opportunity via webhook
+- **Sync Status**: Track which opportunities are synced
+- **Activity Log**: Record all status changes and pushes
 
-## Key Pages
+### PDF Export
+- **Executive Brief**: 1-page PDF summary for each opportunity
+  - Header with client info, value, deadline
+  - "Why OT?" section with systems, regulations, scope
+  - Deloitte positioning and services
+  - Competitive landscape
+  - Notes (if any)
+- **Download Button**: In detail panel for any opportunity
 
-### /radar (Live Feed Dashboard)
-- Real-time aggregation of all data sources
-- Source filtering (SAM, Awards, Grants, DOE, News, SEC)
-- Navigation to other views
+### News Feed
+- **Latest OT News**: Bottom section shows recent OT-relevant news
+- **Google News RSS**: Aggregates news from multiple OT search queries
 
-### /insights (Strategic Insights)
-- Manual market intelligence entries
-- Categories: market-gap, deloitte-position, opportunity, risk
-- Related pillars tagging
-- Sources with links
+## Opportunity Data Structure
 
-### /goals (US Strategic Goals)
-- Country-level strategic tracking
-- Cloud-persisted via Supabase
-- COUNTRY_FLAGS lookup for display
+```typescript
+interface Opportunity {
+  id: string;
+  title: string;
+  entity: string;
+  entityType: 'federal' | 'utility' | 'enterprise' | 'state-local';
+  genesisPillar: GenesisPillar;
+  estimatedValue: number | null;
 
-### /quantified (Roadmap)
-- Quantified gaps and buildout progress
-- Visual progress indicators
+  // OT Specifics
+  otRelevance: 'critical' | 'high' | 'medium' | 'low';
+  otSystems: OTSystem[];
+  otScope: string;
+  regulatoryDrivers: RegulatoryDriver[];
+
+  // Sources & Links
+  sources: { title: string; url: string; date: string }[];
+
+  // Deloitte Services
+  deloitteServices: DeloitteService[];
+  deloitteAngle: string;
+}
+```
 
 ## Environment Variables
 
 ```
-SAM_API_KEY=           # SAM.gov API key
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-ANTHROPIC_API_KEY=     # For AI agents
+SAM_API_KEY=                      # SAM.gov API key
+NEXT_PUBLIC_SUPABASE_URL=         # Supabase project URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=    # Supabase anon key
+JUPITER_WEBHOOK_URL=              # Power Automate webhook URL (optional)
+```
+
+## Supabase Tables
+
+```sql
+-- Opportunity tracking (status, notes, activity)
+CREATE TABLE opportunity_tracking (
+  opportunity_id TEXT PRIMARY KEY,
+  status TEXT NOT NULL DEFAULT 'on-radar',
+  notes TEXT DEFAULT '',
+  last_updated TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  activity JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 ```
 
 ## Common Tasks
 
-### Add new insight
-Edit `src/app/insights/page.tsx` - add to INSIGHTS array:
+### Add new curated opportunity
+Edit `src/lib/opportunities-data.ts`:
 ```typescript
 {
   id: 'unique-slug',
-  date: 'YYYY-MM-DD',
-  title: 'Title',
-  category: 'risk' | 'opportunity' | 'market-gap' | 'deloitte-position',
-  summary: 'One sentence summary',
-  analysis: ['Point 1', 'Point 2'],
-  implications: ['Implication 1', 'Implication 2'],
-  sources: [{ title: 'Source', url: 'https://...' }],
-  relatedPillars: ['power', 'ai-compute'],
+  title: 'Opportunity Name',
+  entity: 'Client Entity',
+  entityType: 'utility',
+  genesisPillar: 'power',
+  estimatedValue: 50_000_000,
+  otRelevance: 'high',
+  otSystems: ['scada', 'dcs'],
+  otScope: 'Grid modernization requiring OT security...',
+  regulatoryDrivers: ['nerc-cip'],
+  // ... rest of fields
 }
 ```
-
-### Add new data source
-1. Create fetcher in `src/lib/new-source.ts`
-2. Import and call in `src/app/api/live-feed/route.ts`
-3. Add to sources object in response
 
 ### Deploy
 ```bash
@@ -135,20 +150,20 @@ npm run build && vercel deploy --prod
 
 ## Code Patterns
 
-- **useEffect dependencies**: Always set first item unconditionally when fetching lists (no `&& !selectedItem` checks)
-- **Navigation**: Use Next.js `<Link>` component, not `<a>` tags
-- **Container widths**: Standardized at `max-w-[1800px]`
-- **API routes**: Use `Promise.allSettled` for parallel fetches with graceful fallbacks
+- **Single Page App**: Everything on /radar, home redirects there
+- **Container width**: `max-w-[1800px]`
+- **Dark theme**: `bg-[#0a0a0f]` base, `bg-[#12121a]` cards
+- **Status colors**: Gray (radar) → Yellow (contacted) → Blue (meeting) → Purple (proposal) → Green (closed)
 
-## Supabase Tables
+## Recent Changes (2026-02-23)
 
-- `goals` - Strategic goals with cloud persistence
-- `strategic_gaps` - Gap analysis data
-- `quantified_gaps` - Quantified buildout gaps
-
-## Recent Changes
-
-- Fixed useEffect dependency bugs in goals and strategic pages
-- Removed duplicate news-feed.ts (use news.ts)
-- Standardized navigation labels ("Roadmap" not "Backend")
-- Added Stargate project stall insight (2026-02-22)
+- Simplified from multi-page app to single OT Pipeline Tracker
+- Removed: /strategy, /integrations, /insights, /goals, /strategic, /quantified pages
+- Removed: Agent system (sector agents, agent runner)
+- Added: "Why OT?" panel with clear OT connection explanation
+- Added: Client size indicator (Fortune 500, Enterprise, Large, Mid-Market)
+- Added: Commercial/Federal filter (partner is commercial-focused)
+- Added: Latest News section at bottom
+- Simplified: Kanban + Table toggle (removed Timeline and Live Feed views)
+- Kept: Jupiter push, pipeline tracking, source links, OT relevance scoring
+- Added: PDF export (Executive Brief) using jspdf
