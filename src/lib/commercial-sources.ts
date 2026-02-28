@@ -1209,6 +1209,229 @@ async function fetchCHIPSProjects(): Promise<CommercialOpportunity[]> {
   return opportunities;
 }
 
+// Grid Interconnection Queue & Data Center Power Demand
+// Surfaces opportunities around grid constraints, queue backlogs, and behind-the-meter solutions
+async function fetchGridInterconnectionData(): Promise<CommercialOpportunity[]> {
+  const opportunities: CommercialOpportunity[] = [];
+
+  // Key grid/data center power searches
+  const gridSearches = [
+    // Interconnection Queue Issues
+    { query: 'interconnection queue backlog data center', sector: 'grid', keywords: ['Interconnection', 'Queue'] },
+    { query: 'PJM interconnection queue data center power', sector: 'grid', keywords: ['PJM', 'Interconnection'] },
+    { query: 'ERCOT interconnection queue wait time', sector: 'grid', keywords: ['ERCOT', 'Queue'] },
+    { query: 'CAISO grid connection delay', sector: 'grid', keywords: ['CAISO', 'Grid'] },
+    { query: '"grid congestion" data center', sector: 'grid', keywords: ['Grid Congestion'] },
+
+    // Behind-the-Meter / Self-Generation
+    { query: 'data center "on-site power" generation', sector: 'data-centers', keywords: ['On-Site Power'] },
+    { query: 'data center SMR nuclear power', sector: 'data-centers', keywords: ['SMR', 'Nuclear'] },
+    { query: 'hyperscale "natural gas" power generation', sector: 'data-centers', keywords: ['Natural Gas', 'Generation'] },
+    { query: 'data center "behind the meter" power', sector: 'data-centers', keywords: ['Behind-the-Meter'] },
+    { query: 'Microsoft Google Amazon "power purchase agreement"', sector: 'data-centers', keywords: ['PPA'] },
+
+    // Grid Modernization / Capacity
+    { query: 'grid capacity expansion data center demand', sector: 'grid', keywords: ['Grid Capacity', 'Expansion'] },
+    { query: 'transmission upgrade data center', sector: 'grid', keywords: ['Transmission', 'Upgrade'] },
+    { query: 'substation construction data center', sector: 'grid', keywords: ['Substation', 'Construction'] },
+
+    // Utility + Data Center Partnerships
+    { query: 'utility "data center" power agreement', sector: 'grid', keywords: ['Utility', 'Data Center'] },
+    { query: 'Dominion Duke "data center" power', sector: 'grid', keywords: ['Utility', 'Data Center'] },
+  ];
+
+  for (const search of gridSearches.slice(0, 8)) {
+    const encodedQuery = encodeURIComponent(search.query);
+    const rssUrl = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-US&gl=US&ceid=US:en`;
+
+    try {
+      const response = await fetch(rssUrl, { next: { revalidate: 1800 } });
+      if (!response.ok) continue;
+
+      const xml = await response.text();
+      const itemMatches = xml.match(/<item>([\s\S]*?)<\/item>/g) || [];
+
+      for (const itemXml of itemMatches.slice(0, 3)) {
+        const title = itemXml.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1') || '';
+        const link = itemXml.match(/<link>([\s\S]*?)<\/link>/)?.[1] || '';
+        const pubDate = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1] || '';
+        const description = itemXml.match(/<description>([\s\S]*?)<\/description>/)?.[1]?.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').replace(/<[^>]*>/g, '') || '';
+        const sourceName = itemXml.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1] || 'News';
+
+        if (!title || !link) continue;
+
+        const text = `${title} ${description}`.toLowerCase();
+
+        // Must be about grid/power/data centers
+        if (!text.includes('grid') && !text.includes('power') && !text.includes('data center') && !text.includes('interconnection')) continue;
+
+        // Find entity
+        let entity = 'Grid/Power Project';
+        let entityType: 'utility' | 'enterprise' | 'state-local' = 'utility';
+
+        // Check for utilities
+        for (const util of MAJOR_UTILITIES) {
+          if (text.includes(util.toLowerCase())) {
+            entity = util;
+            entityType = 'utility';
+            break;
+          }
+        }
+
+        // Check for tech companies
+        if (entity === 'Grid/Power Project') {
+          for (const ent of ENTERPRISE_TARGETS) {
+            if (text.includes(ent.toLowerCase())) {
+              entity = ent;
+              entityType = 'enterprise';
+              break;
+            }
+          }
+        }
+
+        // Extract value (often in MW or GW for power)
+        let estimatedValue: number | null = null;
+        const billionMatch = text.match(/\$(\d+(?:\.\d+)?)\s*billion/i);
+        const millionMatch = text.match(/\$(\d+(?:\.\d+)?)\s*million/i);
+        const gwMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:gw|gigawatt)/i);
+        const mwMatch = text.match(/(\d+)\s*(?:mw|megawatt)/i);
+
+        if (billionMatch) estimatedValue = parseFloat(billionMatch[1]) * 1_000_000_000;
+        else if (millionMatch) estimatedValue = parseFloat(millionMatch[1]) * 1_000_000;
+        else if (gwMatch) estimatedValue = parseFloat(gwMatch[1]) * 500_000_000; // ~$500M per GW proxy
+        else if (mwMatch) estimatedValue = parseInt(mwMatch[1]) * 500_000; // ~$500K per MW proxy
+
+        // Determine OT keywords
+        const otKeywords: string[] = [...search.keywords];
+        if (/interconnection|queue/i.test(text)) otKeywords.push('Interconnection');
+        if (/substation/i.test(text)) otKeywords.push('Substation');
+        if (/transmission/i.test(text)) otKeywords.push('Transmission');
+        if (/scada|control/i.test(text)) otKeywords.push('SCADA');
+        if (/nuclear|smr/i.test(text)) otKeywords.push('Nuclear');
+        if (/behind.the.meter|on.site/i.test(text)) otKeywords.push('BTM');
+
+        // Extract state/region
+        const stateMatch = text.match(/\b(Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming)\b/i);
+        const state = stateMatch ? stateMatch[1] : 'USA';
+
+        // Extract capacity/MW if mentioned
+        const capacityMatch = text.match(/(\d+)\s*(?:mw|megawatt)/i);
+        const capacity = capacityMatch ? `${capacityMatch[1]} MW` : '';
+
+        const publishedDate = new Date(pubDate);
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        // High relevance if about queue/interconnection issues (OT opportunity)
+        const hasQueueIssue = /queue|backlog|wait|delay|congestion|constraint/i.test(text);
+        const hasBTM = /behind.the.meter|on.site|self.generat/i.test(text);
+        const otRelevance = (hasQueueIssue || hasBTM) ? 'high' : 'medium';
+
+        opportunities.push({
+          id: `grid-${Buffer.from(link).toString('base64').substring(0, 16)}`,
+          title: title.length > 120 ? title.substring(0, 117) + '...' : title,
+          entity,
+          entityType,
+          source: 'press-release',
+          sourceUrl: link,
+          sourceName: `${sourceName} (Grid/Power)`,
+          publishedAt: publishedDate.toISOString(),
+          summary: `${capacity ? `[${capacity}] ` : ''}${description.length > 250 ? description.substring(0, 247) + '...' : description}`,
+          estimatedValue,
+          location: state,
+          state,
+          otRelevance,
+          otKeywords: [...new Set(otKeywords)],
+          sector: search.sector,
+          isNew: publishedDate > sevenDaysAgo,
+          needsResearch: false,
+        });
+      }
+    } catch (error) {
+      console.error('Grid interconnection search error:', error);
+    }
+
+    // Small delay to avoid rate limits
+    await new Promise(r => setTimeout(r, 50));
+  }
+
+  return opportunities;
+}
+
+// EIA API - Energy Information Administration data
+// Grid demand, capacity, forecasts
+async function fetchEIAGridData(): Promise<CommercialOpportunity[]> {
+  const opportunities: CommercialOpportunity[] = [];
+
+  // EIA doesn't require an API key for basic access
+  // Focus on series that indicate capacity additions and demand growth
+
+  try {
+    // Search for EIA-related news about grid capacity and data center demand
+    const eiaSearches = [
+      '"EIA" data center electricity demand forecast',
+      '"Energy Information Administration" grid capacity',
+      'electricity demand growth data centers',
+      'peak demand record utility',
+    ];
+
+    for (const query of eiaSearches.slice(0, 2)) {
+      const encodedQuery = encodeURIComponent(query);
+      const rssUrl = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-US&gl=US&ceid=US:en`;
+
+      const response = await fetch(rssUrl, { next: { revalidate: 3600 } });
+      if (!response.ok) continue;
+
+      const xml = await response.text();
+      const itemMatches = xml.match(/<item>([\s\S]*?)<\/item>/g) || [];
+
+      for (const itemXml of itemMatches.slice(0, 2)) {
+        const title = itemXml.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1') || '';
+        const link = itemXml.match(/<link>([\s\S]*?)<\/link>/)?.[1] || '';
+        const pubDate = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1] || '';
+        const description = itemXml.match(/<description>([\s\S]*?)<\/description>/)?.[1]?.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').replace(/<[^>]*>/g, '') || '';
+        const sourceName = itemXml.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1] || 'EIA';
+
+        if (!title || !link) continue;
+
+        const text = `${title} ${description}`.toLowerCase();
+
+        // Extract any percentage growth or GW figures
+        const growthMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:percent|%)\s*(?:growth|increase)/i);
+        const gwMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:gw|gigawatt)/i);
+
+        const publishedDate = new Date(pubDate);
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        opportunities.push({
+          id: `eia-${Buffer.from(link).toString('base64').substring(0, 16)}`,
+          title: title.length > 120 ? title.substring(0, 117) + '...' : title,
+          entity: 'EIA / Grid Analysis',
+          entityType: 'utility',
+          source: 'news',
+          sourceUrl: link,
+          sourceName: `${sourceName} (EIA)`,
+          publishedAt: publishedDate.toISOString(),
+          summary: description.length > 300 ? description.substring(0, 297) + '...' : description,
+          estimatedValue: gwMatch ? parseFloat(gwMatch[1]) * 500_000_000 : null,
+          location: 'USA',
+          state: 'USA',
+          otRelevance: 'medium',
+          otKeywords: ['EIA', 'Grid Demand', 'Capacity'],
+          sector: 'grid',
+          isNew: publishedDate > sevenDaysAgo,
+          needsResearch: false,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('EIA data fetch error:', error);
+  }
+
+  return opportunities;
+}
+
 // DOE Funding Announcements (Grid modernization, clean energy, etc.)
 async function fetchDOEFunding(): Promise<CommercialOpportunity[]> {
   const opportunities: CommercialOpportunity[] = [];
@@ -1591,7 +1814,33 @@ export async function fetchCommercialOpportunities(limit: number = 30): Promise<
   }
   sourceStats.push({ name: 'DOE Funding', count: doeCount, status: doeCount > 0 ? 'ok' : 'empty' });
 
-  // 9. Fetch from commercial news searches (lower priority - intel/context)
+  // 9. Fetch Grid Interconnection / Data Center Power data
+  const gridOpps = await fetchGridInterconnectionData();
+  let gridCount = 0;
+  for (const opp of gridOpps) {
+    const titleKey = opp.title.toLowerCase().substring(0, 50);
+    if (!seenTitles.has(titleKey)) {
+      seenTitles.add(titleKey);
+      allOpportunities.push(opp);
+      gridCount++;
+    }
+  }
+  sourceStats.push({ name: 'Grid/Interconnection', count: gridCount, status: gridCount > 0 ? 'ok' : 'empty' });
+
+  // 10. Fetch EIA Grid Demand data
+  const eiaOpps = await fetchEIAGridData();
+  let eiaCount = 0;
+  for (const opp of eiaOpps) {
+    const titleKey = opp.title.toLowerCase().substring(0, 50);
+    if (!seenTitles.has(titleKey)) {
+      seenTitles.add(titleKey);
+      allOpportunities.push(opp);
+      eiaCount++;
+    }
+  }
+  sourceStats.push({ name: 'EIA Grid Data', count: eiaCount, status: eiaCount > 0 ? 'ok' : 'empty' });
+
+  // 11. Fetch from commercial news searches (lower priority - intel/context)
   // Diversify across sectors - pick searches from different categories
   const diverseSearches = [
     // One from each major sector
@@ -1619,7 +1868,7 @@ export async function fetchCommercialOpportunities(limit: number = 30): Promise<
   }
   sourceStats.push({ name: 'Market Intel', count: newsCount, status: 'ok' });
 
-  // 10. Fetch from trade publications
+  // 12. Fetch from trade publications
   const tradePubOpps = await fetchTradePubNews();
   let tradeCount = 0;
   for (const opp of tradePubOpps) {
@@ -1632,17 +1881,21 @@ export async function fetchCommercialOpportunities(limit: number = 30): Promise<
   }
   sourceStats.push({ name: 'Trade Publications', count: tradeCount, status: tradeCount > 0 ? 'ok' : 'empty' });
 
-  // Sort: prioritize actual opportunities (RFP, PUC, Project) over news
+  // Sort: prioritize actual opportunities (RFP, PUC, Project, Contract Awards) over news
   allOpportunities.sort((a, b) => {
-    // Source priority: procurement > puc > project > news
+    // Source priority: procurement > contracts > puc > project > news
     const sourceOrder: Record<string, number> = {
-      'press-release': 0, // RFPs and projects
-      'puc-filing': 1,
-      'trade-pub': 2,
-      'news': 3
+      'press-release': 0, // RFPs, projects, grid/interconnection
+      'contract-award': 1, // Defense, USAspending
+      'puc-filing': 2,
+      'chips-act': 3,
+      'grant': 4,
+      'sec-filing': 5,
+      'trade-pub': 6,
+      'news': 7
     };
-    const sourceA = sourceOrder[a.source] ?? 3;
-    const sourceB = sourceOrder[b.source] ?? 3;
+    const sourceA = sourceOrder[a.source] ?? 7;
+    const sourceB = sourceOrder[b.source] ?? 7;
     if (sourceA !== sourceB) return sourceA - sourceB;
 
     // Then new items first
