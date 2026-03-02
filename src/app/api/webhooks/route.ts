@@ -107,7 +107,7 @@ const PAYLOAD_EXAMPLES = {
       urgency: 'high',
     },
     _links: {
-      opportunity: '/api/v1/opportunities?id=palisades-restart',
+      opportunity: '/api/opportunities?id=palisades-restart',
     },
   },
   'agent.alert_raised': {
