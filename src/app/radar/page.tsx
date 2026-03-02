@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { jsPDF } from 'jspdf';
 import {
@@ -400,7 +402,8 @@ function generateExecutiveBriefPDF(opportunity: Opportunity, tracking?: OppTrack
   doc.save(filename);
 }
 
-export default function OTPipelineTracker() {
+function OTPipelineTrackerContent() {
+  const searchParams = useSearchParams();
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
@@ -900,6 +903,24 @@ export default function OTPipelineTracker() {
     fetchData();
   }, []);
 
+  // Allow deep-linking from other pages, e.g. /radar?id=opp-id
+  useEffect(() => {
+    if (opportunities.length === 0) return;
+
+    const targetId = searchParams.get('id');
+    if (targetId) {
+      const targetOpp = opportunities.find((opp) => opp.id === targetId);
+      if (targetOpp && selectedOpp?.id !== targetOpp.id) {
+        setSelectedOpp(targetOpp);
+      }
+      return;
+    }
+
+    if (!selectedOpp) {
+      setSelectedOpp(opportunities[0]);
+    }
+  }, [opportunities, searchParams, selectedOpp]);
+
   // Filter opportunities
   const filteredOpps = opportunities.filter(opp => {
     // Market filter
@@ -995,6 +1016,12 @@ export default function OTPipelineTracker() {
             </div>
 
             <div className="flex items-center gap-3">
+              <Link
+                href="/grid"
+                className="text-xs px-3 py-1.5 rounded border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10"
+              >
+                Grid View
+              </Link>
               {/* View Toggle */}
               <div className="flex items-center bg-[#12121a] rounded-lg border border-gray-800 p-0.5 text-xs">
                 <button
@@ -1787,5 +1814,21 @@ function DetailPanel({
         )}
       </div>
     </div>
+  );
+}
+
+// Default export with Suspense boundary for useSearchParams
+export default function OTPipelineTracker() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading pipeline...</p>
+        </div>
+      </div>
+    }>
+      <OTPipelineTrackerContent />
+    </Suspense>
   );
 }

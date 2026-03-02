@@ -23,7 +23,7 @@ async function getCuratedOpportunities() {
 
       if (data && data.length > 0) {
         // Convert DB format to app format
-        const opportunities = data.map(db => ({
+        const dbOpportunities = data.map(db => ({
           id: db.id,
           title: db.title,
           subtitle: db.subtitle,
@@ -60,7 +60,25 @@ async function getCuratedOpportunities() {
           lastUpdated: db.updated_at,
           source: 'curated',
         }));
-        return { opportunities, source: 'supabase' };
+
+        // Merge strategy:
+        // - Keep static opportunities as baseline (prevents accidental drops)
+        // - Let Supabase rows override matching IDs
+        // - Include Supabase-only IDs
+        const mergedById = new Map<string, (typeof dbOpportunities)[number]>();
+
+        for (const opp of OPPORTUNITIES) {
+          mergedById.set(opp.id, { ...opp, source: 'curated' });
+        }
+
+        for (const opp of dbOpportunities) {
+          mergedById.set(opp.id, opp);
+        }
+
+        return {
+          opportunities: Array.from(mergedById.values()),
+          source: 'supabase+static',
+        };
       }
     } catch (err) {
       console.error('Supabase connection error:', err);
