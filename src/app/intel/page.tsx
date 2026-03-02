@@ -66,7 +66,7 @@ export default function IntelPage() {
         if (!mounted) return;
         setProjects(projectJson.projects ?? []);
         setEvents(eventJson.events ?? []);
-        if ((projectJson.projects ?? []).length > 0) {
+        if (!selectedProjectId && (projectJson.projects ?? []).length > 0) {
           setSelectedProjectId(projectJson.projects[0].projectId);
         }
       } catch {
@@ -82,7 +82,7 @@ export default function IntelPage() {
       mounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [selectedProjectId]);
 
   const selectedProject =
     projects.find((project) => project.projectId === selectedProjectId) ?? projects[0] ?? null;
@@ -220,26 +220,45 @@ export default function IntelPage() {
             {!selectedProject ? (
               <p className="text-sm text-slate-500">No project selected.</p>
             ) : (
-              <div className="space-y-2">
-                {selectedProject.evidence.map((source) => (
-                  <a
-                    key={`${source.url}-${source.date}`}
-                    href={source.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block rounded border border-slate-800 bg-slate-900/40 p-2 hover:bg-slate-900/80"
-                  >
-                    <p className="text-sm">{source.title}</p>
-                    <p className="text-xs text-slate-400">{source.date}</p>
-                  </a>
-                ))}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  {selectedProject.evidence.map((source) => (
+                    <a
+                      key={`${source.url}-${source.date}`}
+                      href={source.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block rounded border border-slate-800 bg-slate-900/40 p-2 hover:bg-slate-900/80"
+                    >
+                      <p className="text-sm">{source.title}</p>
+                      <p className="text-xs text-slate-400">{source.date}</p>
+                    </a>
+                  ))}
+                </div>
+                <div className="rounded border border-slate-800 bg-slate-900/30 p-2">
+                  <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">Status History</p>
+                  <div className="space-y-2 max-h-[220px] overflow-auto pr-1">
+                    {selectedProject.statusHistory.length === 0 && (
+                      <p className="text-xs text-slate-500">No persisted status changes yet.</p>
+                    )}
+                    {selectedProject.statusHistory.slice(0, 8).map((entry) => (
+                      <div key={entry.id} className="rounded border border-slate-800 bg-slate-900/50 p-2">
+                        <p className="text-xs text-slate-300">
+                          {entry.fromStatus ?? "unknown"} → {entry.toStatus}
+                        </p>
+                        <p className="text-xs text-slate-400">{entry.reason}</p>
+                        <p className="text-[11px] text-slate-500">{entry.changedAt}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </section>
 
           <section className="xl:col-span-5 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
             <h2 className="mb-3 text-sm font-medium text-slate-300">Live Intel Feed (Relational)</h2>
-            <div className="space-y-2 max-h-[360px] overflow-auto pr-1">
+            <div className="space-y-2 max-h-[220px] overflow-auto pr-1">
               {selectedEvents.map((event) => (
                 <a
                   key={event.id}
@@ -254,6 +273,32 @@ export default function IntelPage() {
                   </p>
                 </a>
               ))}
+            </div>
+            <div className="mt-3 rounded border border-slate-800 bg-slate-900/30 p-2">
+              <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">Live Video Streams</p>
+              {!selectedProject || selectedProject.liveStreams.length === 0 ? (
+                <p className="text-xs text-slate-500">
+                  No verified public stream attached to this project yet.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {selectedProject.liveStreams.map((stream) => (
+                    <a
+                      key={stream.id}
+                      href={stream.streamUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block rounded border border-slate-800 bg-slate-900/50 p-2 hover:bg-slate-900/80"
+                    >
+                      <p className="text-sm">{stream.title}</p>
+                      <p className="text-xs text-slate-400">
+                        {stream.provider} | {stream.coverageScope} |{" "}
+                        {stream.verified ? "verified" : "unverified"}
+                      </p>
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </section>
         </div>

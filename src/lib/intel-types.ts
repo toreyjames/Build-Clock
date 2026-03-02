@@ -50,6 +50,27 @@ export interface IntelEvent {
   tags: string[];
 }
 
+export interface LiveStream {
+  id: string;
+  projectId: string;
+  title: string;
+  provider: string;
+  streamUrl: string;
+  verified: boolean;
+  coverageScope: string;
+  lastVerifiedAt: string | null;
+}
+
+export interface StatusHistoryEntry {
+  id: string;
+  projectId: string;
+  fromStatus: ProjectLifecycleStatus | null;
+  toStatus: ProjectLifecycleStatus;
+  reason: string;
+  evidenceUrl?: string | null;
+  changedAt: string;
+}
+
 export interface IntelProject {
   projectId: string;
   opportunityId: string;
@@ -67,6 +88,8 @@ export interface IntelProject {
     url: string;
     date: string;
   }[];
+  liveStreams: LiveStream[];
+  statusHistory: StatusHistoryEntry[];
   lastEventAt: string | null;
   coordinates?: {
     lat: number;

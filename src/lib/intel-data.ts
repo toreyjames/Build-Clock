@@ -2,12 +2,22 @@ import { ENERGY_DEMAND_PROJECTS } from "@/lib/energy-demand-data";
 import type { EnergyDemandProject } from "@/lib/energy-demand-types";
 import { OPPORTUNITIES } from "@/lib/opportunities-data";
 import type { Opportunity } from "@/lib/types";
-import type { IntelEvent, IntelProject, ProjectLifecycleStatus } from "@/lib/intel-types";
+import type {
+  IntelEvent,
+  IntelProject,
+  LiveStream,
+  ProjectLifecycleStatus,
+  StatusHistoryEntry,
+} from "@/lib/intel-types";
 
 const SECTOR_TO_CATEGORY: Record<string, string> = {
   "data-centers": "data-center",
   semiconductors: "semiconductor",
   manufacturing: "manufacturing",
+};
+
+const DEFAULT_LIVE_STREAMS: Record<string, LiveStream[]> = {
+  // Seed empty by default; verified public streams can be added per project via API + Supabase.
 };
 
 function toLifecycleFromStage(stage: Opportunity["procurementStage"]): ProjectLifecycleStatus {
@@ -136,6 +146,9 @@ export function getIntelProjects(): IntelProject[] {
     const forecast = computeForecast(lifecycleStatus, opportunity);
     const events = toEvents(opportunity.id, opportunity);
 
+    const liveStreams = DEFAULT_LIVE_STREAMS[opportunity.id] ?? [];
+    const statusHistory: StatusHistoryEntry[] = [];
+
     return {
       projectId: opportunity.id,
       opportunityId: opportunity.id,
@@ -157,6 +170,8 @@ export function getIntelProjects(): IntelProject[] {
         coordinates: site.coordinates,
       })),
       evidence: opportunity.sources,
+      liveStreams,
+      statusHistory,
       lastEventAt: events[0]?.timestamp ?? opportunity.lastUpdated,
       coordinates: relatedSites.find((site) => site.coordinates)?.coordinates,
     };
