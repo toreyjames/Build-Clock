@@ -107,6 +107,12 @@ interface CommercialDiscovery {
   needsResearch?: boolean;
 }
 
+interface GridInfraLayer {
+  lines: Array<{ d: string }>;
+  substations: Array<{ x: number; y: number }>;
+  plants: Array<{ x: number; y: number }>;
+}
+
 // Market type (for commercial filter)
 type MarketType = 'all' | 'commercial' | 'federal';
 const MARKET_MAP: Record<string, MarketType> = {
@@ -178,6 +184,26 @@ const STATE_CENTROIDS: Record<string, { lat: number; lng: number }> = {
   WI: { lat: 43.7844, lng: -88.7879 }, WY: { lat: 43.0759, lng: -107.2903 }, DC: { lat: 38.9072, lng: -77.0369 },
 };
 
+const PIPELINE_SEGMENTS = [
+  { id: 'permian-gulf', points: [{ lat: 31.8, lng: -102.4 }, { lat: 30.2, lng: -97.7 }, { lat: 29.3, lng: -94.8 }] },
+  { id: 'appalachia-gulf', points: [{ lat: 40.4, lng: -80.0 }, { lat: 35.2, lng: -86.8 }, { lat: 30.2, lng: -91.0 }] },
+  { id: 'midcon-midwest', points: [{ lat: 35.5, lng: -97.5 }, { lat: 39.1, lng: -94.6 }, { lat: 41.9, lng: -87.7 }] },
+];
+
+const PORTS = [
+  { id: 'houston', name: 'Port Houston', lat: 29.73, lng: -95.24 },
+  { id: 'la-long-beach', name: 'Port of LA/LB', lat: 33.74, lng: -118.24 },
+  { id: 'savannah', name: 'Port of Savannah', lat: 32.08, lng: -81.09 },
+  { id: 'newark', name: 'Port Newark', lat: 40.67, lng: -74.14 },
+  { id: 'seattle', name: 'Port of Seattle', lat: 47.60, lng: -122.34 },
+];
+
+const WATER_BODIES = [
+  { id: 'great-lakes', name: 'Great Lakes', lat: 44.8, lng: -84.5, rx: 95, ry: 42 },
+  { id: 'gulf', name: 'Gulf of Mexico', lat: 27.2, lng: -90.5, rx: 120, ry: 46 },
+  { id: 'chesapeake', name: 'Chesapeake Bay', lat: 38.8, lng: -76.3, rx: 28, ry: 12 },
+];
+
 function latLngToMap(lat: number, lng: number): { x: number; y: number } {
   const x = (lng * 20037508.34) / 180;
   const y = (Math.log(Math.tan(((90 + lat) * Math.PI) / 360)) / (Math.PI / 180) * 20037508.34) / 180;
@@ -192,6 +218,15 @@ function statusColor(status: OppStatus): string {
   if (status === 'meeting') return '#3b82f6';
   if (status === 'contacted') return '#eab308';
   return '#9ca3af';
+}
+
+function toPath(points: Array<{ lat: number; lng: number }>): string {
+  return points
+    .map((p, idx) => {
+      const { x, y } = latLngToMap(p.lat, p.lng);
+      return `${idx === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(' ');
 }
 
 function formatCurrency(value: number | null): string {
@@ -454,6 +489,7 @@ function OTPipelineTrackerContent() {
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   const [tracking, setTracking] = useState<Record<string, OppTracking>>({});
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [gridInfra, setGridInfra] = useState<GridInfraLayer>({ lines: [], substations: [], plants: [] });
   const [discoveries, setDiscoveries] = useState<CommercialDiscovery[]>([]);
   const [discoveriesLoading, setDiscoveriesLoading] = useState(false);
   const [newDiscoveryCount, setNewDiscoveryCount] = useState(0);
@@ -465,6 +501,10 @@ function OTPipelineTrackerContent() {
   const [marketFilter, setMarketFilter] = useState<MarketType>('all');
   const [industryFilter, setIndustryFilter] = useState<IndustryFilter>('all');
   const [otFilter, setOtFilter] = useState<OTFilter>('all');
+  const [showInfra, setShowInfra] = useState(true);
+  const [showPipelines, setShowPipelines] = useState(true);
+  const [showPorts, setShowPorts] = useState(true);
+  const [showWater, setShowWater] = useState(true);
 
   // Cloud sync
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
@@ -966,6 +1006,63 @@ function OTPipelineTrackerContent() {
     }
   }, [opportunities, searchParams, selectedOpp]);
 
+  useEffect(() => {
+    async function fetchGridInfra() {
+      try {
+        const res = await fetch('/api/grid-infra');
+        const data = await res.json();
+        const lines = ((data.lines || []) as Array<{ geometry?: { type?: string; coordinates?: unknown } }>)
+          .flatMap((feature) => {
+            const geometry = feature.geometry;
+            if (!geometry?.coordinates) return [];
+            const coordLists =
+              geometry.type === 'LineString'
+                ? [geometry.coordinates as number[][]]
+                : geometry.type === 'MultiLineString'
+                  ? (geometry.coordinates as number[][][])
+                  : [];
+            return coordLists.map((coords) => {
+              const stride = coords.length > 500 ? 3 : coords.length > 250 ? 2 : 1;
+              const d = coords
+                .filter((_, i) => i % stride === 0 || i === coords.length - 1)
+                .map((coord, i) => {
+                  const x = coord[0];
+                  const y = coord[1];
+                  const nx = (x - US_BOUNDS.xmin) / (US_BOUNDS.xmax - US_BOUNDS.xmin);
+                  const ny = 1 - (y - US_BOUNDS.ymin) / (US_BOUNDS.ymax - US_BOUNDS.ymin);
+                  return `${i === 0 ? 'M' : 'L'} ${(nx * MAP_W).toFixed(1)} ${(ny * MAP_H).toFixed(1)}`;
+                })
+                .join(' ');
+              return { d };
+            });
+          });
+
+        const pointProject = (raw: unknown) => {
+          if (!Array.isArray(raw) || raw.length < 2) return null;
+          const x = Number(raw[0]);
+          const y = Number(raw[1]);
+          if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+          const nx = (x - US_BOUNDS.xmin) / (US_BOUNDS.xmax - US_BOUNDS.xmin);
+          const ny = 1 - (y - US_BOUNDS.ymin) / (US_BOUNDS.ymax - US_BOUNDS.ymin);
+          return { x: nx * MAP_W, y: ny * MAP_H };
+        };
+
+        const substations = ((data.substations || []) as Array<{ geometry?: { type?: string; coordinates?: unknown } }>)
+          .map((f) => (f.geometry?.type === 'Point' ? pointProject(f.geometry.coordinates) : null))
+          .filter((p): p is { x: number; y: number } => p !== null);
+
+        const plants = ((data.plants || []) as Array<{ geometry?: { type?: string; coordinates?: unknown } }>)
+          .map((f) => (f.geometry?.type === 'Point' ? pointProject(f.geometry.coordinates) : null))
+          .filter((p): p is { x: number; y: number } => p !== null);
+
+        setGridInfra({ lines, substations, plants });
+      } catch (error) {
+        console.error('Failed to load grid-infra layer for radar map', error);
+      }
+    }
+    fetchGridInfra();
+  }, []);
+
   // Filter opportunities
   const filteredOpps = opportunities.filter(opp => {
     // Market filter
@@ -994,8 +1091,16 @@ function OTPipelineTrackerContent() {
 
   const mapMarkers = useMemo(() => {
     return filteredOpps
-      .map(opp => {
-        const statePoint = STATE_CENTROIDS[opp.state?.toUpperCase()];
+      .map((opp, idx) => {
+        let statePoint = STATE_CENTROIDS[opp.state?.toUpperCase()];
+        if (!statePoint && opp.location) {
+          const match = opp.location.match(/\b([A-Z]{2})\b/);
+          if (match) statePoint = STATE_CENTROIDS[match[1]];
+        }
+        if (!statePoint) {
+          const defaults = [STATE_CENTROIDS.TX, STATE_CENTROIDS.PA, STATE_CENTROIDS.TN, STATE_CENTROIDS.AZ];
+          statePoint = defaults[idx % defaults.length];
+        }
         if (!statePoint) return null;
         const point = latLngToMap(statePoint.lat, statePoint.lng);
         const oppStatus = tracking[opp.id]?.status || 'on-radar';
@@ -1010,6 +1115,13 @@ function OTPipelineTrackerContent() {
       })
       .filter((m): m is NonNullable<typeof m> => m !== null);
   }, [filteredOpps, tracking, selectedOpp?.id]);
+
+  const pipelinePaths = useMemo(() => PIPELINE_SEGMENTS.map((seg) => ({ id: seg.id, d: toPath(seg.points) })), []);
+  const portPoints = useMemo(() => PORTS.map((port) => ({ ...port, point: latLngToMap(port.lat, port.lng) })), []);
+  const waterAreas = useMemo(
+    () => WATER_BODIES.map((w) => ({ ...w, point: latLngToMap(w.lat, w.lng) })),
+    [],
+  );
 
   // Group by status for kanban
   const oppsByStage: Record<OppStatus, Opportunity[]> = {
@@ -1209,15 +1321,49 @@ function OTPipelineTrackerContent() {
             <div className="mb-4 bg-[#12121a] rounded-xl border border-gray-800 p-3">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold text-white">Opportunity Location Map</h3>
-                <div className="text-xs text-gray-500">{mapMarkers.length} mapped opportunities</div>
+                <div className="flex items-center gap-2 text-[11px]">
+                  <button onClick={() => setShowInfra(v => !v)} className={`px-2 py-1 rounded border ${showInfra ? 'border-cyan-500/40 text-cyan-300' : 'border-gray-700 text-gray-500'}`}>Grid</button>
+                  <button onClick={() => setShowPipelines(v => !v)} className={`px-2 py-1 rounded border ${showPipelines ? 'border-orange-500/40 text-orange-300' : 'border-gray-700 text-gray-500'}`}>Pipelines</button>
+                  <button onClick={() => setShowPorts(v => !v)} className={`px-2 py-1 rounded border ${showPorts ? 'border-emerald-500/40 text-emerald-300' : 'border-gray-700 text-gray-500'}`}>Ports</button>
+                  <button onClick={() => setShowWater(v => !v)} className={`px-2 py-1 rounded border ${showWater ? 'border-blue-500/40 text-blue-300' : 'border-gray-700 text-gray-500'}`}>Water</button>
+                  <div className="text-xs text-gray-500">{mapMarkers.length} mapped</div>
+                </div>
               </div>
               <div className="relative overflow-hidden rounded-lg border border-gray-800 bg-[#090b10]">
                 <div className="aspect-[14/8] relative">
                   <div
-                    className="absolute inset-0 opacity-75 bg-cover bg-center"
+                    className="absolute inset-0 opacity-55 bg-cover bg-center"
                     style={{ backgroundImage: "url('/us-map.svg')" }}
                   />
+                  <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} className="absolute inset-0 h-full w-full opacity-25">
+                    {Array.from({ length: 13 }).map((_, i) => (
+                      <line key={`v-${i}`} x1={(i * MAP_W) / 12} y1={0} x2={(i * MAP_W) / 12} y2={MAP_H} stroke="#1f2937" strokeWidth="1" />
+                    ))}
+                    {Array.from({ length: 9 }).map((_, i) => (
+                      <line key={`h-${i}`} x1={0} y1={(i * MAP_H) / 8} x2={MAP_W} y2={(i * MAP_H) / 8} stroke="#1f2937" strokeWidth="1" />
+                    ))}
+                  </svg>
                   <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} className="absolute inset-0 h-full w-full">
+                    {showWater && waterAreas.map(area => (
+                      <ellipse key={area.id} cx={area.point.x} cy={area.point.y} rx={area.rx} ry={area.ry} fill="#1d4ed833" stroke="#60a5fa66" strokeWidth={1.2} />
+                    ))}
+                    {showInfra && gridInfra.lines.slice(0, 900).map((line, idx) => (
+                      <path key={`line-${idx}`} d={line.d} fill="none" stroke="#22d3ee33" strokeWidth={1} />
+                    ))}
+                    {showPipelines && pipelinePaths.map(path => (
+                      <path key={path.id} d={path.d} fill="none" stroke="#fb923c99" strokeWidth={2.2} strokeDasharray="6 4" />
+                    ))}
+                    {showInfra && gridInfra.substations.slice(0, 400).map((s, idx) => (
+                      <rect key={`sub-${idx}`} x={s.x - 1.5} y={s.y - 1.5} width={3} height={3} fill="#67e8f9aa" />
+                    ))}
+                    {showInfra && gridInfra.plants.slice(0, 260).map((p, idx) => (
+                      <circle key={`plant-${idx}`} cx={p.x} cy={p.y} r={1.8} fill="#f472b6aa" />
+                    ))}
+                    {showPorts && portPoints.map(port => (
+                      <g key={port.id}>
+                        <circle cx={port.point.x} cy={port.point.y} r={4.5} fill="#34d399cc" stroke="#042f2e" strokeWidth={1} />
+                      </g>
+                    ))}
                     {mapMarkers.map(marker => (
                       <g key={marker.id} onClick={() => setSelectedOpp(opportunities.find(o => o.id === marker.id) || null)} className="cursor-pointer">
                         <circle
@@ -1233,6 +1379,13 @@ function OTPipelineTrackerContent() {
                     ))}
                   </svg>
                 </div>
+              </div>
+              <div className="mt-2 flex items-center gap-4 text-[11px] text-gray-400">
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-400"></span>On radar</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400"></span>Contacted</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400"></span>Meeting</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-400"></span>Proposal</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-400"></span>Closed</span>
               </div>
             </div>
 
