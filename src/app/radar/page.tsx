@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
@@ -148,6 +148,51 @@ const WIN_PROBABILITY_OPTIONS = [
   { value: 75, label: '75% - Strong Position' },
   { value: 90, label: '90% - Near Certain' },
 ];
+
+const MAP_W = 1400;
+const MAP_H = 800;
+const US_BOUNDS = {
+  xmin: -13884991,
+  xmax: -7455066,
+  ymin: 2870341,
+  ymax: 6338219,
+};
+
+const STATE_CENTROIDS: Record<string, { lat: number; lng: number }> = {
+  AL: { lat: 32.7794, lng: -86.8287 }, AK: { lat: 64.0685, lng: -152.2782 }, AZ: { lat: 34.2744, lng: -111.6602 },
+  AR: { lat: 34.8938, lng: -92.4426 }, CA: { lat: 36.7783, lng: -119.4179 }, CO: { lat: 39.5501, lng: -105.7821 },
+  CT: { lat: 41.6032, lng: -73.0877 }, DE: { lat: 38.9108, lng: -75.5277 }, FL: { lat: 27.6648, lng: -81.5158 },
+  GA: { lat: 32.1656, lng: -82.9001 }, HI: { lat: 19.8968, lng: -155.5828 }, ID: { lat: 44.0682, lng: -114.742 },
+  IL: { lat: 40.6331, lng: -89.3985 }, IN: { lat: 39.8494, lng: -86.2583 }, IA: { lat: 41.878, lng: -93.0977 },
+  KS: { lat: 39.0119, lng: -98.4842 }, KY: { lat: 37.8393, lng: -84.27 }, LA: { lat: 30.9843, lng: -91.9623 },
+  ME: { lat: 45.2538, lng: -69.4455 }, MD: { lat: 39.0458, lng: -76.6413 }, MA: { lat: 42.4072, lng: -71.3824 },
+  MI: { lat: 44.3148, lng: -85.6024 }, MN: { lat: 46.7296, lng: -94.6859 }, MS: { lat: 32.3547, lng: -89.3985 },
+  MO: { lat: 37.9643, lng: -91.8318 }, MT: { lat: 46.8797, lng: -110.3626 }, NE: { lat: 41.4925, lng: -99.9018 },
+  NV: { lat: 38.8026, lng: -116.4194 }, NH: { lat: 43.1939, lng: -71.5724 }, NJ: { lat: 40.0583, lng: -74.4057 },
+  NM: { lat: 34.5199, lng: -105.8701 }, NY: { lat: 43.2994, lng: -74.2179 }, NC: { lat: 35.7596, lng: -79.0193 },
+  ND: { lat: 47.5515, lng: -101.002 }, OH: { lat: 40.4173, lng: -82.9071 }, OK: { lat: 35.0078, lng: -97.0929 },
+  OR: { lat: 43.8041, lng: -120.5542 }, PA: { lat: 41.2033, lng: -77.1945 }, RI: { lat: 41.5801, lng: -71.4774 },
+  SC: { lat: 33.8361, lng: -81.1637 }, SD: { lat: 43.9695, lng: -99.9018 }, TN: { lat: 35.5175, lng: -86.5804 },
+  TX: { lat: 31.9686, lng: -99.9018 }, UT: { lat: 39.321, lng: -111.0937 }, VT: { lat: 44.5588, lng: -72.5778 },
+  VA: { lat: 37.4316, lng: -78.6569 }, WA: { lat: 47.7511, lng: -120.7401 }, WV: { lat: 38.5976, lng: -80.4549 },
+  WI: { lat: 43.7844, lng: -88.7879 }, WY: { lat: 43.0759, lng: -107.2903 }, DC: { lat: 38.9072, lng: -77.0369 },
+};
+
+function latLngToMap(lat: number, lng: number): { x: number; y: number } {
+  const x = (lng * 20037508.34) / 180;
+  const y = (Math.log(Math.tan(((90 + lat) * Math.PI) / 360)) / (Math.PI / 180) * 20037508.34) / 180;
+  const nx = (x - US_BOUNDS.xmin) / (US_BOUNDS.xmax - US_BOUNDS.xmin);
+  const ny = 1 - (y - US_BOUNDS.ymin) / (US_BOUNDS.ymax - US_BOUNDS.ymin);
+  return { x: nx * MAP_W, y: ny * MAP_H };
+}
+
+function statusColor(status: OppStatus): string {
+  if (status === 'closed') return '#22c55e';
+  if (status === 'proposal') return '#a855f7';
+  if (status === 'meeting') return '#3b82f6';
+  if (status === 'contacted') return '#eab308';
+  return '#9ca3af';
+}
 
 function formatCurrency(value: number | null): string {
   if (!value) return 'TBD';
@@ -947,6 +992,25 @@ function OTPipelineTrackerContent() {
     return true;
   });
 
+  const mapMarkers = useMemo(() => {
+    return filteredOpps
+      .map(opp => {
+        const statePoint = STATE_CENTROIDS[opp.state?.toUpperCase()];
+        if (!statePoint) return null;
+        const point = latLngToMap(statePoint.lat, statePoint.lng);
+        const oppStatus = tracking[opp.id]?.status || 'on-radar';
+        return {
+          id: opp.id,
+          title: opp.title,
+          entity: opp.entity,
+          point,
+          color: statusColor(oppStatus),
+          selected: selectedOpp?.id === opp.id,
+        };
+      })
+      .filter((m): m is NonNullable<typeof m> => m !== null);
+  }, [filteredOpps, tracking, selectedOpp?.id]);
+
   // Group by status for kanban
   const oppsByStage: Record<OppStatus, Opportunity[]> = {
     'on-radar': [],
@@ -1142,6 +1206,36 @@ function OTPipelineTrackerContent() {
         <div className="grid grid-cols-12 gap-6">
           {/* Pipeline View */}
           <div className="col-span-8">
+            <div className="mb-4 bg-[#12121a] rounded-xl border border-gray-800 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-white">Opportunity Location Map</h3>
+                <div className="text-xs text-gray-500">{mapMarkers.length} mapped opportunities</div>
+              </div>
+              <div className="relative overflow-hidden rounded-lg border border-gray-800 bg-[#090b10]">
+                <div className="aspect-[14/8] relative">
+                  <div
+                    className="absolute inset-0 opacity-75 bg-cover bg-center"
+                    style={{ backgroundImage: "url('/us-map.svg')" }}
+                  />
+                  <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} className="absolute inset-0 h-full w-full">
+                    {mapMarkers.map(marker => (
+                      <g key={marker.id} onClick={() => setSelectedOpp(opportunities.find(o => o.id === marker.id) || null)} className="cursor-pointer">
+                        <circle
+                          cx={marker.point.x}
+                          cy={marker.point.y}
+                          r={marker.selected ? 10 : 7}
+                          fill={marker.color}
+                          opacity={marker.selected ? 0.95 : 0.78}
+                          stroke={marker.selected ? '#ffffff' : 'none'}
+                          strokeWidth={marker.selected ? 2 : 0}
+                        />
+                      </g>
+                    ))}
+                  </svg>
+                </div>
+              </div>
+            </div>
+
             {viewMode === 'kanban' ? (
               <KanbanView
                 oppsByStage={oppsByStage}
