@@ -341,6 +341,11 @@ function getDaysUntil(dateStr: string | null): number | null {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
+function getOpportunityMilestoneDays(opportunity: Opportunity): number | null {
+  const milestone = opportunity.responseDeadline || opportunity.keyDate;
+  return getDaysUntil(milestone);
+}
+
 function getRelativeTime(dateStr: string): string {
   const now = new Date();
   const date = new Date(dateStr);
@@ -1422,6 +1427,45 @@ function OTPipelineTrackerContent() {
 
   // Pipeline metrics
   const totalPipeline = filteredOpps.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+  const weightedPipeline = filteredOpps.reduce((sum, opp) => {
+    const winProbability = tracking[opp.id]?.win_probability ?? 35;
+    return sum + (opp.estimatedValue || 0) * (winProbability / 100);
+  }, 0);
+  const criticalOpps = filteredOpps.filter((opp) => opp.otRelevance === 'critical');
+  const highPlusOpps = filteredOpps.filter((opp) => opp.otRelevance === 'critical' || opp.otRelevance === 'high');
+  const deadline30 = filteredOpps.filter((opp) => {
+    const days = getOpportunityMilestoneDays(opp);
+    return days !== null && days >= 0 && days <= 30;
+  });
+  const deadline90 = filteredOpps.filter((opp) => {
+    const days = getOpportunityMilestoneDays(opp);
+    return days !== null && days >= 0 && days <= 90;
+  });
+  const weightedWinRate =
+    filteredOpps.length > 0
+      ? filteredOpps.reduce((sum, opp) => sum + (tracking[opp.id]?.win_probability ?? 35), 0) / filteredOpps.length
+      : 0;
+  const topActionQueue = [...filteredOpps]
+    .map((opp) => {
+      const value = opp.estimatedValue || 0;
+      const winProbability = tracking[opp.id]?.win_probability ?? 35;
+      const deadline = getOpportunityMilestoneDays(opp);
+      const urgencyScore =
+        opp.urgency === 'this-week' ? 30 : opp.urgency === 'this-month' ? 24 : opp.urgency === 'this-quarter' ? 16 : 8;
+      const relevanceScore = opp.otRelevance === 'critical' ? 26 : opp.otRelevance === 'high' ? 18 : 10;
+      const deadlineScore = deadline !== null && deadline <= 30 ? 24 : deadline !== null && deadline <= 90 ? 14 : 6;
+      const confidenceScore = opp.confidence === 'confirmed' ? 14 : opp.confidence === 'likely' ? 8 : 3;
+      const score = Math.log10(value + 1) * 12 + urgencyScore + relevanceScore + deadlineScore + confidenceScore + winProbability * 0.4;
+      return {
+        opp,
+        score,
+        winProbability,
+        deadline,
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+  const recentEvents = liveEvents.slice(0, 4);
   const fallbackSources = Object.entries(sourceHealth).filter(([, value]) => value.fallback);
   const hasSourceRisk = fallbackSources.length >= 2 || (opportunitySourceMeta?.liveCount || 0) === 0;
   const displayNews = !showFallbackData && sourceHealth.news?.fallback ? [] : news;
@@ -1592,75 +1636,108 @@ function OTPipelineTrackerContent() {
 	        </div>
 	      </div>
 
-        <div className="border-b border-gray-800 bg-[#0b111b]">
-          <div className="max-w-[1800px] mx-auto px-6 py-2">
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="text-gray-400">Source Health:</span>
-              <button
-                onClick={() => setShowFallbackData((current) => !current)}
-                className={`rounded border px-2 py-1 ${
-                  showFallbackData
-                    ? 'border-amber-500/50 bg-amber-500/10 text-amber-200'
-                    : 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200'
-                }`}
-              >
-                {showFallbackData ? 'Fallback data ON' : 'Fallback data OFF'}
-              </button>
-              {Object.entries(sourceHealth).map(([name, item]) => (
-                <span
-                  key={name}
-                  className={`rounded border px-2 py-1 ${
-                    item.fallback
-                      ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
-                      : item.status === 'ok'
-                        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
-                        : 'border-gray-700 bg-gray-800/50 text-gray-300'
-                  }`}
-                >
-                  {name.toUpperCase()}: {item.fallback ? 'fallback' : item.status} ({item.count})
-                </span>
-              ))}
-              {opportunitySourceMeta ? (
-                <span className="rounded border border-cyan-500/40 bg-cyan-500/10 px-2 py-1 text-cyan-300">
-                  Opportunities live: {opportunitySourceMeta.liveCount} | curated: {opportunitySourceMeta.curatedCount}
-                </span>
-              ) : null}
-            </div>
-            {hasSourceRisk ? (
-              <div className="mt-2 text-xs text-amber-300">
-                Warning: some feeds are in fallback mode. Pipeline may be partially stale until source/API access is restored.
-              </div>
-            ) : null}
-            <div className="mt-2 flex items-center gap-2 overflow-x-auto whitespace-nowrap text-[11px]">
-              <span className="inline-flex items-center gap-1 rounded border border-cyan-500/40 bg-cyan-500/10 px-2 py-1 text-cyan-300">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-300"></span>
-                Live monitor
-              </span>
-              {liveEvents.length === 0 ? (
-                <span className="text-gray-500">Waiting for next refresh cycle...</span>
-              ) : (
-                liveEvents.map((event) => (
-                  <span
-                    key={`${event.at}-${event.message}`}
-                    className={`rounded border px-2 py-1 ${
-                      event.level === 'ok'
-                        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
-                        : event.level === 'warn'
-                          ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
-                          : 'border-slate-500/40 bg-slate-500/10 text-slate-300'
-                    }`}
-                  >
-                    {new Date(event.at).toLocaleTimeString()} • {event.message}
-                  </span>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Main Content */}
       <main className="max-w-[1800px] mx-auto px-6 py-4">
+        <section className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3">
+            <p className="text-[11px] uppercase tracking-wide text-cyan-200/80">Qualified Pipeline</p>
+            <p className="mt-1 text-xl font-semibold text-cyan-100">{formatCurrency(totalPipeline)}</p>
+            <p className="text-[11px] text-cyan-200/70">{filteredOpps.length} active opportunities</p>
+          </div>
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
+            <p className="text-[11px] uppercase tracking-wide text-emerald-200/80">Weighted Pipeline</p>
+            <p className="mt-1 text-xl font-semibold text-emerald-100">{formatCurrency(weightedPipeline)}</p>
+            <p className="text-[11px] text-emerald-200/70">Win-probability adjusted value</p>
+          </div>
+          <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3">
+            <p className="text-[11px] uppercase tracking-wide text-rose-200/80">Critical OT</p>
+            <p className="mt-1 text-xl font-semibold text-rose-100">{criticalOpps.length}</p>
+            <p className="text-[11px] text-rose-200/70">{highPlusOpps.length} high+critical total</p>
+          </div>
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
+            <p className="text-[11px] uppercase tracking-wide text-amber-200/80">30-Day Milestones</p>
+            <p className="mt-1 text-xl font-semibold text-amber-100">{deadline30.length}</p>
+            <p className="text-[11px] text-amber-200/70">{formatCurrency(deadline30.reduce((sum, opp) => sum + (opp.estimatedValue || 0), 0))}</p>
+          </div>
+          <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3">
+            <p className="text-[11px] uppercase tracking-wide text-indigo-200/80">90-Day Milestones</p>
+            <p className="mt-1 text-xl font-semibold text-indigo-100">{deadline90.length}</p>
+            <p className="text-[11px] text-indigo-200/70">Near-term execution window</p>
+          </div>
+          <div className="rounded-xl border border-slate-500/40 bg-slate-500/10 p-3">
+            <p className="text-[11px] uppercase tracking-wide text-slate-300/80">Average Win Probability</p>
+            <p className="mt-1 text-xl font-semibold text-slate-100">{weightedWinRate.toFixed(0)}%</p>
+            <p className="text-[11px] text-slate-300/70">Tracked pursuits only</p>
+          </div>
+        </section>
+
+        <section className="mb-5 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_1.9fr]">
+          <div className="rounded-xl border border-gray-800 bg-[#12121a] p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">What Changed</h3>
+              <span className="text-[11px] text-gray-500">latest refresh events</span>
+            </div>
+            <div className="space-y-2">
+              {recentEvents.length === 0 ? (
+                <p className="text-xs text-gray-500">Waiting for refresh events.</p>
+              ) : (
+                recentEvents.map((event) => (
+                  <div
+                    key={`${event.at}-${event.message}`}
+                    className={`rounded-lg border px-2 py-2 text-xs ${
+                      event.level === 'ok'
+                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                        : event.level === 'warn'
+                          ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+                          : 'border-slate-600/40 bg-slate-700/20 text-slate-200'
+                    }`}
+                  >
+                    <span className="mr-2 text-[10px] text-gray-400">{new Date(event.at).toLocaleTimeString()}</span>
+                    {event.message}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-800 bg-[#12121a] p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">Top Action Queue</h3>
+              <span className="text-[11px] text-gray-500">ranked by value, urgency, OT relevance, timing</span>
+            </div>
+            <div className="space-y-2">
+              {topActionQueue.map((item, index) => (
+                <button
+                  key={item.opp.id}
+                  onClick={() => setSelectedOpp(item.opp)}
+                  className="w-full rounded-lg border border-gray-800 bg-[#0a0a0f] px-3 py-2 text-left hover:border-cyan-500/40"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs text-cyan-300">#{index + 1} {item.opp.entity}</p>
+                      <p className="text-sm text-white">{item.opp.title}</p>
+                    </div>
+                    <div className="text-right text-xs">
+                      <p className="font-semibold text-emerald-300">{formatCurrency(item.opp.estimatedValue)}</p>
+                      <p className="text-gray-400">{item.winProbability}% win</p>
+                    </div>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
+                    <span className={`rounded px-1 ${item.opp.otRelevance === 'critical' ? 'bg-rose-500/20 text-rose-300' : item.opp.otRelevance === 'high' ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-500/20 text-slate-300'}`}>
+                      {item.opp.otRelevance}
+                    </span>
+                    <span>{STAGE_LABELS[item.opp.procurementStage]}</span>
+                    <span>•</span>
+                    <span>{item.deadline === null ? 'No dated milestone' : `${item.deadline}d to milestone`}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <div className="grid grid-cols-12 gap-6">
           {/* Pipeline View */}
           <div className="col-span-8">
@@ -1831,10 +1908,10 @@ function OTPipelineTrackerContent() {
                 <div className="col-span-2">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-lg">📰</span>
-                    <h3 className="font-bold text-white">Latest OT News</h3>
+                    <h3 className="font-bold text-white">Metric-Linked Evidence</h3>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
-                    {displayNews.map((item) => {
+                    {displayNews.slice(0, 3).map((item) => {
                       const fresh = freshnessBadge(item.publishedAt);
                       const newsFallback = sourceHealth.news?.fallback ?? false;
                       return (
@@ -2016,6 +2093,54 @@ function OTPipelineTrackerContent() {
           </div>
         </div>
       </main>
+
+      <section className="max-w-[1800px] mx-auto px-6 pb-2">
+        <div className="rounded-xl border border-gray-800 bg-[#0b111b] p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-gray-400">Source Diagnostics</span>
+              <button
+                onClick={() => setShowFallbackData((current) => !current)}
+                className={`rounded border px-2 py-1 ${
+                  showFallbackData
+                    ? 'border-amber-500/50 bg-amber-500/10 text-amber-200'
+                    : 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200'
+                }`}
+              >
+                {showFallbackData ? 'Fallback data ON' : 'Fallback data OFF'}
+              </button>
+            </div>
+            {opportunitySourceMeta ? (
+              <span className="rounded border border-cyan-500/40 bg-cyan-500/10 px-2 py-1 text-xs text-cyan-300">
+                Opportunities live: {opportunitySourceMeta.liveCount} | curated: {opportunitySourceMeta.curatedCount}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+            {Object.entries(sourceHealth).map(([name, item]) => (
+              <span
+                key={name}
+                className={`rounded border px-2 py-1 ${
+                  item.fallback
+                    ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+                    : item.status === 'ok'
+                      ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+                      : 'border-gray-700 bg-gray-800/50 text-gray-300'
+                }`}
+              >
+                {name.toUpperCase()}: {item.fallback ? 'fallback' : item.status} ({item.count})
+              </span>
+            ))}
+          </div>
+
+          {hasSourceRisk ? (
+            <p className="mt-2 text-xs text-amber-300">
+              Warning: some feeds are in fallback mode. Pipeline may be partially stale until source/API access is restored.
+            </p>
+          ) : null}
+        </div>
+      </section>
 
       {/* Footer */}
       <footer className="border-t border-gray-800 bg-[#0d0d14] mt-6">
