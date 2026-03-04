@@ -92,6 +92,14 @@ interface CommercialSignalItem {
   note: string;
 }
 
+interface OpportunityNewsItem {
+  title: string;
+  url: string;
+  source: string;
+  publishedAt: string;
+  snippet: string;
+}
+
 interface SourceHealthItem {
   status: string;
   count: number;
@@ -2416,6 +2424,54 @@ function DetailPanel({
   const status = tracking?.status || 'on-radar';
   const statusConfig = STATUS_CONFIG[status];
   const clientSize = getClientSize(opportunity.entity, opportunity.estimatedValue);
+  const [oppNews, setOppNews] = useState<OpportunityNewsItem[]>([]);
+  const [oppNewsLoading, setOppNewsLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadOpportunityNews() {
+      setOppNewsLoading(true);
+      try {
+        const params = new URLSearchParams({
+          title: opportunity.title,
+          entity: opportunity.entity,
+          limit: '5',
+        });
+        const response = await fetch(`/api/opportunity-news?${params.toString()}`, { cache: 'no-store' });
+        const payload = await response.json();
+        if (cancelled) return;
+        const items = Array.isArray(payload.items) ? (payload.items as OpportunityNewsItem[]) : [];
+        setOppNews(items);
+      } catch {
+        if (cancelled) return;
+        setOppNews([]);
+      } finally {
+        if (!cancelled) setOppNewsLoading(false);
+      }
+    }
+
+    void loadOpportunityNews();
+    return () => {
+      cancelled = true;
+    };
+  }, [opportunity.entity, opportunity.id, opportunity.title]);
+
+  const officialLinks = useMemo(() => {
+    const links = opportunity.sources || [];
+    const scored = links.map((source) => {
+      const url = (source.url || '').toLowerCase();
+      const title = (source.title || '').toLowerCase();
+      const isOfficialDomain = url.includes('.gov') || url.includes('sam.gov') || url.includes('usaspending.gov');
+      const isRfpSignal = url.includes('sam.gov/opp') || title.includes('solicitation') || title.includes('rfp') || title.includes('notice');
+      return {
+        ...source,
+        isOfficialDomain,
+        isRfpSignal,
+        score: (isOfficialDomain ? 2 : 0) + (isRfpSignal ? 2 : 0),
+      };
+    });
+    return scored.sort((a, b) => b.score - a.score).slice(0, 6);
+  }, [opportunity.sources]);
 
   return (
     <div className="bg-[#12121a] rounded-xl border border-gray-800 overflow-hidden">
@@ -2593,6 +2649,66 @@ function DetailPanel({
               </a>
             )}
           </div>
+        </div>
+
+        <div className="bg-[#0a0a0f] rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <span>🧭</span>
+            <h3 className="text-sm font-medium text-white">Official / RFP Links</h3>
+          </div>
+          {officialLinks.length === 0 ? (
+            <p className="text-sm text-gray-500">No official links tagged for this opportunity yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {officialLinks.map((link, idx) => (
+                <a
+                  key={`${link.url}-${idx}`}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block rounded-lg border border-gray-800 bg-gray-800/40 p-2 hover:border-cyan-500/40"
+                >
+                  <div className="flex items-center gap-2 text-[11px]">
+                    {link.isOfficialDomain ? <span className="rounded bg-emerald-500/20 px-1 text-emerald-300">Official</span> : null}
+                    {link.isRfpSignal ? <span className="rounded bg-cyan-500/20 px-1 text-cyan-300">RFP/Notice</span> : null}
+                    <span className="text-gray-500">{link.date}</span>
+                  </div>
+                  <div className="text-sm text-gray-100">{link.title}</div>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-[#0a0a0f] rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <span>📰</span>
+            <h3 className="text-sm font-medium text-white">Recent Coverage</h3>
+          </div>
+          {oppNewsLoading ? (
+            <p className="text-sm text-gray-500">Loading related news…</p>
+          ) : oppNews.length === 0 ? (
+            <p className="text-sm text-gray-500">No recent matching articles found for this opportunity.</p>
+          ) : (
+            <div className="space-y-2">
+              {oppNews.map((item) => (
+                <a
+                  key={item.url}
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block rounded-lg border border-gray-800 bg-gray-800/40 p-2 hover:border-cyan-500/40"
+                >
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-cyan-300">{item.source}</span>
+                    <span className="text-gray-500">{getRelativeTime(item.publishedAt)}</span>
+                  </div>
+                  <div className="text-sm text-gray-100 line-clamp-2">{item.title}</div>
+                  <div className="text-xs text-gray-400 line-clamp-2">{item.snippet}</div>
+                </a>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Notes */}
