@@ -1425,26 +1425,41 @@ function OTPipelineTrackerContent() {
     oppsByStage[status].push(opp);
   });
 
-  // Pipeline metrics
+  // Pipeline metrics (decision-first, less distortion from mega-project outliers)
   const totalPipeline = filteredOpps.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
-  const weightedPipeline = filteredOpps.reduce((sum, opp) => {
-    const winProbability = tracking[opp.id]?.win_probability ?? 35;
+  const valuedOpps = filteredOpps.filter((opp) => (opp.estimatedValue || 0) > 0);
+  const valuedPipeline = valuedOpps.reduce((sum, opp) => sum + (opp.estimatedValue || 0), 0);
+  const valuedCoveragePct = filteredOpps.length > 0 ? (valuedOpps.length / filteredOpps.length) * 100 : 0;
+  const sortedValues = [...valuedOpps].map((opp) => opp.estimatedValue || 0).sort((a, b) => a - b);
+  const medianProjectValue =
+    sortedValues.length === 0
+      ? null
+      : sortedValues.length % 2 === 1
+        ? sortedValues[Math.floor(sortedValues.length / 2)]
+        : (sortedValues[sortedValues.length / 2 - 1] + sortedValues[sortedValues.length / 2]) / 2;
+  const top3Value = [...valuedOpps]
+    .sort((a, b) => (b.estimatedValue || 0) - (a.estimatedValue || 0))
+    .slice(0, 3)
+    .reduce((sum, opp) => sum + (opp.estimatedValue || 0), 0);
+  const top3ConcentrationPct = valuedPipeline > 0 ? (top3Value / valuedPipeline) * 100 : 0;
+  const probabilityAdjustedPipeline = filteredOpps.reduce((sum, opp) => {
+    const winProbability = tracking[opp.id]?.win_probability;
+    if (winProbability === undefined || (opp.estimatedValue || 0) <= 0) return sum;
     return sum + (opp.estimatedValue || 0) * (winProbability / 100);
   }, 0);
+  const probabilityTrackedCount = filteredOpps.filter((opp) => tracking[opp.id]?.win_probability !== undefined && (opp.estimatedValue || 0) > 0).length;
+  const actionablePursuits = filteredOpps.filter((opp) => {
+    const isPriorityUrgency = opp.urgency === 'this-week' || opp.urgency === 'this-month' || opp.urgency === 'this-quarter';
+    const isHighOT = opp.otRelevance === 'critical' || opp.otRelevance === 'high';
+    const isNonSpeculative = opp.confidence !== 'speculative';
+    return isPriorityUrgency && isHighOT && isNonSpeculative;
+  });
   const criticalOpps = filteredOpps.filter((opp) => opp.otRelevance === 'critical');
   const highPlusOpps = filteredOpps.filter((opp) => opp.otRelevance === 'critical' || opp.otRelevance === 'high');
   const deadline30 = filteredOpps.filter((opp) => {
     const days = getOpportunityMilestoneDays(opp);
     return days !== null && days >= 0 && days <= 30;
   });
-  const deadline90 = filteredOpps.filter((opp) => {
-    const days = getOpportunityMilestoneDays(opp);
-    return days !== null && days >= 0 && days <= 90;
-  });
-  const weightedWinRate =
-    filteredOpps.length > 0
-      ? filteredOpps.reduce((sum, opp) => sum + (tracking[opp.id]?.win_probability ?? 35), 0) / filteredOpps.length
-      : 0;
   const topActionQueue = [...filteredOpps]
     .map((opp) => {
       const value = opp.estimatedValue || 0;
@@ -1642,14 +1657,14 @@ function OTPipelineTrackerContent() {
       <main className="max-w-[1800px] mx-auto px-6 py-4">
         <section className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3">
-            <p className="text-[11px] uppercase tracking-wide text-cyan-200/80">Total Project Pipeline</p>
-            <p className="mt-1 text-xl font-semibold text-cyan-100">{formatCurrency(totalPipeline)}</p>
-            <p className="text-[11px] text-cyan-200/70">{filteredOpps.length} active opportunities (project/program values)</p>
+            <p className="text-[11px] uppercase tracking-wide text-cyan-200/80">Actionable Pursuits</p>
+            <p className="mt-1 text-xl font-semibold text-cyan-100">{actionablePursuits.length}</p>
+            <p className="text-[11px] text-cyan-200/70">High/critical OT + near-term urgency + non-speculative</p>
           </div>
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
-            <p className="text-[11px] uppercase tracking-wide text-emerald-200/80">Probability-Adjusted Project Pipeline</p>
-            <p className="mt-1 text-xl font-semibold text-emerald-100">{formatCurrency(weightedPipeline)}</p>
-            <p className="text-[11px] text-emerald-200/70">Project Value x Win Probability</p>
+            <p className="text-[11px] uppercase tracking-wide text-emerald-200/80">Probability-Adjusted Value</p>
+            <p className="mt-1 text-xl font-semibold text-emerald-100">{formatCurrency(probabilityAdjustedPipeline)}</p>
+            <p className="text-[11px] text-emerald-200/70">Project Value x Win Probability ({probabilityTrackedCount} tracked)</p>
           </div>
           <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3">
             <p className="text-[11px] uppercase tracking-wide text-rose-200/80">Critical OT</p>
@@ -1662,18 +1677,21 @@ function OTPipelineTrackerContent() {
             <p className="text-[11px] text-amber-200/70">{formatCurrency(deadline30.reduce((sum, opp) => sum + (opp.estimatedValue || 0), 0))}</p>
           </div>
           <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3">
-            <p className="text-[11px] uppercase tracking-wide text-indigo-200/80">90-Day Milestones</p>
-            <p className="mt-1 text-xl font-semibold text-indigo-100">{deadline90.length}</p>
-            <p className="text-[11px] text-indigo-200/70">Near-term execution window</p>
+            <p className="text-[11px] uppercase tracking-wide text-indigo-200/80">Median Project Size</p>
+            <p className="mt-1 text-xl font-semibold text-indigo-100">{formatCurrency(medianProjectValue)}</p>
+            <p className="text-[11px] text-indigo-200/70">Less sensitive to mega-project outliers</p>
           </div>
           <div className="rounded-xl border border-slate-500/40 bg-slate-500/10 p-3">
-            <p className="text-[11px] uppercase tracking-wide text-slate-300/80">Average Win Probability</p>
-            <p className="mt-1 text-xl font-semibold text-slate-100">{weightedWinRate.toFixed(0)}%</p>
-            <p className="text-[11px] text-slate-300/70">Tracked pursuits only</p>
+            <p className="text-[11px] uppercase tracking-wide text-slate-300/80">Value Coverage</p>
+            <p className="mt-1 text-xl font-semibold text-slate-100">{valuedCoveragePct.toFixed(0)}%</p>
+            <p className="text-[11px] text-slate-300/70">{valuedOpps.length}/{filteredOpps.length} have a project value</p>
           </div>
         </section>
         <p className="mb-4 text-xs text-gray-400">
           Value metrics shown are total project/program amounts. OT-specific value is intentionally not estimated until opportunity scope is validated.
+        </p>
+        <p className="mb-4 text-xs text-gray-500">
+          Context: total valued project pipeline {formatCurrency(valuedPipeline)} across {valuedOpps.length} items; top-3 concentration {top3ConcentrationPct.toFixed(0)}%.
         </p>
 
         <section className="mb-5 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_1.9fr]">
@@ -1743,8 +1761,12 @@ function OTPipelineTrackerContent() {
 
         <div className="grid grid-cols-12 gap-6">
           {/* Pipeline View */}
-          <div className="col-span-8">
-            <div className="mb-4 bg-[#12121a] rounded-xl border border-gray-800 p-3">
+          <div className="col-span-8 flex flex-col">
+            <div className="order-1 mb-3 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-2 text-xs text-cyan-100/90">
+              Flow: Action Queue -&gt; Pipeline Board -&gt; Evidence -&gt; Geographic Context.
+            </div>
+
+            <div className="order-4 mb-4 bg-[#12121a] rounded-xl border border-gray-800 p-3">
               <div className="mb-3 rounded-lg border border-cyan-500/30 bg-cyan-500/5 p-2.5">
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
                   <span className="text-cyan-300 font-semibold uppercase tracking-wide">Grid Foundation Layer</span>
@@ -1757,9 +1779,9 @@ function OTPipelineTrackerContent() {
                 <div className="mt-1 text-[11px] text-gray-400">Top fuel stack: {gridFoundationSummary.topFuels.join(' · ') || 'No fuel data'}</div>
               </div>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-white">Grid & Generation Base Map</h3>
+                <h3 className="text-sm font-semibold text-white">Geographic Context Map (Optional)</h3>
                 <div className="flex items-center gap-2 text-[11px]">
-                  <div className="text-xs text-gray-500">Single grid-first view · {mapMarkers.length} opportunity overlays</div>
+                  <div className="text-xs text-gray-500">Context layer · {mapMarkers.length} opportunity overlays</div>
                 </div>
               </div>
               <div className="relative overflow-hidden rounded-lg border border-gray-800 bg-[#090b10]">
@@ -1898,15 +1920,17 @@ function OTPipelineTrackerContent() {
               </div>
             </div>
 
-            <KanbanView
-              oppsByStage={oppsByStage}
-              tracking={tracking}
-              selectedOpp={selectedOpp}
-              setSelectedOpp={setSelectedOpp}
-            />
+            <div className="order-2">
+              <KanbanView
+                oppsByStage={oppsByStage}
+                tracking={tracking}
+                selectedOpp={selectedOpp}
+                setSelectedOpp={setSelectedOpp}
+              />
+            </div>
 
             {/* Latest News */}
-            <div className="mt-6">
+            <div className="order-3 mt-4">
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2">
                   <div className="flex items-center gap-2 mb-3">
@@ -1992,7 +2016,7 @@ function OTPipelineTrackerContent() {
               </div>
             </div>
 
-            <div className="mt-6">
+            <div className="order-3 mt-6">
               <div className="mb-3 flex items-center gap-2">
                 <span className="text-lg">📡</span>
                 <h3 className="font-bold text-white">Commercial Signal Grid</h3>
