@@ -1540,7 +1540,7 @@ function OTPipelineTrackerContent() {
 	              </div>
 	              <div className="text-right">
 	                <div className="text-lg font-bold text-cyan-400">{formatCurrency(totalPipeline)}</div>
-	                <div className="text-[10px] text-gray-500">{filteredOpps.length} opportunities</div>
+	                <div className="text-[10px] text-gray-500">total project value • {filteredOpps.length} opportunities</div>
 	              </div>
 	            </div>
           </div>
@@ -1642,14 +1642,14 @@ function OTPipelineTrackerContent() {
       <main className="max-w-[1800px] mx-auto px-6 py-4">
         <section className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3">
-            <p className="text-[11px] uppercase tracking-wide text-cyan-200/80">Qualified Pipeline</p>
+            <p className="text-[11px] uppercase tracking-wide text-cyan-200/80">Total Project Pipeline</p>
             <p className="mt-1 text-xl font-semibold text-cyan-100">{formatCurrency(totalPipeline)}</p>
-            <p className="text-[11px] text-cyan-200/70">{filteredOpps.length} active opportunities</p>
+            <p className="text-[11px] text-cyan-200/70">{filteredOpps.length} active opportunities (project/program values)</p>
           </div>
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
-            <p className="text-[11px] uppercase tracking-wide text-emerald-200/80">Weighted Pipeline</p>
+            <p className="text-[11px] uppercase tracking-wide text-emerald-200/80">Probability-Adjusted Project Pipeline</p>
             <p className="mt-1 text-xl font-semibold text-emerald-100">{formatCurrency(weightedPipeline)}</p>
-            <p className="text-[11px] text-emerald-200/70">Win-probability adjusted value</p>
+            <p className="text-[11px] text-emerald-200/70">Project Value x Win Probability</p>
           </div>
           <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3">
             <p className="text-[11px] uppercase tracking-wide text-rose-200/80">Critical OT</p>
@@ -1672,6 +1672,9 @@ function OTPipelineTrackerContent() {
             <p className="text-[11px] text-slate-300/70">Tracked pursuits only</p>
           </div>
         </section>
+        <p className="mb-4 text-xs text-gray-400">
+          Value metrics shown are total project/program amounts. OT-specific value is intentionally not estimated until opportunity scope is validated.
+        </p>
 
         <section className="mb-5 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_1.9fr]">
           <div className="rounded-xl border border-gray-800 bg-[#12121a] p-3">
@@ -2160,7 +2163,7 @@ function OTPipelineTrackerContent() {
               )}
               <span>{filteredOpps.length} opportunities</span>
               <span>|</span>
-              <span>{formatCurrency(totalPipeline)} pipeline</span>
+              <span>{formatCurrency(totalPipeline)} total project value</span>
             </div>
           </div>
         </div>
