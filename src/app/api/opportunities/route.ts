@@ -93,7 +93,7 @@ async function getLiveOpportunities() {
   const samApiKey = process.env.SAM_API_KEY;
 
   if (!samApiKey) {
-    return { opportunities: [], source: 'none' };
+    return { opportunities: [], source: 'none', error: 'SAM_API_KEY is not configured' };
   }
 
   try {
@@ -138,10 +138,10 @@ async function getLiveOpportunities() {
       source: 'sam.gov',
     }));
 
-    return { opportunities, source: 'sam.gov' };
+    return { opportunities, source: 'sam.gov', error: null as string | null };
   } catch (err) {
     console.error('SAM.gov fetch error:', err);
-    return { opportunities: [], source: 'error' };
+    return { opportunities: [], source: 'error', error: err instanceof Error ? err.message : 'Unknown SAM.gov error' };
   }
 }
 
@@ -159,20 +159,24 @@ export async function GET(request: Request) {
   // Fetch live SAM.gov opportunities
   let liveOpps: typeof curatedOpps = [];
   let liveSource = 'none';
+  let liveError: string | null = null;
   if (includeLive) {
     const liveResult = await getLiveOpportunities();
     liveOpps = liveResult.opportunities;
     liveSource = liveResult.source;
+    liveError = liveResult.error ?? null;
   }
 
   // Merge: curated first, then live (avoiding duplicates by title similarity)
   const allOpportunities = [...curatedOpps];
   const curatedTitles = new Set(curatedOpps.map(o => o.title.toLowerCase().substring(0, 30)));
+  let liveAdded = 0;
 
   for (const liveOpp of liveOpps) {
     const titlePrefix = liveOpp.title.toLowerCase().substring(0, 30);
     if (!curatedTitles.has(titlePrefix)) {
       allOpportunities.push(liveOpp);
+      liveAdded += 1;
     }
   }
 
@@ -244,6 +248,14 @@ export async function GET(request: Request) {
     dataSources: {
       curated: curatedSource,
       live: liveSource
-    }
+    },
+    liveDiagnostics: {
+      enabled: includeLive,
+      source: liveSource,
+      error: liveError,
+      rawLiveCount: liveOpps.length,
+      addedLiveCount: liveAdded,
+      droppedAsDuplicates: Math.max(0, liveOpps.length - liveAdded),
+    },
   });
 }

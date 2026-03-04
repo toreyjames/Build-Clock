@@ -81,18 +81,6 @@ interface NewsItem {
   relevance: string;
 }
 
-interface SecFilingItem {
-  id: string;
-  company: string;
-  ticker: string;
-  form: string;
-  filedDate: string;
-  description: string;
-  url: string;
-  pillar: string;
-  relevance: 'high' | 'medium' | 'low';
-}
-
 interface CommercialSignalItem {
   id: string;
   title: string;
@@ -606,7 +594,6 @@ function OTPipelineTrackerContent() {
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   const [tracking, setTracking] = useState<Record<string, OppTracking>>({});
   const [news, setNews] = useState<NewsItem[]>([]);
-  const [secFilings, setSecFilings] = useState<SecFilingItem[]>([]);
   const [earningsSignals, setEarningsSignals] = useState<CommercialSignalItem[]>([]);
   const [utilityIrSignals, setUtilityIrSignals] = useState<CommercialSignalItem[]>([]);
   const [stateProcSignals, setStateProcSignals] = useState<CommercialSignalItem[]>([]);
@@ -657,6 +644,9 @@ function OTPipelineTrackerContent() {
     live: string;
     curatedCount: number;
     liveCount: number;
+    liveError: string | null;
+    rawLiveCount: number;
+    droppedAsDuplicates: number;
   } | null>(null);
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
   const isFetchingRef = useRef(false);
@@ -978,12 +968,16 @@ function OTPipelineTrackerContent() {
       const oppData = await oppRes.json();
       const liveCount = Number(oppData.stats?.live || 0);
       const curatedCount = Number(oppData.stats?.curated || 0);
+      const liveDiag = oppData.liveDiagnostics || {};
       setOpportunities(oppData.opportunities || []);
       setOpportunitySourceMeta({
         curated: String(oppData.dataSources?.curated || 'unknown'),
         live: String(oppData.dataSources?.live || 'unknown'),
         curatedCount,
         liveCount,
+        liveError: liveDiag.error ? String(liveDiag.error) : null,
+        rawLiveCount: Number(liveDiag.rawLiveCount || 0),
+        droppedAsDuplicates: Number(liveDiag.droppedAsDuplicates || 0),
       });
 
       if (isInitialLoad && oppData.opportunities?.length > 0) {
@@ -993,9 +987,6 @@ function OTPipelineTrackerContent() {
       const newsData = await newsRes.json();
       if (newsData.sources?.news?.data) {
         setNews(newsData.sources.news.data.slice(0, 6));
-      }
-      if (newsData.sources?.sec?.data) {
-        setSecFilings((newsData.sources.sec.data as SecFilingItem[]).slice(0, 8));
       }
       if (newsData.sources?.earnings?.data) {
         setEarningsSignals((newsData.sources.earnings.data as CommercialSignalItem[]).slice(0, 6));
@@ -1018,17 +1009,38 @@ function OTPipelineTrackerContent() {
         });
         setSourceHealth(health);
         const fallbackCount = Object.values(health).filter((item) => item.fallback).length;
-        const event: LiveEvent = fallbackCount > 0
-          ? {
-              at: new Date().toISOString(),
-              level: 'warn',
-              message: `Refresh complete: ${liveCount} live / ${curatedCount} curated opps • ${fallbackCount} fallback feeds`,
-            }
-          : {
-              at: new Date().toISOString(),
-              level: 'ok',
-              message: `Refresh complete: ${liveCount} live / ${curatedCount} curated opps • all feeds healthy`,
-            };
+        let event: LiveEvent;
+        if (liveDiag.source === 'none') {
+          event = {
+            at: new Date().toISOString(),
+            level: 'warn',
+            message: `Refresh complete: live feed disabled (${String(liveDiag.error || 'missing SAM API key')})`,
+          };
+        } else if (liveDiag.source === 'error') {
+          event = {
+            at: new Date().toISOString(),
+            level: 'warn',
+            message: `Refresh complete: SAM live feed error (${String(liveDiag.error || 'unknown')})`,
+          };
+        } else if (Number(liveDiag.rawLiveCount || 0) > 0 && liveCount === 0) {
+          event = {
+            at: new Date().toISOString(),
+            level: 'info',
+            message: `Refresh complete: ${liveDiag.rawLiveCount} SAM records fetched, 0 added after dedupe/filter`,
+          };
+        } else if (fallbackCount > 0) {
+          event = {
+            at: new Date().toISOString(),
+            level: 'warn',
+            message: `Refresh complete: ${fallbackCount} fallback feeds active`,
+          };
+        } else {
+          event = {
+            at: new Date().toISOString(),
+            level: 'ok',
+            message: 'Refresh complete: all feeds healthy',
+          };
+        }
         setLiveEvents((prev) => [event, ...prev].slice(0, 8));
       }
 
@@ -1295,6 +1307,32 @@ function OTPipelineTrackerContent() {
 
     return true;
   });
+
+  const sectorInvestmentBreakdown = useMemo(() => {
+    const totals: Partial<Record<DeloitteIndustry, { value: number; count: number }>> = {};
+
+    filteredOpps.forEach((opp) => {
+      const industry = getDeloitteIndustry(opp.sector || opp.genesisPillar);
+      const current = totals[industry] || { value: 0, count: 0 };
+      totals[industry] = {
+        value: current.value + (opp.estimatedValue || 0),
+        count: current.count + 1,
+      };
+    });
+
+    const rows = (Object.entries(totals) as Array<[DeloitteIndustry, { value: number; count: number }]>)
+      .sort((a, b) => b[1].value - a[1].value)
+      .slice(0, 8)
+      .map(([industry, aggregate]) => ({
+        industry,
+        label: DELOITTE_INDUSTRY_INFO[industry].label,
+        value: aggregate.value,
+        count: aggregate.count,
+      }));
+
+    const maxValue = rows.reduce((max, row) => Math.max(max, row.value), 0);
+    return { rows, maxValue };
+  }, [filteredOpps]);
 
   const mapMarkers = useMemo(() => {
     const markerSlotsByState: Record<string, number> = {};
@@ -1974,41 +2012,27 @@ function OTPipelineTrackerContent() {
                 <div className="col-span-1">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-lg">📊</span>
-                    <h3 className="font-bold text-white">SEC Commercial Signals</h3>
+                    <h3 className="font-bold text-white">Investment by Deloitte Sector</h3>
                   </div>
-                  <div className="space-y-2">
-                    {secFilings.map((filing) => {
-                      const fresh = freshnessBadge(filing.filedDate);
-                      const secFallback = sourceHealth.sec?.fallback ?? false;
+                  <div className="space-y-2 rounded-lg border border-gray-800 bg-[#12121a] p-3">
+                    {sectorInvestmentBreakdown.rows.map((row) => {
+                      const widthPct = sectorInvestmentBreakdown.maxValue > 0 ? (row.value / sectorInvestmentBreakdown.maxValue) * 100 : 0;
                       return (
-                        <a
-                          key={filing.id}
-                          href={filing.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block rounded-lg border border-gray-800 bg-[#12121a] p-2 hover:border-gray-600"
-                        >
-                          <div className="mb-1 flex items-center justify-between text-[10px]">
-                            <span className="text-cyan-300">{filing.ticker} • {filing.form}</span>
-                            <span className="text-gray-500">{getRelativeTime(filing.filedDate)}</span>
+                        <div key={row.industry} className="space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-gray-200">{row.label}</span>
+                            <span className="text-cyan-300">{formatCurrency(row.value)}</span>
                           </div>
-                          <div className="line-clamp-2 text-xs text-white">{filing.company}</div>
-                          <div className="line-clamp-1 text-[11px] text-gray-400">{filing.description}</div>
-                          <div className="mt-1 flex items-center gap-1 text-[10px]">
-                            <span className={`rounded px-1 ${fresh.className}`}>{fresh.label}</span>
-                            <span className={`rounded px-1 ${filing.relevance === 'high' ? 'bg-rose-500/20 text-rose-300' : filing.relevance === 'medium' ? 'bg-amber-500/20 text-amber-300' : 'bg-gray-500/20 text-gray-300'}`}>
-                              {filing.relevance}
-                            </span>
-                            <span className={`rounded px-1 ${secFallback ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
-                              {secFallback ? 'fallback' : 'live'}
-                            </span>
+                          <div className="h-2 rounded bg-gray-800">
+                            <div className="h-2 rounded bg-cyan-500/80" style={{ width: `${Math.max(2, widthPct)}%` }} />
                           </div>
-                        </a>
+                          <div className="text-[10px] text-gray-500">{row.count} opportunities</div>
+                        </div>
                       );
                     })}
-                    {secFilings.length === 0 && (
-                      <div className="rounded-lg border border-gray-800 bg-[#12121a] p-3 text-xs text-gray-500">
-                        No recent SEC filings in current feed window.
+                    {sectorInvestmentBreakdown.rows.length === 0 && (
+                      <div className="rounded-lg border border-gray-800 bg-[#0a0a0f] p-3 text-xs text-gray-500">
+                        No sector investment data for current filters.
                       </div>
                     )}
                   </div>
@@ -2137,11 +2161,6 @@ function OTPipelineTrackerContent() {
                 {showFallbackData ? 'Fallback data ON' : 'Fallback data OFF'}
               </button>
             </div>
-            {opportunitySourceMeta ? (
-              <span className="rounded border border-cyan-500/40 bg-cyan-500/10 px-2 py-1 text-xs text-cyan-300">
-                Opportunities live: {opportunitySourceMeta.liveCount} | curated: {opportunitySourceMeta.curatedCount}
-              </span>
-            ) : null}
           </div>
 
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
