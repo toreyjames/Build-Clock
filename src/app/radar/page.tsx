@@ -175,6 +175,9 @@ type OTFilter = 'all' | 'high' | 'critical';
 // Industry filter (Deloitte sectors)
 type IndustryFilter = 'all' | DeloitteIndustry;
 
+// Timeframe filter
+type TimeframeFilter = 'rolling-year' | 'all-time';
+
 const WIN_PROBABILITY_OPTIONS = [
   { value: 10, label: '10% - Long Shot' },
   { value: 25, label: '25% - Possible' },
@@ -332,6 +335,15 @@ function getDaysUntil(dateStr: string | null): number | null {
 function getOpportunityMilestoneDays(opportunity: Opportunity): number | null {
   const milestone = opportunity.responseDeadline || opportunity.keyDate;
   return getDaysUntil(milestone);
+}
+
+function getOpportunityAnchorDate(opportunity: Opportunity): Date | null {
+  const candidates = [opportunity.responseDeadline, opportunity.keyDate, opportunity.postedDate, opportunity.lastUpdated]
+    .map((value) => (value ? new Date(value) : null))
+    .filter((value): value is Date => value !== null && !Number.isNaN(value.getTime()));
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => b.getTime() - a.getTime());
+  return candidates[0];
 }
 
 function getRelativeTime(dateStr: string): string {
@@ -609,6 +621,7 @@ function OTPipelineTrackerContent() {
   const [marketFilter, setMarketFilter] = useState<MarketType>('commercial');
   const [industryFilter, setIndustryFilter] = useState<IndustryFilter>('all');
   const [otFilter, setOtFilter] = useState<OTFilter>('all');
+  const [timeframeFilter, setTimeframeFilter] = useState<TimeframeFilter>('rolling-year');
   const showInfra = true;
   const showGeneration = true;
   const showOpportunities = true;
@@ -1284,6 +1297,16 @@ function OTPipelineTrackerContent() {
 
   // Filter opportunities
   const filteredOpps = opportunities.filter(opp => {
+    // Timeframe filter
+    if (timeframeFilter === 'rolling-year') {
+      const anchorDate = getOpportunityAnchorDate(opp);
+      if (!anchorDate) return false;
+      const now = Date.now();
+      const oneYearMs = 365 * 24 * 60 * 60 * 1000;
+      const delta = anchorDate.getTime() - now;
+      if (delta < -oneYearMs || delta > oneYearMs) return false;
+    }
+
     // Market filter
     if (marketFilter !== 'all' && MARKET_MAP[opp.entityType] !== marketFilter) return false;
 
@@ -1320,15 +1343,15 @@ function OTPipelineTrackerContent() {
       };
     });
 
-    const rows = (Object.entries(totals) as Array<[DeloitteIndustry, { value: number; count: number }]>)
-      .sort((a, b) => b[1].value - a[1].value)
-      .slice(0, 8)
-      .map(([industry, aggregate]) => ({
+    const rows = (Object.keys(DELOITTE_INDUSTRY_INFO) as DeloitteIndustry[])
+      .map((industry) => ({
         industry,
         label: DELOITTE_INDUSTRY_INFO[industry].label,
-        value: aggregate.value,
-        count: aggregate.count,
-      }));
+        value: totals[industry]?.value || 0,
+        count: totals[industry]?.count || 0,
+      }))
+      .filter((row) => row.count > 0)
+      .sort((a, b) => b.value - a.value);
 
     const maxValue = rows.reduce((max, row) => Math.max(max, row.value), 0);
     return { rows, maxValue };
@@ -1387,61 +1410,6 @@ function OTPipelineTrackerContent() {
     () => mapMarkers.find((marker) => marker.id === hoveredMarkerId) || null,
     [mapMarkers, hoveredMarkerId],
   );
-
-  const gridFoundationSummary = useMemo(() => {
-    const byFuel: Record<string, number> = {};
-    let operatingMw = 0;
-    let plannedMw = 0;
-    let retiredMw = 0;
-
-    for (const site of gridInfra.generationSites) {
-      operatingMw += site.opCapMw || 0;
-      plannedMw += site.planCapMw || 0;
-      retiredMw += site.retCapMw || 0;
-      const fuel = (site.fuelPrimary || 'Unknown').trim();
-      byFuel[fuel] = (byFuel[fuel] || 0) + (site.opCapMw || 0);
-    }
-
-    const topFuels = Object.entries(byFuel)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([fuel, mw]) => `${fuel} ${(mw / 1000).toFixed(1)} GW`);
-
-    return {
-      transmissionCorridors: gridInfra.lines.length,
-      generationSites: gridInfra.generationSites.length,
-      operatingGw: operatingMw / 1000,
-      plannedGw: plannedMw / 1000,
-      retiredGw: retiredMw / 1000,
-      topFuels,
-    };
-  }, [gridInfra]);
-
-  const gridDiagnostics = useMemo(() => {
-    const voltageBuckets = {
-      e500: 0,
-      e345: 0,
-      e220: 0,
-      e100: 0,
-      unknown: 0,
-    };
-    for (const line of gridInfra.lines) {
-      const kv = line.voltageKv;
-      if (kv === null) voltageBuckets.unknown += 1;
-      else if (kv >= 500) voltageBuckets.e500 += 1;
-      else if (kv >= 345) voltageBuckets.e345 += 1;
-      else if (kv >= 220) voltageBuckets.e220 += 1;
-      else if (kv >= 100) voltageBuckets.e100 += 1;
-      else voltageBuckets.unknown += 1;
-    }
-
-    const topPlants = [...gridInfra.generationSites]
-      .sort((a, b) => (b.opCapMw || 0) - (a.opCapMw || 0))
-      .slice(0, 3)
-      .map((s) => `${s.name}${s.state ? ` (${s.state})` : ''}: ${(s.opCapMw || 0).toFixed(0)} MW`);
-
-    return { voltageBuckets, topPlants };
-  }, [gridInfra]);
 
   const pipelinePaths = useMemo(() => PIPELINE_SEGMENTS.map((seg) => ({ id: seg.id, d: toPath(seg.points) })), []);
   const portPoints = useMemo(() => PORTS.map((port) => ({ ...port, point: latLngToMap(port.lat, port.lng) })), []);
@@ -1675,6 +1643,26 @@ function OTPipelineTrackerContent() {
               </div>
             </div>
 
+            {/* Timeframe Filter */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">Frame:</span>
+              <div className="flex items-center bg-[#12121a] rounded-lg border border-gray-800 p-0.5 text-xs">
+                {(['rolling-year', 'all-time'] as TimeframeFilter[]).map((frame) => (
+                  <button
+                    key={frame}
+                    onClick={() => setTimeframeFilter(frame)}
+                    className={`px-2 py-1 ${
+                      timeframeFilter === frame
+                        ? 'rounded bg-cyan-600 text-white'
+                        : 'rounded text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {frame === 'rolling-year' ? '1Y' : 'All'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Search */}
             <div className="flex-1 max-w-xs">
               <input
@@ -1728,7 +1716,7 @@ function OTPipelineTrackerContent() {
           Value metrics shown are total project/program amounts. OT-specific value is intentionally not estimated until opportunity scope is validated.
         </p>
         <p className="mb-4 text-xs text-gray-500">
-          Context: total valued project pipeline {formatCurrency(valuedPipeline)} across {valuedOpps.length} items; top-3 concentration {top3ConcentrationPct.toFixed(0)}%.
+          Context ({timeframeFilter === 'rolling-year' ? 'rolling 1-year window' : 'all-time window'}): total valued project pipeline {formatCurrency(valuedPipeline)} across {valuedOpps.length} items; top-3 concentration {top3ConcentrationPct.toFixed(0)}%.
         </p>
 
         <section className="mb-5 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_1.9fr]">
@@ -1803,17 +1791,6 @@ function OTPipelineTrackerContent() {
             </div>
 
             <div className="order-4 mb-4 bg-[#12121a] rounded-xl border border-gray-800 p-3">
-              <div className="mb-3 rounded-lg border border-cyan-500/30 bg-cyan-500/5 p-2.5">
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
-                  <span className="text-cyan-300 font-semibold uppercase tracking-wide">Grid Foundation Layer</span>
-                  <span className="text-gray-300">Tx corridors: <span className="text-white">{gridFoundationSummary.transmissionCorridors.toLocaleString()}</span></span>
-                  <span className="text-gray-300">Generation sites: <span className="text-white">{gridFoundationSummary.generationSites.toLocaleString()}</span></span>
-                  <span className="text-gray-300">Operating: <span className="text-emerald-300">{gridFoundationSummary.operatingGw.toFixed(1)} GW</span></span>
-                  <span className="text-gray-300">Planned: <span className="text-cyan-300">{gridFoundationSummary.plannedGw.toFixed(1)} GW</span></span>
-                  <span className="text-gray-300">Retired: <span className="text-rose-300">{gridFoundationSummary.retiredGw.toFixed(1)} GW</span></span>
-                </div>
-                <div className="mt-1 text-[11px] text-gray-400">Top fuel stack: {gridFoundationSummary.topFuels.join(' · ') || 'No fuel data'}</div>
-              </div>
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold text-white">Geographic Context Map (Optional)</h3>
                 <div className="flex items-center gap-2 text-[11px]">
@@ -1947,12 +1924,6 @@ function OTPipelineTrackerContent() {
                 <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500"></span>Gas</span>
                 <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500"></span>Petro/Oil</span>
                 <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500"></span>Nuclear</span>
-                <span className="text-gray-600">Gen sites: {gridInfra.generationSites.length}</span>
-                <span className="text-gray-600">500kV+ lines: {gridDiagnostics.voltageBuckets.e500}</span>
-                <span className="text-gray-600">345kV lines: {gridDiagnostics.voltageBuckets.e345}</span>
-              </div>
-              <div className="mt-2 text-[11px] text-gray-500">
-                Largest operating plants in current view: {gridDiagnostics.topPlants.join(' · ') || 'No capacity records'}
               </div>
             </div>
 
@@ -2008,88 +1979,6 @@ function OTPipelineTrackerContent() {
               </div>
             </div>
 
-            <div className="order-3 mt-6">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="text-lg">📡</span>
-                <h3 className="font-bold text-white">Commercial Signal Grid</h3>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-lg border border-gray-800 bg-[#12121a] p-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-sm font-semibold text-white">Earnings Signals</p>
-                    <span className={`rounded px-1 text-[10px] ${sourceHealth.earnings?.fallback ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
-                      {sourceHealth.earnings?.fallback ? 'fallback' : 'live'}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {displayEarningsSignals.slice(0, 4).map((item) => (
-                      <a key={item.id} href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="block rounded border border-gray-800 bg-[#0a0a0f] p-2 hover:border-gray-600">
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className="text-cyan-300">{item.entity}</span>
-                          <span className="text-gray-500">{getRelativeTime(item.publishedAt)}</span>
-                        </div>
-                        <div className="line-clamp-2 text-xs text-gray-200">{item.title}</div>
-                      </a>
-                    ))}
-                    {displayEarningsSignals.length === 0 && (
-                      <div className="text-xs text-gray-500">
-                        {sourceHealth.earnings?.fallback && !showFallbackData ? 'Fallback hidden' : 'No earnings signals'}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-gray-800 bg-[#12121a] p-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-sm font-semibold text-white">Utility IR</p>
-                    <span className={`rounded px-1 text-[10px] ${sourceHealth.utilityIr?.fallback ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
-                      {sourceHealth.utilityIr?.fallback ? 'fallback' : 'live'}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {displayUtilityIrSignals.slice(0, 4).map((item) => (
-                      <a key={item.id} href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="block rounded border border-gray-800 bg-[#0a0a0f] p-2 hover:border-gray-600">
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className="text-cyan-300">{item.entity}</span>
-                          <span className="text-gray-500">{getRelativeTime(item.publishedAt)}</span>
-                        </div>
-                        <div className="line-clamp-2 text-xs text-gray-200">{item.title}</div>
-                      </a>
-                    ))}
-                    {displayUtilityIrSignals.length === 0 && (
-                      <div className="text-xs text-gray-500">
-                        {sourceHealth.utilityIr?.fallback && !showFallbackData ? 'Fallback hidden' : 'No utility IR signals'}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-gray-800 bg-[#12121a] p-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-sm font-semibold text-white">State Procurement</p>
-                    <span className={`rounded px-1 text-[10px] ${sourceHealth.stateProc?.fallback ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
-                      {sourceHealth.stateProc?.fallback ? 'fallback' : 'live'}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {displayStateProcSignals.slice(0, 4).map((item) => (
-                      <a key={item.id} href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="block rounded border border-gray-800 bg-[#0a0a0f] p-2 hover:border-gray-600">
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className="text-cyan-300">{item.entity}</span>
-                          <span className="text-gray-500">{getRelativeTime(item.publishedAt)}</span>
-                        </div>
-                        <div className="line-clamp-2 text-xs text-gray-200">{item.title}</div>
-                      </a>
-                    ))}
-                    {displayStateProcSignals.length === 0 && (
-                      <div className="text-xs text-gray-500">
-                        {sourceHealth.stateProc?.fallback && !showFallbackData ? 'Fallback hidden' : 'No state procurement signals'}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Detail Panel */}
