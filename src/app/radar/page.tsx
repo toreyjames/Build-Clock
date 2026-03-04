@@ -1518,7 +1518,6 @@ function OTPipelineTrackerContent() {
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
-  const recentEvents = liveEvents.slice(0, 4);
   const fallbackSources = Object.entries(sourceHealth).filter(([, value]) => value.fallback);
   const hasSourceRisk = fallbackSources.length >= 2 || (opportunitySourceMeta?.liveCount || 0) === 0;
   const displayNews = !showFallbackData && sourceHealth.news?.fallback ? [] : news;
@@ -1735,28 +1734,27 @@ function OTPipelineTrackerContent() {
         <section className="mb-5 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_1.9fr]">
           <div className="rounded-xl border border-gray-800 bg-[#12121a] p-3">
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-white">What Changed</h3>
-              <span className="text-[11px] text-gray-500">latest refresh events</span>
+              <h3 className="text-sm font-semibold text-white">Investment by Deloitte Sector</h3>
+              <span className="text-[11px] text-gray-500">current filtered portfolio</span>
             </div>
             <div className="space-y-2">
-              {recentEvents.length === 0 ? (
-                <p className="text-xs text-gray-500">Waiting for refresh events.</p>
-              ) : (
-                recentEvents.map((event) => (
-                  <div
-                    key={`${event.at}-${event.message}`}
-                    className={`rounded-lg border px-2 py-2 text-xs ${
-                      event.level === 'ok'
-                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                        : event.level === 'warn'
-                          ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
-                          : 'border-slate-600/40 bg-slate-700/20 text-slate-200'
-                    }`}
-                  >
-                    <span className="mr-2 text-[10px] text-gray-400">{new Date(event.at).toLocaleTimeString()}</span>
-                    {event.message}
+              {sectorInvestmentBreakdown.rows.map((row) => {
+                const widthPct = sectorInvestmentBreakdown.maxValue > 0 ? (row.value / sectorInvestmentBreakdown.maxValue) * 100 : 0;
+                return (
+                  <div key={row.industry} className="space-y-1 rounded-lg border border-gray-800 bg-[#0a0a0f] p-2">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-gray-200">{row.label}</span>
+                      <span className="text-cyan-300">{formatCurrency(row.value)}</span>
+                    </div>
+                    <div className="h-2 rounded bg-gray-800">
+                      <div className="h-2 rounded bg-cyan-500/80" style={{ width: `${Math.max(2, widthPct)}%` }} />
+                    </div>
+                    <div className="text-[10px] text-gray-500">{row.count} opportunities</div>
                   </div>
-                ))
+                );
+              })}
+              {sectorInvestmentBreakdown.rows.length === 0 && (
+                <p className="text-xs text-gray-500">No sector investment data for current filters.</p>
               )}
             </div>
           </div>
@@ -1969,8 +1967,7 @@ function OTPipelineTrackerContent() {
 
             {/* Latest News */}
             <div className="order-3 mt-4">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-2">
+              <div>
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-lg">📰</span>
                     <h3 className="font-bold text-white">Metric-Linked Evidence</h3>
@@ -2008,35 +2005,6 @@ function OTPipelineTrackerContent() {
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="col-span-1">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-lg">📊</span>
-                    <h3 className="font-bold text-white">Investment by Deloitte Sector</h3>
-                  </div>
-                  <div className="space-y-2 rounded-lg border border-gray-800 bg-[#12121a] p-3">
-                    {sectorInvestmentBreakdown.rows.map((row) => {
-                      const widthPct = sectorInvestmentBreakdown.maxValue > 0 ? (row.value / sectorInvestmentBreakdown.maxValue) * 100 : 0;
-                      return (
-                        <div key={row.industry} className="space-y-1">
-                          <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-gray-200">{row.label}</span>
-                            <span className="text-cyan-300">{formatCurrency(row.value)}</span>
-                          </div>
-                          <div className="h-2 rounded bg-gray-800">
-                            <div className="h-2 rounded bg-cyan-500/80" style={{ width: `${Math.max(2, widthPct)}%` }} />
-                          </div>
-                          <div className="text-[10px] text-gray-500">{row.count} opportunities</div>
-                        </div>
-                      );
-                    })}
-                    {sectorInvestmentBreakdown.rows.length === 0 && (
-                      <div className="rounded-lg border border-gray-800 bg-[#0a0a0f] p-3 text-xs text-gray-500">
-                        No sector investment data for current filters.
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
 
