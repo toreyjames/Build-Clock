@@ -1,7 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { jsPDF } from 'jspdf';
@@ -82,6 +81,42 @@ interface NewsItem {
   relevance: string;
 }
 
+interface SecFilingItem {
+  id: string;
+  company: string;
+  ticker: string;
+  form: string;
+  filedDate: string;
+  description: string;
+  url: string;
+  pillar: string;
+  relevance: 'high' | 'medium' | 'low';
+}
+
+interface CommercialSignalItem {
+  id: string;
+  title: string;
+  entity: string;
+  source: string;
+  sourceUrl: string;
+  publishedAt: string;
+  relevance: 'high' | 'medium' | 'low';
+  note: string;
+}
+
+interface SourceHealthItem {
+  status: string;
+  count: number;
+  fallback: boolean;
+  error: string | null;
+}
+
+interface LiveEvent {
+  at: string;
+  message: string;
+  level: 'ok' | 'warn' | 'info';
+}
+
 // Commercial discovery from scanning
 interface CommercialDiscovery {
   id: string;
@@ -108,9 +143,17 @@ interface CommercialDiscovery {
 }
 
 interface GridInfraLayer {
-  lines: Array<{ d: string }>;
-  substations: Array<{ x: number; y: number }>;
-  plants: Array<{ x: number; y: number }>;
+  lines: Array<{ d: string; voltageKv: number | null; voltageClass: string; status: string | null; detailBand: string }>;
+  generationSites: Array<{
+    x: number;
+    y: number;
+    name: string;
+    state: string | null;
+    fuelPrimary: string;
+    opCapMw: number | null;
+    planCapMw: number | null;
+    retCapMw: number | null;
+  }>;
 }
 
 // Market type (for commercial filter)
@@ -138,9 +181,6 @@ function getClientSize(entity: string, value: number | null): { label: string; c
   return { label: 'Mid-Market', color: 'bg-gray-500/20 text-gray-400' };
 }
 
-// View mode
-type ViewMode = 'kanban' | 'table';
-
 // OT Relevance filter
 type OTFilter = 'all' | 'high' | 'critical';
 
@@ -157,12 +197,30 @@ const WIN_PROBABILITY_OPTIONS = [
 
 const MAP_W = 1400;
 const MAP_H = 800;
+
+type LatLngBounds = { minLat: number; maxLat: number; minLng: number; maxLng: number };
+type MapRect = { x: number; y: number; w: number; h: number };
+
 const US_BOUNDS = {
   xmin: -13884991,
   xmax: -7455066,
   ymin: 2870341,
   ymax: 6338219,
 };
+
+const AK_LATLNG_BOUNDS: LatLngBounds = { minLat: 51.2, maxLat: 71.5, minLng: -171.5, maxLng: -129.5 };
+const HI_LATLNG_BOUNDS: LatLngBounds = { minLat: 18.5, maxLat: 22.5, minLng: -160.8, maxLng: -154.5 };
+
+// Tuned to align with us-map.svg inset layout.
+const AK_RECT: MapRect = { x: 24, y: 586, w: 282, h: 186 };
+const HI_RECT: MapRect = { x: 324, y: 704, w: 170, h: 82 };
+
+function latLngToMercator(lat: number, lng: number): { x: number; y: number } {
+  return {
+    x: (lng * 20037508.34) / 180,
+    y: (Math.log(Math.tan(((90 + lat) * Math.PI) / 360)) / (Math.PI / 180) * 20037508.34) / 180,
+  };
+}
 
 const STATE_CENTROIDS: Record<string, { lat: number; lng: number }> = {
   AL: { lat: 32.7794, lng: -86.8287 }, AK: { lat: 64.0685, lng: -152.2782 }, AZ: { lat: 34.2744, lng: -111.6602 },
@@ -205,10 +263,25 @@ const WATER_BODIES = [
 ];
 
 function latLngToMap(lat: number, lng: number): { x: number; y: number } {
-  const x = (lng * 20037508.34) / 180;
-  const y = (Math.log(Math.tan(((90 + lat) * Math.PI) / 360)) / (Math.PI / 180) * 20037508.34) / 180;
-  const nx = (x - US_BOUNDS.xmin) / (US_BOUNDS.xmax - US_BOUNDS.xmin);
-  const ny = 1 - (y - US_BOUNDS.ymin) / (US_BOUNDS.ymax - US_BOUNDS.ymin);
+  const projectInset = (bounds: LatLngBounds, rect: MapRect): { x: number; y: number } => {
+    const nx = (lng - bounds.minLng) / (bounds.maxLng - bounds.minLng);
+    const ny = 1 - (lat - bounds.minLat) / (bounds.maxLat - bounds.minLat);
+    return {
+      x: rect.x + nx * rect.w,
+      y: rect.y + ny * rect.h,
+    };
+  };
+
+  if (lat >= HI_LATLNG_BOUNDS.minLat && lat <= HI_LATLNG_BOUNDS.maxLat && lng >= HI_LATLNG_BOUNDS.minLng && lng <= HI_LATLNG_BOUNDS.maxLng) {
+    return projectInset(HI_LATLNG_BOUNDS, HI_RECT);
+  }
+  if (lat >= AK_LATLNG_BOUNDS.minLat && lat <= AK_LATLNG_BOUNDS.maxLat && lng >= AK_LATLNG_BOUNDS.minLng && lng <= AK_LATLNG_BOUNDS.maxLng) {
+    return projectInset(AK_LATLNG_BOUNDS, AK_RECT);
+  }
+
+  const m = latLngToMercator(lat, lng);
+  const nx = (m.x - US_BOUNDS.xmin) / (US_BOUNDS.xmax - US_BOUNDS.xmin);
+  const ny = 1 - (m.y - US_BOUNDS.ymin) / (US_BOUNDS.ymax - US_BOUNDS.ymin);
   return { x: nx * MAP_W, y: ny * MAP_H };
 }
 
@@ -218,6 +291,27 @@ function statusColor(status: OppStatus): string {
   if (status === 'meeting') return '#3b82f6';
   if (status === 'contacted') return '#eab308';
   return '#9ca3af';
+}
+
+function transmissionStyle(voltageKv: number | null, detailBand: string): { stroke: string; width: number; opacity: number } {
+  const detailBoost = detailBand === '>1:1.2M' ? 0.15 : detailBand === '1:1.2M-1:5M' ? 0.08 : 0;
+  if (voltageKv === null) return { stroke: '#22d3ee66', width: 1, opacity: 0.4 + detailBoost };
+  if (voltageKv >= 500) return { stroke: '#ef4444', width: 2.4, opacity: 0.75 + detailBoost };
+  if (voltageKv >= 345) return { stroke: '#f97316', width: 2.1, opacity: 0.67 + detailBoost };
+  if (voltageKv >= 220) return { stroke: '#facc15', width: 1.8, opacity: 0.6 + detailBoost };
+  if (voltageKv >= 100) return { stroke: '#22d3ee', width: 1.4, opacity: 0.5 + detailBoost };
+  return { stroke: '#38bdf8', width: 1.1, opacity: 0.42 + detailBoost };
+}
+
+function generationFuelColor(fuel: string): string {
+  const normalized = fuel.trim().toLowerCase();
+  if (normalized.startsWith('renew')) return '#22c55e';
+  if (normalized.includes('nuclear')) return '#a855f7';
+  if (normalized.includes('petro') || normalized.includes('oil')) return '#f97316';
+  if (normalized.includes('coal')) return '#334155';
+  if (normalized.includes('gas') || normalized.includes('ng')) return '#3b82f6';
+  if (normalized.includes('hydro')) return '#0ea5e9';
+  return '#e879f9';
 }
 
 function toPath(points: Array<{ lat: number; lng: number }>): string {
@@ -258,6 +352,24 @@ function getRelativeTime(dateStr: string): string {
   if (diffDays < 7) return `${diffDays}d ago`;
   if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
   return `${Math.floor(diffDays / 30)}mo ago`;
+}
+
+function freshnessBadge(dateStr: string | null | undefined): { label: string; className: string } {
+  if (!dateStr) return { label: 'unknown', className: 'bg-gray-500/20 text-gray-300' };
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (days <= 1) return { label: 'fresh', className: 'bg-emerald-500/20 text-emerald-300' };
+  if (days <= 7) return { label: 'recent', className: 'bg-cyan-500/20 text-cyan-300' };
+  if (days <= 30) return { label: 'aging', className: 'bg-amber-500/20 text-amber-300' };
+  return { label: 'stale', className: 'bg-rose-500/20 text-rose-300' };
+}
+
+function confidenceBadge(confidence: string | null | undefined): { label: string; className: string } {
+  const normalized = (confidence || '').toLowerCase();
+  if (normalized.includes('confirmed')) return { label: 'confirmed', className: 'bg-emerald-500/20 text-emerald-300' };
+  if (normalized.includes('likely')) return { label: 'likely', className: 'bg-cyan-500/20 text-cyan-300' };
+  if (normalized.includes('speculative')) return { label: 'speculative', className: 'bg-amber-500/20 text-amber-300' };
+  return { label: 'unknown', className: 'bg-gray-500/20 text-gray-300' };
 }
 
 // Generate Executive Brief PDF
@@ -489,22 +601,28 @@ function OTPipelineTrackerContent() {
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   const [tracking, setTracking] = useState<Record<string, OppTracking>>({});
   const [news, setNews] = useState<NewsItem[]>([]);
-  const [gridInfra, setGridInfra] = useState<GridInfraLayer>({ lines: [], substations: [], plants: [] });
+  const [secFilings, setSecFilings] = useState<SecFilingItem[]>([]);
+  const [earningsSignals, setEarningsSignals] = useState<CommercialSignalItem[]>([]);
+  const [utilityIrSignals, setUtilityIrSignals] = useState<CommercialSignalItem[]>([]);
+  const [stateProcSignals, setStateProcSignals] = useState<CommercialSignalItem[]>([]);
+  const [gridInfra, setGridInfra] = useState<GridInfraLayer>({ lines: [], generationSites: [] });
   const [discoveries, setDiscoveries] = useState<CommercialDiscovery[]>([]);
   const [discoveriesLoading, setDiscoveriesLoading] = useState(false);
   const [newDiscoveryCount, setNewDiscoveryCount] = useState(0);
   const [editingNotes, setEditingNotes] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [hoveredMarkerId, setHoveredMarkerId] = useState<string | null>(null);
 
   // Filters
-  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
-  const [marketFilter, setMarketFilter] = useState<MarketType>('all');
+  const [marketFilter, setMarketFilter] = useState<MarketType>('commercial');
   const [industryFilter, setIndustryFilter] = useState<IndustryFilter>('all');
   const [otFilter, setOtFilter] = useState<OTFilter>('all');
-  const [showInfra, setShowInfra] = useState(true);
-  const [showPipelines, setShowPipelines] = useState(true);
-  const [showPorts, setShowPorts] = useState(true);
-  const [showWater, setShowWater] = useState(true);
+  const showInfra = true;
+  const showGeneration = true;
+  const showOpportunities = true;
+  const showPipelines = false;
+  const showPorts = false;
+  const showWater = false;
 
   // Cloud sync
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
@@ -525,6 +643,19 @@ function OTPipelineTrackerContent() {
   const [jupiterPushing, setJupiterPushing] = useState(false);
   const [jupiterError, setJupiterError] = useState<string | null>(null);
   const [addedDiscoveries, setAddedDiscoveries] = useState<Set<string>>(new Set());
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
+  const [showFallbackData, setShowFallbackData] = useState(false);
+  const [sourceHealth, setSourceHealth] = useState<Record<string, SourceHealthItem>>({});
+  const [opportunitySourceMeta, setOpportunitySourceMeta] = useState<{
+    curated: string;
+    live: string;
+    curatedCount: number;
+    liveCount: number;
+  } | null>(null);
+  const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
+  const isFetchingRef = useRef(false);
+  const hasLoadedRef = useRef(false);
 
   // Convert discovery to opportunity and add to pipeline
   const addDiscoveryToPipeline = (disc: CommercialDiscovery) => {
@@ -824,169 +955,220 @@ function OTPipelineTrackerContent() {
     setPendingSaves(prev => new Set(prev).add(oppId));
   };
 
-  // Fetch opportunities and news
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      try {
-        const [oppRes, newsRes] = await Promise.all([
-          fetch('/api/opportunities'),
-          fetch('/api/live-feed'),
-        ]);
+  const fetchPipelineData = useCallback(async (silent = false) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    const isInitialLoad = !hasLoadedRef.current;
 
-        const oppData = await oppRes.json();
-        setOpportunities(oppData.opportunities || []);
+    if (isInitialLoad && !silent) setLoading(true);
+    if (!isInitialLoad) setIsRefreshing(true);
+    setDiscoveriesLoading(true);
 
-        if (oppData.opportunities?.length > 0) {
-          setSelectedOpp(oppData.opportunities[0]);
-        }
+    try {
+      const [oppRes, newsRes] = await Promise.all([
+        fetch('/api/opportunities'),
+        fetch('/api/live-feed'),
+      ]);
 
-        const newsData = await newsRes.json();
-        if (newsData.sources?.news?.data) {
-          setNews(newsData.sources.news.data.slice(0, 6));
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
+      const oppData = await oppRes.json();
+      const liveCount = Number(oppData.stats?.live || 0);
+      const curatedCount = Number(oppData.stats?.curated || 0);
+      setOpportunities(oppData.opportunities || []);
+      setOpportunitySourceMeta({
+        curated: String(oppData.dataSources?.curated || 'unknown'),
+        live: String(oppData.dataSources?.live || 'unknown'),
+        curatedCount,
+        liveCount,
+      });
+
+      if (isInitialLoad && oppData.opportunities?.length > 0) {
+        setSelectedOpp(oppData.opportunities[0]);
       }
-      setLoading(false);
 
-      // Fetch commercial opportunities and add to main pipeline
-      setDiscoveriesLoading(true);
-      try {
-        const discRes = await fetch('/api/commercial');
-        const discData = await discRes.json();
-        if (discData.opportunities) {
-          const allDiscoveries = discData.opportunities as CommercialDiscovery[];
-
-          // Filter to actual opportunities (not just news)
-          const realOpportunities = allDiscoveries.filter(d =>
-            d.source !== 'news' && d.source !== 'trade-pub'
-          );
-
-          // Convert discoveries to Opportunity format and add to pipeline
-          const sectorToPillar: Record<string, GenesisPillar> = {
-            'grid': 'power',
-            'power': 'power',
-            'nuclear': 'power',
-            'data-centers': 'ai-compute',
-            'semiconductors': 'semiconductors',
-            'manufacturing': 'manufacturing',
-            'ev-battery': 'supply-chain',
-            'defense': 'defense',
-            'pharma': 'healthcare',
-            'chemicals': 'manufacturing',
-            'metals': 'supply-chain',
-            'food-bev': 'manufacturing',
+      const newsData = await newsRes.json();
+      if (newsData.sources?.news?.data) {
+        setNews(newsData.sources.news.data.slice(0, 6));
+      }
+      if (newsData.sources?.sec?.data) {
+        setSecFilings((newsData.sources.sec.data as SecFilingItem[]).slice(0, 8));
+      }
+      if (newsData.sources?.earnings?.data) {
+        setEarningsSignals((newsData.sources.earnings.data as CommercialSignalItem[]).slice(0, 6));
+      }
+      if (newsData.sources?.utilityIr?.data) {
+        setUtilityIrSignals((newsData.sources.utilityIr.data as CommercialSignalItem[]).slice(0, 6));
+      }
+      if (newsData.sources?.stateProc?.data) {
+        setStateProcSignals((newsData.sources.stateProc.data as CommercialSignalItem[]).slice(0, 6));
+      }
+      if (newsData.sources && typeof newsData.sources === 'object') {
+        const health: Record<string, SourceHealthItem> = {};
+        Object.entries(newsData.sources as Record<string, Record<string, unknown>>).forEach(([key, value]) => {
+          health[key] = {
+            status: String(value.status || 'unknown'),
+            count: Number(value.count || 0),
+            fallback: Boolean(value.fallback || false),
+            error: value.error ? String(value.error) : null,
           };
-
-          const newOpps: Opportunity[] = realOpportunities.map(disc => ({
-            id: `disc-${disc.id}`,
-            title: disc.title,
-            subtitle: disc.summary.substring(0, 100),
-            genesisPillar: sectorToPillar[disc.sector] || 'manufacturing',
-            genesisConnection: `Source: ${disc.sourceName}`,
-            entity: disc.entity !== 'Unknown' ? disc.entity : 'TBD',
-            entityType: disc.entityType,
-            sector: disc.sector as any,
-            location: disc.specificSite || disc.state,
-            state: disc.state,
-            estimatedValue: disc.estimatedValue,
-            contractType: 'unknown',
-            fundingSource: disc.source === 'contract-award' ? 'Federal' :
-                          disc.source === 'chips-act' ? 'CHIPS Act' :
-                          disc.source === 'grant' ? 'DOE/Federal Grant' :
-                          disc.entityType === 'utility' ? 'Rate base' : 'Private',
-            procurementStage: disc.phase === 'RFP Open' ? 'rfp-open' :
-                             disc.phase === 'Awarded' || disc.phase === 'Contractor Selected' ? 'awarded' :
-                             disc.phase === 'Construction' || disc.phase === 'Construction Starting' ? 'execution' :
-                             disc.source === 'contract-award' ? 'awarded' : 'pre-solicitation',
-            urgency: disc.needsResearch ? 'watching' : 'this-quarter',
-            keyDate: disc.rfpTimeline ? disc.rfpTimeline : null,
-            keyDateDescription: disc.rfpTimeline ? 'RFP Expected' : null,
-            postedDate: disc.publishedAt,
-            responseDeadline: null,
-            otRelevance: disc.needsResearch ? 'medium' : disc.otRelevance,
-            otSystems: [],
-            otScope: disc.summary,
-            regulatoryDrivers: [],
-            complianceRequirements: disc.otKeywords.join(', '),
-            deloitteServices: ['ot-assessment'],
-            deloitteAngle: disc.needsResearch
-              ? '⚠️ NEEDS RESEARCH - Too broad to action. Find specific site, phase, and prime contractor.'
-              : disc.primeContractor
-                ? `Prime: ${disc.primeContractor} - explore subcontracting or direct pursuit`
-                : `Discovered via ${disc.sourceName} - verify and pursue`,
-            existingRelationship: 'unknown',
-            likelyPrimes: disc.primeContractor ? [disc.primeContractor] : [],
-            competitors: [],
-            partnerOpportunities: disc.primeContractor ? [disc.primeContractor] : [],
-            sources: [{ title: disc.sourceName, url: disc.sourceUrl, date: disc.publishedAt.split('T')[0] }],
-            lastUpdated: new Date().toISOString(),
-            confidence: disc.needsResearch ? 'speculative' : disc.specificSite ? 'likely' : 'speculative',
-            notes: disc.needsResearch
-              ? '🔍 NEEDS RESEARCH: This is a broad national/program-level announcement. To make actionable, identify:\n• Specific site/facility\n• Project phase & timeline\n• Prime contractor(s)\n• Cyber/OT work packages'
-              : [
-                  disc.specificSite ? `📍 Site: ${disc.specificSite}` : '',
-                  disc.phase ? `📅 Phase: ${disc.phase}` : '',
-                  disc.primeContractor ? `🏢 Prime: ${disc.primeContractor}` : '',
-                  disc.rfpTimeline ? `⏰ RFP: ${disc.rfpTimeline}` : '',
-                ].filter(Boolean).join('\n') || '',
-            source: 'sam.gov' as any,
-          }));
-
-          // Add to opportunities (append to existing)
-          setOpportunities(prev => {
-            const existingIds = new Set(prev.map(o => o.id));
-            const uniqueNew = newOpps.filter(o => !existingIds.has(o.id));
-            return [...prev, ...uniqueNew];
-          });
-
-          // Set initial tracking for new discoveries
-          const now = new Date().toISOString();
-          setTracking(prev => {
-            const newTracking = { ...prev };
-            for (const disc of realOpportunities) {
-              const oppId = `disc-${disc.id}`;
-              if (!newTracking[oppId]) {
-                const noteLines = [
-                  `Source: ${disc.sourceName}`,
-                  disc.specificSite ? `Site: ${disc.specificSite}` : null,
-                  disc.phase ? `Phase: ${disc.phase}` : null,
-                  disc.primeContractor ? `Prime: ${disc.primeContractor}` : null,
-                  disc.rfpTimeline ? `RFP Timeline: ${disc.rfpTimeline}` : null,
-                  `Keywords: ${disc.otKeywords.join(', ')}`,
-                  disc.needsResearch ? '\n⚠️ NEEDS RESEARCH - Too broad. Find specific details.' : null,
-                ].filter(Boolean).join('\n');
-
-                newTracking[oppId] = {
-                  status: 'on-radar',
-                  notes: noteLines,
-                  lastUpdated: now,
-                  activity: [{
-                    id: `act-${Date.now()}-${disc.id}`,
-                    timestamp: now,
-                    type: 'created',
-                    details: disc.needsResearch
-                      ? `Added from ${disc.sourceName} - NEEDS RESEARCH`
-                      : `Added from ${disc.sourceName}`,
-                  }],
-                };
-              }
+        });
+        setSourceHealth(health);
+        const fallbackCount = Object.values(health).filter((item) => item.fallback).length;
+        const event: LiveEvent = fallbackCount > 0
+          ? {
+              at: new Date().toISOString(),
+              level: 'warn',
+              message: `Refresh complete: ${liveCount} live / ${curatedCount} curated opps • ${fallbackCount} fallback feeds`,
             }
-            return newTracking;
-          });
-
-          // Keep news/intel items separate for the news section
-          setDiscoveries(allDiscoveries.filter(d => d.source === 'news' || d.source === 'trade-pub'));
-          setNewDiscoveryCount(discData.newCount || 0);
-        }
-      } catch (error) {
-        console.error('Error fetching opportunities:', error);
+          : {
+              at: new Date().toISOString(),
+              level: 'ok',
+              message: `Refresh complete: ${liveCount} live / ${curatedCount} curated opps • all feeds healthy`,
+            };
+        setLiveEvents((prev) => [event, ...prev].slice(0, 8));
       }
+
+      const discRes = await fetch('/api/commercial');
+      const discData = await discRes.json();
+      if (discData.opportunities) {
+        const allDiscoveries = discData.opportunities as CommercialDiscovery[];
+
+        const realOpportunities = allDiscoveries.filter(d =>
+          d.source !== 'news' && d.source !== 'trade-pub'
+        );
+
+        const sectorToPillar: Record<string, GenesisPillar> = {
+          'grid': 'power',
+          'power': 'power',
+          'nuclear': 'power',
+          'data-centers': 'ai-compute',
+          'semiconductors': 'semiconductors',
+          'manufacturing': 'manufacturing',
+          'ev-battery': 'supply-chain',
+          'defense': 'defense',
+          'pharma': 'healthcare',
+          'chemicals': 'manufacturing',
+          'metals': 'supply-chain',
+          'food-bev': 'manufacturing',
+        };
+
+        const newOpps: Opportunity[] = realOpportunities.map(disc => ({
+          id: `disc-${disc.id}`,
+          title: disc.title,
+          subtitle: disc.summary.substring(0, 100),
+          genesisPillar: sectorToPillar[disc.sector] || 'manufacturing',
+          genesisConnection: `Source: ${disc.sourceName}`,
+          entity: disc.entity !== 'Unknown' ? disc.entity : 'TBD',
+          entityType: disc.entityType,
+          sector: disc.sector as any,
+          location: disc.specificSite || disc.state,
+          state: disc.state,
+          estimatedValue: disc.estimatedValue,
+          contractType: 'unknown',
+          fundingSource: disc.source === 'contract-award' ? 'Federal' :
+                        disc.source === 'chips-act' ? 'CHIPS Act' :
+                        disc.source === 'grant' ? 'DOE/Federal Grant' :
+                        disc.entityType === 'utility' ? 'Rate base' : 'Private',
+          procurementStage: disc.phase === 'RFP Open' ? 'rfp-open' :
+                           disc.phase === 'Awarded' || disc.phase === 'Contractor Selected' ? 'awarded' :
+                           disc.phase === 'Construction' || disc.phase === 'Construction Starting' ? 'execution' :
+                           disc.source === 'contract-award' ? 'awarded' : 'pre-solicitation',
+          urgency: disc.needsResearch ? 'watching' : 'this-quarter',
+          keyDate: disc.rfpTimeline ? disc.rfpTimeline : null,
+          keyDateDescription: disc.rfpTimeline ? 'RFP Expected' : null,
+          postedDate: disc.publishedAt,
+          responseDeadline: null,
+          otRelevance: disc.needsResearch ? 'medium' : disc.otRelevance,
+          otSystems: [],
+          otScope: disc.summary,
+          regulatoryDrivers: [],
+          complianceRequirements: disc.otKeywords.join(', '),
+          deloitteServices: ['ot-assessment'],
+          deloitteAngle: disc.needsResearch
+            ? '⚠️ NEEDS RESEARCH - Too broad to action. Find specific site, phase, and prime contractor.'
+            : disc.primeContractor
+              ? `Prime: ${disc.primeContractor} - explore subcontracting or direct pursuit`
+              : `Discovered via ${disc.sourceName} - verify and pursue`,
+          existingRelationship: 'unknown',
+          likelyPrimes: disc.primeContractor ? [disc.primeContractor] : [],
+          competitors: [],
+          partnerOpportunities: disc.primeContractor ? [disc.primeContractor] : [],
+          sources: [{ title: disc.sourceName, url: disc.sourceUrl, date: disc.publishedAt.split('T')[0] }],
+          lastUpdated: new Date().toISOString(),
+          confidence: disc.needsResearch ? 'speculative' : disc.specificSite ? 'likely' : 'speculative',
+          notes: disc.needsResearch
+            ? '🔍 NEEDS RESEARCH: This is a broad national/program-level announcement. To make actionable, identify:\n• Specific site/facility\n• Project phase & timeline\n• Prime contractor(s)\n• Cyber/OT work packages'
+            : [
+                disc.specificSite ? `📍 Site: ${disc.specificSite}` : '',
+                disc.phase ? `📅 Phase: ${disc.phase}` : '',
+                disc.primeContractor ? `🏢 Prime: ${disc.primeContractor}` : '',
+                disc.rfpTimeline ? `⏰ RFP: ${disc.rfpTimeline}` : '',
+              ].filter(Boolean).join('\n') || '',
+          source: 'sam.gov' as any,
+        }));
+
+        setOpportunities(prev => {
+          const existingIds = new Set(prev.map(o => o.id));
+          const uniqueNew = newOpps.filter(o => !existingIds.has(o.id));
+          return [...prev, ...uniqueNew];
+        });
+
+        const now = new Date().toISOString();
+        setTracking(prev => {
+          const newTracking = { ...prev };
+          for (const disc of realOpportunities) {
+            const oppId = `disc-${disc.id}`;
+            if (!newTracking[oppId]) {
+              const noteLines = [
+                `Source: ${disc.sourceName}`,
+                disc.specificSite ? `Site: ${disc.specificSite}` : null,
+                disc.phase ? `Phase: ${disc.phase}` : null,
+                disc.primeContractor ? `Prime: ${disc.primeContractor}` : null,
+                disc.rfpTimeline ? `RFP Timeline: ${disc.rfpTimeline}` : null,
+                `Keywords: ${disc.otKeywords.join(', ')}`,
+                disc.needsResearch ? '\n⚠️ NEEDS RESEARCH - Too broad. Find specific details.' : null,
+              ].filter(Boolean).join('\n');
+
+              newTracking[oppId] = {
+                status: 'on-radar',
+                notes: noteLines,
+                lastUpdated: now,
+                activity: [{
+                  id: `act-${Date.now()}-${disc.id}`,
+                  timestamp: now,
+                  type: 'created',
+                  details: disc.needsResearch
+                    ? `Added from ${disc.sourceName} - NEEDS RESEARCH`
+                    : `Added from ${disc.sourceName}`,
+                }],
+              };
+            }
+          }
+          return newTracking;
+        });
+
+        setDiscoveries(allDiscoveries.filter(d => d.source === 'news' || d.source === 'trade-pub'));
+        setNewDiscoveryCount(discData.newCount || 0);
+      }
+      setLastRefreshAt(new Date().toISOString());
+      hasLoadedRef.current = true;
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
       setDiscoveriesLoading(false);
+      setLoading(false);
+      setIsRefreshing(false);
+      isFetchingRef.current = false;
     }
-    fetchData();
   }, []);
+
+  // Fetch opportunities and news (initial + auto refresh)
+  useEffect(() => {
+    void fetchPipelineData(false);
+    const intervalId = setInterval(() => {
+      void fetchPipelineData(true);
+    }, 5 * 60 * 1000);
+    return () => clearInterval(intervalId);
+  }, [fetchPipelineData]);
 
   // Allow deep-linking from other pages, e.g. /radar?id=opp-id
   useEffect(() => {
@@ -1011,7 +1193,13 @@ function OTPipelineTrackerContent() {
       try {
         const res = await fetch('/api/grid-infra');
         const data = await res.json();
-        const lines = ((data.lines || []) as Array<{ geometry?: { type?: string; coordinates?: unknown } }>)
+        const lines = ((data.lines || []) as Array<{
+          geometry?: { type?: string; coordinates?: unknown };
+          voltageKv?: number | null;
+          voltageClass?: string;
+          status?: string | null;
+          detailBand?: string;
+        }>)
           .flatMap((feature) => {
             const geometry = feature.geometry;
             if (!geometry?.coordinates) return [];
@@ -1033,29 +1221,43 @@ function OTPipelineTrackerContent() {
                   return `${i === 0 ? 'M' : 'L'} ${(nx * MAP_W).toFixed(1)} ${(ny * MAP_H).toFixed(1)}`;
                 })
                 .join(' ');
-              return { d };
+              return {
+                d,
+                voltageKv: feature.voltageKv ?? null,
+                voltageClass: feature.voltageClass || 'Unknown',
+                status: feature.status ?? null,
+                detailBand: feature.detailBand || 'Unknown',
+              };
             });
           });
 
-        const pointProject = (raw: unknown) => {
-          if (!Array.isArray(raw) || raw.length < 2) return null;
-          const x = Number(raw[0]);
-          const y = Number(raw[1]);
-          if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-          const nx = (x - US_BOUNDS.xmin) / (US_BOUNDS.xmax - US_BOUNDS.xmin);
-          const ny = 1 - (y - US_BOUNDS.ymin) / (US_BOUNDS.ymax - US_BOUNDS.ymin);
-          return { x: nx * MAP_W, y: ny * MAP_H };
-        };
+        const generationSites = ((data.generationSites || []) as Array<{
+          lat?: number | null;
+          lng?: number | null;
+          name?: string;
+          state?: string | null;
+          fuelPrimary?: string;
+          opCapMw?: number | null;
+          planCapMw?: number | null;
+          retCapMw?: number | null;
+        }>)
+          .map((site) => {
+            if (typeof site.lat !== 'number' || typeof site.lng !== 'number') return null;
+            const point = latLngToMap(site.lat, site.lng);
+            return {
+              x: point.x,
+              y: point.y,
+              name: site.name || 'Unknown plant',
+              state: site.state ?? null,
+              fuelPrimary: site.fuelPrimary || 'Unknown',
+              opCapMw: site.opCapMw ?? null,
+              planCapMw: site.planCapMw ?? null,
+              retCapMw: site.retCapMw ?? null,
+            };
+          })
+          .filter((site): site is NonNullable<typeof site> => site !== null);
 
-        const substations = ((data.substations || []) as Array<{ geometry?: { type?: string; coordinates?: unknown } }>)
-          .map((f) => (f.geometry?.type === 'Point' ? pointProject(f.geometry.coordinates) : null))
-          .filter((p): p is { x: number; y: number } => p !== null);
-
-        const plants = ((data.plants || []) as Array<{ geometry?: { type?: string; coordinates?: unknown } }>)
-          .map((f) => (f.geometry?.type === 'Point' ? pointProject(f.geometry.coordinates) : null))
-          .filter((p): p is { x: number; y: number } => p !== null);
-
-        setGridInfra({ lines, substations, plants });
+        setGridInfra({ lines, generationSites });
       } catch (error) {
         console.error('Failed to load grid-infra layer for radar map', error);
       }
@@ -1090,8 +1292,14 @@ function OTPipelineTrackerContent() {
   });
 
   const mapMarkers = useMemo(() => {
+    const markerSlotsByState: Record<string, number> = {};
+
     return filteredOpps
       .map((opp, idx) => {
+        const stateFromField = opp.state?.toUpperCase();
+        const stateFromLocation = opp.location?.match(/\b([A-Z]{2})\b/)?.[1];
+        const stateCode = stateFromField || stateFromLocation || null;
+
         let statePoint = STATE_CENTROIDS[opp.state?.toUpperCase()];
         if (!statePoint && opp.location) {
           const match = opp.location.match(/\b([A-Z]{2})\b/);
@@ -1103,18 +1311,94 @@ function OTPipelineTrackerContent() {
         }
         if (!statePoint) return null;
         const point = latLngToMap(statePoint.lat, statePoint.lng);
+        const stateBucket = stateCode || `fallback-${idx % 4}`;
+        const slot = markerSlotsByState[stateBucket] ?? 0;
+        markerSlotsByState[stateBucket] = slot + 1;
+
+        // Spread overlapping markers in the same state into concentric rings.
+        const ring = Math.floor(slot / 8);
+        const angle = (slot % 8) * (Math.PI / 4);
+        const spread = ring === 0 ? 0 : ring * 10 + 8;
+        const jitterX = Math.cos(angle) * spread;
+        const jitterY = Math.sin(angle) * spread;
+
+        const jitteredPoint = {
+          x: Math.min(MAP_W - 8, Math.max(8, point.x + jitterX)),
+          y: Math.min(MAP_H - 8, Math.max(8, point.y + jitterY)),
+        };
         const oppStatus = tracking[opp.id]?.status || 'on-radar';
         return {
           id: opp.id,
           title: opp.title,
           entity: opp.entity,
-          point,
+          stateCode,
+          point: jitteredPoint,
           color: statusColor(oppStatus),
           selected: selectedOpp?.id === opp.id,
         };
       })
       .filter((m): m is NonNullable<typeof m> => m !== null);
   }, [filteredOpps, tracking, selectedOpp?.id]);
+
+  const hoveredMarker = useMemo(
+    () => mapMarkers.find((marker) => marker.id === hoveredMarkerId) || null,
+    [mapMarkers, hoveredMarkerId],
+  );
+
+  const gridFoundationSummary = useMemo(() => {
+    const byFuel: Record<string, number> = {};
+    let operatingMw = 0;
+    let plannedMw = 0;
+    let retiredMw = 0;
+
+    for (const site of gridInfra.generationSites) {
+      operatingMw += site.opCapMw || 0;
+      plannedMw += site.planCapMw || 0;
+      retiredMw += site.retCapMw || 0;
+      const fuel = (site.fuelPrimary || 'Unknown').trim();
+      byFuel[fuel] = (byFuel[fuel] || 0) + (site.opCapMw || 0);
+    }
+
+    const topFuels = Object.entries(byFuel)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([fuel, mw]) => `${fuel} ${(mw / 1000).toFixed(1)} GW`);
+
+    return {
+      transmissionCorridors: gridInfra.lines.length,
+      generationSites: gridInfra.generationSites.length,
+      operatingGw: operatingMw / 1000,
+      plannedGw: plannedMw / 1000,
+      retiredGw: retiredMw / 1000,
+      topFuels,
+    };
+  }, [gridInfra]);
+
+  const gridDiagnostics = useMemo(() => {
+    const voltageBuckets = {
+      e500: 0,
+      e345: 0,
+      e220: 0,
+      e100: 0,
+      unknown: 0,
+    };
+    for (const line of gridInfra.lines) {
+      const kv = line.voltageKv;
+      if (kv === null) voltageBuckets.unknown += 1;
+      else if (kv >= 500) voltageBuckets.e500 += 1;
+      else if (kv >= 345) voltageBuckets.e345 += 1;
+      else if (kv >= 220) voltageBuckets.e220 += 1;
+      else if (kv >= 100) voltageBuckets.e100 += 1;
+      else voltageBuckets.unknown += 1;
+    }
+
+    const topPlants = [...gridInfra.generationSites]
+      .sort((a, b) => (b.opCapMw || 0) - (a.opCapMw || 0))
+      .slice(0, 3)
+      .map((s) => `${s.name}${s.state ? ` (${s.state})` : ''}: ${(s.opCapMw || 0).toFixed(0)} MW`);
+
+    return { voltageBuckets, topPlants };
+  }, [gridInfra]);
 
   const pipelinePaths = useMemo(() => PIPELINE_SEGMENTS.map((seg) => ({ id: seg.id, d: toPath(seg.points) })), []);
   const portPoints = useMemo(() => PORTS.map((port) => ({ ...port, point: latLngToMap(port.lat, port.lng) })), []);
@@ -1138,6 +1422,12 @@ function OTPipelineTrackerContent() {
 
   // Pipeline metrics
   const totalPipeline = filteredOpps.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+  const fallbackSources = Object.entries(sourceHealth).filter(([, value]) => value.fallback);
+  const hasSourceRisk = fallbackSources.length >= 2 || (opportunitySourceMeta?.liveCount || 0) === 0;
+  const displayNews = !showFallbackData && sourceHealth.news?.fallback ? [] : news;
+  const displayEarningsSignals = !showFallbackData && sourceHealth.earnings?.fallback ? [] : earningsSignals;
+  const displayUtilityIrSignals = !showFallbackData && sourceHealth.utilityIr?.fallback ? [] : utilityIrSignals;
+  const displayStateProcSignals = !showFallbackData && sourceHealth.stateProc?.fallback ? [] : stateProcSignals;
 
   if (loading) {
     return (
@@ -1191,41 +1481,31 @@ function OTPipelineTrackerContent() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Link
-                href="/grid"
-                className="text-xs px-3 py-1.5 rounded border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10"
-              >
-                Grid View
-              </Link>
-              {/* View Toggle */}
-              <div className="flex items-center bg-[#12121a] rounded-lg border border-gray-800 p-0.5 text-xs">
-                <button
-                  onClick={() => setViewMode('kanban')}
-                  className={`px-3 py-1.5 rounded ${viewMode === 'kanban' ? 'bg-cyan-500 text-white' : 'text-gray-400 hover:text-white'}`}
-                >
-                  Kanban
-                </button>
-                <button
-                  onClick={() => setViewMode('table')}
-                  className={`px-3 py-1.5 rounded ${viewMode === 'table' ? 'bg-cyan-500 text-white' : 'text-gray-400 hover:text-white'}`}
-                >
-                  Table
-                </button>
-              </div>
-
-              <div className="text-right">
-                <div className="text-lg font-bold text-cyan-400">{formatCurrency(totalPipeline)}</div>
-                <div className="text-[10px] text-gray-500">{filteredOpps.length} opportunities</div>
-              </div>
-            </div>
+	            <div className="flex items-center gap-3">
+	              <div className="text-right">
+	                <button
+	                  onClick={() => void fetchPipelineData(true)}
+	                  className="rounded-md border border-cyan-500/40 px-2 py-1 text-xs text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-50"
+	                  disabled={isRefreshing || loading}
+	                >
+	                  {isRefreshing ? 'Refreshing...' : 'Refresh now'}
+	                </button>
+	                <div className="mt-1 text-[10px] text-gray-500">
+	                  Auto-refresh every 5m{lastRefreshAt ? ` • Last ${new Date(lastRefreshAt).toLocaleTimeString()}` : ''}
+	                </div>
+	              </div>
+	              <div className="text-right">
+	                <div className="text-lg font-bold text-cyan-400">{formatCurrency(totalPipeline)}</div>
+	                <div className="text-[10px] text-gray-500">{filteredOpps.length} opportunities</div>
+	              </div>
+	            </div>
           </div>
         </div>
       </header>
 
-      {/* Filters */}
-      <div className="border-b border-gray-800 bg-[#0d0d14]/50">
-        <div className="max-w-[1800px] mx-auto px-6 py-2">
+	      {/* Filters */}
+	      <div className="border-b border-gray-800 bg-[#0d0d14]/50">
+	        <div className="max-w-[1800px] mx-auto px-6 py-2">
           <div className="flex items-center gap-4">
             {/* Market Filter */}
             <div className="flex items-center gap-2">
@@ -1308,6 +1588,72 @@ function OTPipelineTrackerContent() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-[#12121a] border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500"
               />
+	          </div>
+	        </div>
+	      </div>
+
+        <div className="border-b border-gray-800 bg-[#0b111b]">
+          <div className="max-w-[1800px] mx-auto px-6 py-2">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-gray-400">Source Health:</span>
+              <button
+                onClick={() => setShowFallbackData((current) => !current)}
+                className={`rounded border px-2 py-1 ${
+                  showFallbackData
+                    ? 'border-amber-500/50 bg-amber-500/10 text-amber-200'
+                    : 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200'
+                }`}
+              >
+                {showFallbackData ? 'Fallback data ON' : 'Fallback data OFF'}
+              </button>
+              {Object.entries(sourceHealth).map(([name, item]) => (
+                <span
+                  key={name}
+                  className={`rounded border px-2 py-1 ${
+                    item.fallback
+                      ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+                      : item.status === 'ok'
+                        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+                        : 'border-gray-700 bg-gray-800/50 text-gray-300'
+                  }`}
+                >
+                  {name.toUpperCase()}: {item.fallback ? 'fallback' : item.status} ({item.count})
+                </span>
+              ))}
+              {opportunitySourceMeta ? (
+                <span className="rounded border border-cyan-500/40 bg-cyan-500/10 px-2 py-1 text-cyan-300">
+                  Opportunities live: {opportunitySourceMeta.liveCount} | curated: {opportunitySourceMeta.curatedCount}
+                </span>
+              ) : null}
+            </div>
+            {hasSourceRisk ? (
+              <div className="mt-2 text-xs text-amber-300">
+                Warning: some feeds are in fallback mode. Pipeline may be partially stale until source/API access is restored.
+              </div>
+            ) : null}
+            <div className="mt-2 flex items-center gap-2 overflow-x-auto whitespace-nowrap text-[11px]">
+              <span className="inline-flex items-center gap-1 rounded border border-cyan-500/40 bg-cyan-500/10 px-2 py-1 text-cyan-300">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-300"></span>
+                Live monitor
+              </span>
+              {liveEvents.length === 0 ? (
+                <span className="text-gray-500">Waiting for next refresh cycle...</span>
+              ) : (
+                liveEvents.map((event) => (
+                  <span
+                    key={`${event.at}-${event.message}`}
+                    className={`rounded border px-2 py-1 ${
+                      event.level === 'ok'
+                        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+                        : event.level === 'warn'
+                          ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+                          : 'border-slate-500/40 bg-slate-500/10 text-slate-300'
+                    }`}
+                  >
+                    {new Date(event.at).toLocaleTimeString()} • {event.message}
+                  </span>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -1319,22 +1665,36 @@ function OTPipelineTrackerContent() {
           {/* Pipeline View */}
           <div className="col-span-8">
             <div className="mb-4 bg-[#12121a] rounded-xl border border-gray-800 p-3">
+              <div className="mb-3 rounded-lg border border-cyan-500/30 bg-cyan-500/5 p-2.5">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+                  <span className="text-cyan-300 font-semibold uppercase tracking-wide">Grid Foundation Layer</span>
+                  <span className="text-gray-300">Tx corridors: <span className="text-white">{gridFoundationSummary.transmissionCorridors.toLocaleString()}</span></span>
+                  <span className="text-gray-300">Generation sites: <span className="text-white">{gridFoundationSummary.generationSites.toLocaleString()}</span></span>
+                  <span className="text-gray-300">Operating: <span className="text-emerald-300">{gridFoundationSummary.operatingGw.toFixed(1)} GW</span></span>
+                  <span className="text-gray-300">Planned: <span className="text-cyan-300">{gridFoundationSummary.plannedGw.toFixed(1)} GW</span></span>
+                  <span className="text-gray-300">Retired: <span className="text-rose-300">{gridFoundationSummary.retiredGw.toFixed(1)} GW</span></span>
+                </div>
+                <div className="mt-1 text-[11px] text-gray-400">Top fuel stack: {gridFoundationSummary.topFuels.join(' · ') || 'No fuel data'}</div>
+              </div>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-white">Opportunity Location Map</h3>
+                <h3 className="text-sm font-semibold text-white">Grid & Generation Base Map</h3>
                 <div className="flex items-center gap-2 text-[11px]">
-                  <button onClick={() => setShowInfra(v => !v)} className={`px-2 py-1 rounded border ${showInfra ? 'border-cyan-500/40 text-cyan-300' : 'border-gray-700 text-gray-500'}`}>Grid</button>
-                  <button onClick={() => setShowPipelines(v => !v)} className={`px-2 py-1 rounded border ${showPipelines ? 'border-orange-500/40 text-orange-300' : 'border-gray-700 text-gray-500'}`}>Pipelines</button>
-                  <button onClick={() => setShowPorts(v => !v)} className={`px-2 py-1 rounded border ${showPorts ? 'border-emerald-500/40 text-emerald-300' : 'border-gray-700 text-gray-500'}`}>Ports</button>
-                  <button onClick={() => setShowWater(v => !v)} className={`px-2 py-1 rounded border ${showWater ? 'border-blue-500/40 text-blue-300' : 'border-gray-700 text-gray-500'}`}>Water</button>
-                  <div className="text-xs text-gray-500">{mapMarkers.length} mapped</div>
+                  <div className="text-xs text-gray-500">Single grid-first view · {mapMarkers.length} opportunity overlays</div>
                 </div>
               </div>
               <div className="relative overflow-hidden rounded-lg border border-gray-800 bg-[#090b10]">
                 <div className="aspect-[14/8] relative">
-                  <div
-                    className="absolute inset-0 opacity-55 bg-cover bg-center"
-                    style={{ backgroundImage: "url('/us-map.svg')" }}
-                  />
+                  <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} className="absolute inset-0 h-full w-full">
+                    <image
+                      href="/us-map.svg"
+                      x={0}
+                      y={0}
+                      width={MAP_W}
+                      height={MAP_H}
+                      preserveAspectRatio="none"
+                      opacity={0.55}
+                    />
+                  </svg>
                   <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} className="absolute inset-0 h-full w-full opacity-25">
                     {Array.from({ length: 13 }).map((_, i) => (
                       <line key={`v-${i}`} x1={(i * MAP_W) / 12} y1={0} x2={(i * MAP_W) / 12} y2={MAP_H} stroke="#1f2937" strokeWidth="1" />
@@ -1347,36 +1707,89 @@ function OTPipelineTrackerContent() {
                     {showWater && waterAreas.map(area => (
                       <ellipse key={area.id} cx={area.point.x} cy={area.point.y} rx={area.rx} ry={area.ry} fill="#1d4ed833" stroke="#60a5fa66" strokeWidth={1.2} />
                     ))}
-                    {showInfra && gridInfra.lines.slice(0, 900).map((line, idx) => (
-                      <path key={`line-${idx}`} d={line.d} fill="none" stroke="#22d3ee33" strokeWidth={1} />
-                    ))}
+                    {showInfra && gridInfra.lines.slice(0, 2200).map((line, idx) => {
+                      const style = transmissionStyle(line.voltageKv, line.detailBand);
+                      return (
+                        <path
+                          key={`line-${idx}`}
+                          d={line.d}
+                          fill="none"
+                          stroke={style.stroke}
+                          strokeWidth={style.width}
+                          opacity={style.opacity}
+                        />
+                      );
+                    })}
                     {showPipelines && pipelinePaths.map(path => (
                       <path key={path.id} d={path.d} fill="none" stroke="#fb923c99" strokeWidth={2.2} strokeDasharray="6 4" />
                     ))}
-                    {showInfra && gridInfra.substations.slice(0, 400).map((s, idx) => (
-                      <rect key={`sub-${idx}`} x={s.x - 1.5} y={s.y - 1.5} width={3} height={3} fill="#67e8f9aa" />
-                    ))}
-                    {showInfra && gridInfra.plants.slice(0, 260).map((p, idx) => (
-                      <circle key={`plant-${idx}`} cx={p.x} cy={p.y} r={1.8} fill="#f472b6aa" />
-                    ))}
+                    {showGeneration && gridInfra.generationSites.slice(0, 1800).map((site, idx) => {
+                      const radius = site.opCapMw ? Math.min(8, Math.max(2.2, Math.log10(site.opCapMw + 1) * 2)) : 2.4;
+                      const color = generationFuelColor(site.fuelPrimary);
+                      return (
+                        <g key={`gen-${idx}`}>
+                          <circle cx={site.x} cy={site.y} r={radius + 1} fill="#02061799" />
+                          <circle cx={site.x} cy={site.y} r={radius} fill={color} opacity={0.86} />
+                          <title>{`${site.name}${site.state ? ` (${site.state})` : ''} • ${site.fuelPrimary} • ${site.opCapMw ? `${site.opCapMw} MW` : 'MW n/a'}`}</title>
+                        </g>
+                      );
+                    })}
                     {showPorts && portPoints.map(port => (
                       <g key={port.id}>
                         <circle cx={port.point.x} cy={port.point.y} r={4.5} fill="#34d399cc" stroke="#042f2e" strokeWidth={1} />
                       </g>
                     ))}
-                    {mapMarkers.map(marker => (
-                      <g key={marker.id} onClick={() => setSelectedOpp(opportunities.find(o => o.id === marker.id) || null)} className="cursor-pointer">
+                    {showOpportunities && mapMarkers.map(marker => (
+                      <g
+                        key={marker.id}
+                        onClick={() => setSelectedOpp(opportunities.find(o => o.id === marker.id) || null)}
+                        onMouseEnter={() => setHoveredMarkerId(marker.id)}
+                        onMouseLeave={() => setHoveredMarkerId(null)}
+                        className="cursor-pointer"
+                      >
+                        <title>{`${marker.entity}${marker.stateCode ? ` (${marker.stateCode})` : ''}`}</title>
                         <circle
                           cx={marker.point.x}
                           cy={marker.point.y}
                           r={marker.selected ? 10 : 7}
                           fill={marker.color}
-                          opacity={marker.selected ? 0.95 : 0.78}
+                          opacity={marker.selected ? 0.95 : 0.62}
                           stroke={marker.selected ? '#ffffff' : 'none'}
                           strokeWidth={marker.selected ? 2 : 0}
                         />
                       </g>
                     ))}
+                    {hoveredMarker && (
+                      <g pointerEvents="none">
+                        <rect
+                          x={Math.min(MAP_W - 260, Math.max(10, hoveredMarker.point.x + 10))}
+                          y={Math.max(10, hoveredMarker.point.y - 50)}
+                          width={250}
+                          height={40}
+                          rx={6}
+                          fill="#030712ee"
+                          stroke="#334155"
+                          strokeWidth={1}
+                        />
+                        <text
+                          x={Math.min(MAP_W - 250, Math.max(18, hoveredMarker.point.x + 18))}
+                          y={Math.max(26, hoveredMarker.point.y - 32)}
+                          fill="#e2e8f0"
+                          fontSize={11}
+                          fontWeight={700}
+                        >
+                          {hoveredMarker.entity}
+                        </text>
+                        <text
+                          x={Math.min(MAP_W - 250, Math.max(18, hoveredMarker.point.x + 18))}
+                          y={Math.max(40, hoveredMarker.point.y - 18)}
+                          fill="#94a3b8"
+                          fontSize={10}
+                        >
+                          {hoveredMarker.title.length > 36 ? `${hoveredMarker.title.slice(0, 36)}...` : hoveredMarker.title}
+                        </text>
+                      </g>
+                    )}
                   </svg>
                 </div>
               </div>
@@ -1387,52 +1800,198 @@ function OTPipelineTrackerContent() {
                 <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-400"></span>Proposal</span>
                 <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-400"></span>Closed</span>
               </div>
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-gray-500">
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span>500kV+</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500"></span>345kV</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400"></span>220-287kV</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-cyan-400"></span>100-161kV</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span>Renewables</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500"></span>Gas</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500"></span>Petro/Oil</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500"></span>Nuclear</span>
+                <span className="text-gray-600">Gen sites: {gridInfra.generationSites.length}</span>
+                <span className="text-gray-600">500kV+ lines: {gridDiagnostics.voltageBuckets.e500}</span>
+                <span className="text-gray-600">345kV lines: {gridDiagnostics.voltageBuckets.e345}</span>
+              </div>
+              <div className="mt-2 text-[11px] text-gray-500">
+                Largest operating plants in current view: {gridDiagnostics.topPlants.join(' · ') || 'No capacity records'}
+              </div>
             </div>
 
-            {viewMode === 'kanban' ? (
-              <KanbanView
-                oppsByStage={oppsByStage}
-                tracking={tracking}
-                selectedOpp={selectedOpp}
-                setSelectedOpp={setSelectedOpp}
-              />
-            ) : (
-              <TableView
-                opportunities={filteredOpps}
-                tracking={tracking}
-                selectedOpp={selectedOpp}
-                setSelectedOpp={setSelectedOpp}
-                updateStatus={updateStatus}
-              />
-            )}
+            <KanbanView
+              oppsByStage={oppsByStage}
+              tracking={tracking}
+              selectedOpp={selectedOpp}
+              setSelectedOpp={setSelectedOpp}
+            />
 
             {/* Latest News */}
             <div className="mt-6">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-lg">📰</span>
-                <h3 className="font-bold text-white">Latest OT News</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">📰</span>
+                    <h3 className="font-bold text-white">Latest OT News</h3>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {displayNews.map((item) => {
+                      const fresh = freshnessBadge(item.publishedAt);
+                      const newsFallback = sourceHealth.news?.fallback ?? false;
+                      return (
+                      <a
+                        key={item.id}
+                        href={item.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block p-3 bg-[#12121a] rounded-lg border border-gray-800 hover:border-gray-600 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 mb-1 text-xs">
+                          <span className="text-cyan-400">{item.source}</span>
+                          <span className="text-gray-600">{getRelativeTime(item.publishedAt)}</span>
+                        </div>
+                        <div className="mb-1 flex items-center gap-1 text-[10px]">
+                          <span className={`rounded px-1 ${fresh.className}`}>{fresh.label}</span>
+                          <span className={`rounded px-1 ${newsFallback ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                            {newsFallback ? 'fallback' : 'live'}
+                          </span>
+                        </div>
+                        <div className="text-sm text-white line-clamp-2">{item.title}</div>
+                      </a>
+                    )})}
+                    {displayNews.length === 0 && (
+                      <div className="col-span-3 text-center py-8 text-gray-500 text-sm">
+                        {sourceHealth.news?.fallback && !showFallbackData
+                          ? 'News source is in fallback mode. Toggle "Fallback data ON" to view sample feed items.'
+                          : 'No recent news'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="col-span-1">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">📊</span>
+                    <h3 className="font-bold text-white">SEC Commercial Signals</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {secFilings.map((filing) => {
+                      const fresh = freshnessBadge(filing.filedDate);
+                      const secFallback = sourceHealth.sec?.fallback ?? false;
+                      return (
+                        <a
+                          key={filing.id}
+                          href={filing.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block rounded-lg border border-gray-800 bg-[#12121a] p-2 hover:border-gray-600"
+                        >
+                          <div className="mb-1 flex items-center justify-between text-[10px]">
+                            <span className="text-cyan-300">{filing.ticker} • {filing.form}</span>
+                            <span className="text-gray-500">{getRelativeTime(filing.filedDate)}</span>
+                          </div>
+                          <div className="line-clamp-2 text-xs text-white">{filing.company}</div>
+                          <div className="line-clamp-1 text-[11px] text-gray-400">{filing.description}</div>
+                          <div className="mt-1 flex items-center gap-1 text-[10px]">
+                            <span className={`rounded px-1 ${fresh.className}`}>{fresh.label}</span>
+                            <span className={`rounded px-1 ${filing.relevance === 'high' ? 'bg-rose-500/20 text-rose-300' : filing.relevance === 'medium' ? 'bg-amber-500/20 text-amber-300' : 'bg-gray-500/20 text-gray-300'}`}>
+                              {filing.relevance}
+                            </span>
+                            <span className={`rounded px-1 ${secFallback ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                              {secFallback ? 'fallback' : 'live'}
+                            </span>
+                          </div>
+                        </a>
+                      );
+                    })}
+                    {secFilings.length === 0 && (
+                      <div className="rounded-lg border border-gray-800 bg-[#12121a] p-3 text-xs text-gray-500">
+                        No recent SEC filings in current feed window.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="text-lg">📡</span>
+                <h3 className="font-bold text-white">Commercial Signal Grid</h3>
               </div>
               <div className="grid grid-cols-3 gap-3">
-                {news.map(item => (
-                  <a
-                    key={item.id}
-                    href={item.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block p-3 bg-[#12121a] rounded-lg border border-gray-800 hover:border-gray-600 transition-colors"
-                  >
-                    <div className="flex items-center gap-2 mb-1 text-xs">
-                      <span className="text-cyan-400">{item.source}</span>
-                      <span className="text-gray-600">{getRelativeTime(item.publishedAt)}</span>
-                    </div>
-                    <div className="text-sm text-white line-clamp-2">{item.title}</div>
-                  </a>
-                ))}
-                {news.length === 0 && (
-                  <div className="col-span-3 text-center py-8 text-gray-500 text-sm">
-                    No recent news
+                <div className="rounded-lg border border-gray-800 bg-[#12121a] p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-white">Earnings Signals</p>
+                    <span className={`rounded px-1 text-[10px] ${sourceHealth.earnings?.fallback ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                      {sourceHealth.earnings?.fallback ? 'fallback' : 'live'}
+                    </span>
                   </div>
-                )}
+                  <div className="space-y-2">
+                    {displayEarningsSignals.slice(0, 4).map((item) => (
+                      <a key={item.id} href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="block rounded border border-gray-800 bg-[#0a0a0f] p-2 hover:border-gray-600">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-cyan-300">{item.entity}</span>
+                          <span className="text-gray-500">{getRelativeTime(item.publishedAt)}</span>
+                        </div>
+                        <div className="line-clamp-2 text-xs text-gray-200">{item.title}</div>
+                      </a>
+                    ))}
+                    {displayEarningsSignals.length === 0 && (
+                      <div className="text-xs text-gray-500">
+                        {sourceHealth.earnings?.fallback && !showFallbackData ? 'Fallback hidden' : 'No earnings signals'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-gray-800 bg-[#12121a] p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-white">Utility IR</p>
+                    <span className={`rounded px-1 text-[10px] ${sourceHealth.utilityIr?.fallback ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                      {sourceHealth.utilityIr?.fallback ? 'fallback' : 'live'}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {displayUtilityIrSignals.slice(0, 4).map((item) => (
+                      <a key={item.id} href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="block rounded border border-gray-800 bg-[#0a0a0f] p-2 hover:border-gray-600">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-cyan-300">{item.entity}</span>
+                          <span className="text-gray-500">{getRelativeTime(item.publishedAt)}</span>
+                        </div>
+                        <div className="line-clamp-2 text-xs text-gray-200">{item.title}</div>
+                      </a>
+                    ))}
+                    {displayUtilityIrSignals.length === 0 && (
+                      <div className="text-xs text-gray-500">
+                        {sourceHealth.utilityIr?.fallback && !showFallbackData ? 'Fallback hidden' : 'No utility IR signals'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-gray-800 bg-[#12121a] p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-white">State Procurement</p>
+                    <span className={`rounded px-1 text-[10px] ${sourceHealth.stateProc?.fallback ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                      {sourceHealth.stateProc?.fallback ? 'fallback' : 'live'}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {displayStateProcSignals.slice(0, 4).map((item) => (
+                      <a key={item.id} href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="block rounded border border-gray-800 bg-[#0a0a0f] p-2 hover:border-gray-600">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-cyan-300">{item.entity}</span>
+                          <span className="text-gray-500">{getRelativeTime(item.publishedAt)}</span>
+                        </div>
+                        <div className="line-clamp-2 text-xs text-gray-200">{item.title}</div>
+                      </a>
+                    ))}
+                    {displayStateProcSignals.length === 0 && (
+                      <div className="text-xs text-gray-500">
+                        {sourceHealth.stateProc?.fallback && !showFallbackData ? 'Fallback hidden' : 'No state procurement signals'}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1668,12 +2227,14 @@ function KanbanView({
                 {opps.length === 0 ? (
                   <div className="text-center text-gray-600 text-xs py-4">Empty</div>
                 ) : (
-                  opps.map(opp => {
-                    const daysUntil = getDaysUntil(opp.keyDate);
-                    const isSelected = selectedOpp?.id === opp.id;
-                    const clientSize = getClientSize(opp.entity, opp.estimatedValue);
+	                  opps.map(opp => {
+	                    const daysUntil = getDaysUntil(opp.keyDate);
+	                    const isSelected = selectedOpp?.id === opp.id;
+	                    const clientSize = getClientSize(opp.entity, opp.estimatedValue);
+                      const freshness = freshnessBadge(opp.postedDate || opp.lastUpdated || null);
+                      const confidence = confidenceBadge(opp.confidence || null);
 
-                    return (
+	                    return (
                       <button
                         key={opp.id}
                         onClick={() => setSelectedOpp(opp)}
@@ -1703,12 +2264,16 @@ function KanbanView({
                           <span className="text-[10px] text-gray-500 truncate max-w-[80px]">{opp.entity}</span>
                           <span className="text-xs font-bold text-cyan-400">{formatCurrency(opp.estimatedValue)}</span>
                         </div>
-                        <div className="mt-1">
-                          <span className={`text-[9px] px-1 rounded ${clientSize.color}`}>{clientSize.label}</span>
-                        </div>
-                      </button>
-                    );
-                  })
+	                        <div className="mt-1">
+	                          <span className={`text-[9px] px-1 rounded ${clientSize.color}`}>{clientSize.label}</span>
+	                        </div>
+                          <div className="mt-1 flex items-center gap-1">
+                            <span className={`text-[9px] px-1 rounded ${freshness.className}`}>{freshness.label}</span>
+                            <span className={`text-[9px] px-1 rounded ${confidence.className}`}>{confidence.label}</span>
+                          </div>
+	                      </button>
+	                    );
+	                  })
                 )}
               </div>
             </div>

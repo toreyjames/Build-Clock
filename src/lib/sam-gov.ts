@@ -331,8 +331,14 @@ export async function fetchSAMOpportunities(apiKey: string, limit: number = 50):
   // Get date range (last 90 days)
   const today = new Date();
   const ninetyDaysAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
-  const postedFrom = ninetyDaysAgo.toISOString().split('T')[0].replace(/-/g, '/');
-  const postedTo = today.toISOString().split('T')[0].replace(/-/g, '/');
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+  const postedFrom = fmt.format(ninetyDaysAgo); // MM/dd/yyyy required by SAM v2
+  const postedTo = fmt.format(today); // MM/dd/yyyy required by SAM v2
 
   // Search with multiple queries to catch different opportunities
   const queriesToRun = OT_SEARCH_QUERIES.slice(0, 8); // Limit to avoid rate limits
@@ -341,12 +347,12 @@ export async function fetchSAMOpportunities(apiKey: string, limit: number = 50):
     try {
       const params = new URLSearchParams({
         api_key: apiKey,
-        q: query,
-        postedFrom: postedFrom,
-        postedTo: postedTo,
-        limit: '25',
-        ptype: 'o,p,k', // Opportunities, Presolicitations, Combined
-        status: 'active',
+        title: query,
+        postedFrom,
+        postedTo,
+        limit: '100',
+        ptype: 'o,p,k,r,s', // Solicitation + presol + combined + sources sought + special notice
+        offset: '0',
       });
 
       const response = await fetch(`${SAM_API_BASE}?${params}`, {

@@ -5,6 +5,7 @@ import { fetchGrants } from '@/lib/grants-gov';
 import { fetchDOEAnnouncements } from '@/lib/energy-gov';
 import { fetchNews } from '@/lib/news';
 import { fetchSECFilings } from '@/lib/sec-filings';
+import { fetchEarningsSignals, fetchStateProcurementSignals, fetchUtilityIRSignals } from '@/lib/commercial-signals';
 
 export const revalidate = 1800; // Revalidate every 30 minutes
 
@@ -27,11 +28,26 @@ const SAMPLE_GRANTS = [
   { id: 'grant-3', title: 'Grid Resilience Formula Grants', agency: 'DOE', deadline: '2026-04-15', amount: '$100M' },
 ];
 
+const SAMPLE_EARNINGS = [
+  { id: 'earn-1', title: 'Utility Q4 filing references cybersecurity modernization spend', entity: 'Large Utility', source: 'SEC EDGAR', sourceUrl: 'https://www.sec.gov', publishedAt: '2026-02-20', relevance: 'high', note: 'Sample fallback signal' },
+  { id: 'earn-2', title: 'Industrial manufacturer 10-Q notes control system uplift', entity: 'Industrial Co', source: 'SEC EDGAR', sourceUrl: 'https://www.sec.gov', publishedAt: '2026-02-18', relevance: 'medium', note: 'Sample fallback signal' },
+];
+
+const SAMPLE_UTILITY_IR = [
+  { id: 'util-1', title: 'Grid modernization investment update', entity: 'Utility IR', source: 'Utility IR Feed', sourceUrl: 'https://example.com', publishedAt: '2026-02-22', relevance: 'medium', note: 'Sample fallback signal' },
+  { id: 'util-2', title: 'Resilience and substation digitalization program', entity: 'Utility IR', source: 'Utility IR Feed', sourceUrl: 'https://example.com', publishedAt: '2026-02-16', relevance: 'high', note: 'Sample fallback signal' },
+];
+
+const SAMPLE_STATE_PROC = [
+  { id: 'state-1', title: 'State procurement portal heartbeat: cybersecurity services category active', entity: 'State Portal', source: 'State Procurement', sourceUrl: 'https://example.com', publishedAt: '2026-02-21', relevance: 'medium', note: 'Sample fallback signal' },
+  { id: 'state-2', title: 'State procurement portal heartbeat: critical infrastructure technology postings', entity: 'State Portal', source: 'State Procurement', sourceUrl: 'https://example.com', publishedAt: '2026-02-19', relevance: 'medium', note: 'Sample fallback signal' },
+];
+
 export async function GET() {
   const now = new Date();
 
   // Fetch all sources in parallel
-  const [samResult, awardsResult, grantsResult, doeResult, newsResult, secResult] = await Promise.allSettled([
+  const [samResult, awardsResult, grantsResult, doeResult, newsResult, secResult, earningsResult, utilityIrResult, stateProcResult] = await Promise.allSettled([
     // SAM.gov
     (async () => {
       const samApiKey = process.env.SAM_API_KEY;
@@ -48,12 +64,27 @@ export async function GET() {
     fetchNews(15),
     // SEC
     fetchSECFilings(12),
+    // Earnings/transcript-style commercial signals
+    fetchEarningsSignals(10),
+    // Utility investor relations feeds
+    fetchUtilityIRSignals(10),
+    // State procurement portal signals
+    fetchStateProcurementSignals(10),
   ]);
 
   // Use sample data as fallback when APIs fail
   const samData = samResult.status === 'fulfilled' && samResult.value.length > 0 ? samResult.value : SAMPLE_SAM;
   const awardsData = awardsResult.status === 'fulfilled' && awardsResult.value.length > 0 ? awardsResult.value : SAMPLE_AWARDS;
   const grantsData = grantsResult.status === 'fulfilled' && grantsResult.value.length > 0 ? grantsResult.value : SAMPLE_GRANTS;
+  const samFallback = !(samResult.status === 'fulfilled' && samResult.value.length > 0);
+  const awardsFallback = !(awardsResult.status === 'fulfilled' && awardsResult.value.length > 0);
+  const grantsFallback = !(grantsResult.status === 'fulfilled' && grantsResult.value.length > 0);
+  const earningsData = earningsResult.status === 'fulfilled' && earningsResult.value.length > 0 ? earningsResult.value : SAMPLE_EARNINGS;
+  const utilityIrData = utilityIrResult.status === 'fulfilled' && utilityIrResult.value.length > 0 ? utilityIrResult.value : SAMPLE_UTILITY_IR;
+  const stateProcData = stateProcResult.status === 'fulfilled' && stateProcResult.value.length > 0 ? stateProcResult.value : SAMPLE_STATE_PROC;
+  const earningsFallback = !(earningsResult.status === 'fulfilled' && earningsResult.value.length > 0);
+  const utilityIrFallback = !(utilityIrResult.status === 'fulfilled' && utilityIrResult.value.length > 0);
+  const stateProcFallback = !(stateProcResult.status === 'fulfilled' && stateProcResult.value.length > 0);
 
   return NextResponse.json({
     fetchedAt: now.toISOString(),
@@ -63,7 +94,9 @@ export async function GET() {
         description: 'Federal contract opportunities',
         icon: '📋',
         count: samData.length,
-        status: 'ok',
+        status: samFallback ? 'fallback' : 'ok',
+        fallback: samFallback,
+        error: samResult.status === 'rejected' ? samResult.reason?.message : undefined,
         data: samData,
       },
       awards: {
@@ -71,7 +104,9 @@ export async function GET() {
         description: 'Recent federal contract awards',
         icon: '💰',
         count: awardsData.length,
-        status: 'ok',
+        status: awardsFallback ? 'fallback' : 'ok',
+        fallback: awardsFallback,
+        error: awardsResult.status === 'rejected' ? awardsResult.reason?.message : undefined,
         data: awardsData,
       },
       grants: {
@@ -79,7 +114,9 @@ export async function GET() {
         description: 'Federal grant opportunities',
         icon: '🎓',
         count: grantsData.length,
-        status: 'ok',
+        status: grantsFallback ? 'fallback' : 'ok',
+        fallback: grantsFallback,
+        error: grantsResult.status === 'rejected' ? grantsResult.reason?.message : undefined,
         data: grantsData,
       },
       doe: {
@@ -109,6 +146,36 @@ export async function GET() {
         error: secResult.status === 'rejected' ? secResult.reason?.message : undefined,
         data: secResult.status === 'fulfilled' ? secResult.value : [],
       },
+      earnings: {
+        name: 'Earnings Signals',
+        description: 'Commercial filing-based earnings/transcript proxies',
+        icon: '🧾',
+        count: earningsData.length,
+        status: earningsFallback ? 'fallback' : 'ok',
+        fallback: earningsFallback,
+        error: earningsResult.status === 'rejected' ? earningsResult.reason?.message : undefined,
+        data: earningsData,
+      },
+      utilityIr: {
+        name: 'Utility IR',
+        description: 'Utility investor relations pressroom feeds',
+        icon: '🏢',
+        count: utilityIrData.length,
+        status: utilityIrFallback ? 'fallback' : 'ok',
+        fallback: utilityIrFallback,
+        error: utilityIrResult.status === 'rejected' ? utilityIrResult.reason?.message : undefined,
+        data: utilityIrData,
+      },
+      stateProc: {
+        name: 'State Procurement',
+        description: 'State/local non-federal procurement portal signals',
+        icon: '🏛️',
+        count: stateProcData.length,
+        status: stateProcFallback ? 'fallback' : 'ok',
+        fallback: stateProcFallback,
+        error: stateProcResult.status === 'rejected' ? stateProcResult.reason?.message : undefined,
+        data: stateProcData,
+      },
     },
     summary: {
       totalItems:
@@ -117,8 +184,11 @@ export async function GET() {
         grantsData.length +
         (doeResult.status === 'fulfilled' ? doeResult.value.length : 0) +
         (newsResult.status === 'fulfilled' ? newsResult.value.length : 0) +
-        (secResult.status === 'fulfilled' ? secResult.value.length : 0),
-      sourcesActive: 6, // All sources now have data
+        (secResult.status === 'fulfilled' ? secResult.value.length : 0) +
+        earningsData.length +
+        utilityIrData.length +
+        stateProcData.length,
+      sourcesActive: 9,
       lastUpdated: now.toISOString(),
     },
   });
