@@ -1915,16 +1915,6 @@ function OTPipelineTrackerContent() {
                 <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-400"></span>Proposal</span>
                 <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-400"></span>Closed</span>
               </div>
-              <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-gray-500">
-                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span>500kV+</span>
-                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500"></span>345kV</span>
-                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400"></span>220-287kV</span>
-                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-cyan-400"></span>100-161kV</span>
-                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span>Renewables</span>
-                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500"></span>Gas</span>
-                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500"></span>Petro/Oil</span>
-                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500"></span>Nuclear</span>
-              </div>
             </div>
 
             <div className="order-2">
