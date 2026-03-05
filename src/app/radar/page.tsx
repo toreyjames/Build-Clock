@@ -135,14 +135,6 @@ interface InvestmentComponent {
   stage: string;
 }
 
-interface SpeedToGridSignal {
-  id: 'interconnection' | 'permitting' | 'long-lead' | 'commissioning';
-  label: string;
-  description: string;
-  count: number;
-  opportunities: string[];
-}
-
 // Commercial discovery from scanning
 interface CommercialDiscovery {
   id: string;
@@ -360,21 +352,6 @@ function getDaysUntil(dateStr: string | null): number | null {
 function getOpportunityMilestoneDays(opportunity: Opportunity): number | null {
   const milestone = opportunity.responseDeadline || opportunity.keyDate;
   return getDaysUntil(milestone);
-}
-
-function getOpportunityText(opportunity: Opportunity): string {
-  return [
-    opportunity.title,
-    opportunity.subtitle,
-    opportunity.otScope,
-    opportunity.notes,
-    opportunity.keyDateDescription,
-    opportunity.fundingSource,
-    opportunity.procurementStage,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
 }
 
 function getOpportunityAnchorDate(opportunity: Opportunity): Date | null {
@@ -1411,31 +1388,6 @@ function OTPipelineTrackerContent() {
 
   // Pipeline metrics (decision-first, less distortion from mega-project outliers)
   const totalPipeline = filteredOpps.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
-  const valuedOpps = filteredOpps.filter((opp) => (opp.estimatedValue || 0) > 0);
-  const valuedPipeline = valuedOpps.reduce((sum, opp) => sum + (opp.estimatedValue || 0), 0);
-  const valuedCoveragePct = filteredOpps.length > 0 ? (valuedOpps.length / filteredOpps.length) * 100 : 0;
-  const sortedValues = [...valuedOpps].map((opp) => opp.estimatedValue || 0).sort((a, b) => a - b);
-  const medianProjectValue =
-    sortedValues.length === 0
-      ? null
-      : sortedValues.length % 2 === 1
-        ? sortedValues[Math.floor(sortedValues.length / 2)]
-        : (sortedValues[sortedValues.length / 2 - 1] + sortedValues[sortedValues.length / 2]) / 2;
-  const top3Value = [...valuedOpps]
-    .sort((a, b) => (b.estimatedValue || 0) - (a.estimatedValue || 0))
-    .slice(0, 3)
-    .reduce((sum, opp) => sum + (opp.estimatedValue || 0), 0);
-  const top3ConcentrationPct = valuedPipeline > 0 ? (top3Value / valuedPipeline) * 100 : 0;
-  const actionablePursuits = filteredOpps.filter((opp) => {
-    const isPriorityUrgency = opp.urgency === 'this-week' || opp.urgency === 'this-month' || opp.urgency === 'this-quarter';
-    const isHighOT = hasOtEquipment(opp);
-    const isNonSpeculative = opp.confidence !== 'speculative';
-    return isPriorityUrgency && isHighOT && isNonSpeculative;
-  });
-  const actionDates30 = filteredOpps.filter((opp) => {
-    const days = getOpportunityMilestoneDays(opp);
-    return days !== null && days >= 0 && days <= 30;
-  });
   const topActionQueue = [...filteredOpps]
     .map((opp) => {
       const value = opp.estimatedValue || 0;
@@ -1456,50 +1408,6 @@ function OTPipelineTrackerContent() {
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
-  const speedToGridSignals = useMemo<SpeedToGridSignal[]>(() => {
-    const buckets: Record<SpeedToGridSignal['id'], { label: string; description: string; patterns: RegExp[] }> = {
-      interconnection: {
-        label: 'Interconnection',
-        description: 'Queue/POI/substation tie-in signals',
-        patterns: [/\binterconnection\b/i, /\bqueue\b/i, /\bpoi\b/i, /\bsubstation\b/i, /\btransmission upgrade\b/i],
-      },
-      permitting: {
-        label: 'Permitting',
-        description: 'Permit/NTP/regulatory milestone signals',
-        patterns: [/\bpermit\b/i, /\bpermitting\b/i, /\bdocket\b/i, /\brulemaking\b/i, /\bnotice to proceed\b/i, /\bntp\b/i],
-      },
-      'long-lead': {
-        label: 'Long-Lead Equipment',
-        description: 'Transformer/switchgear/protection lead-time signals',
-        patterns: [/\btransformer\b/i, /\bswitchgear\b/i, /\bbreaker\b/i, /\brelay\b/i, /\blead time\b/i, /\blong lead\b/i],
-      },
-      commissioning: {
-        label: 'Commissioning',
-        description: 'Energization/testing/COD window signals',
-        patterns: [/\bcommissioning\b/i, /\benergization\b/i, /\btesting\b/i, /\bcod\b/i, /\bcommercial operation\b/i, /\bin-service\b/i],
-      },
-    };
-
-    const signals = Object.entries(buckets).map(([id, config]) => {
-      const matches = filteredOpps.filter((opp) => {
-        const text = getOpportunityText(opp);
-        return config.patterns.some((pattern) => pattern.test(text));
-      });
-      return {
-        id: id as SpeedToGridSignal['id'],
-        label: config.label,
-        description: config.description,
-        count: matches.length,
-        opportunities: matches.slice(0, 3).map((opp) => opp.title),
-      };
-    });
-
-    return signals;
-  }, [filteredOpps]);
-  const opportunityIdSet = new Set(opportunities.map((opp) => opp.id));
-  const jupiterSyncedInView = filteredOpps.filter((opp) => Boolean(tracking[opp.id]?.salesforce_id)).length;
-  const jupiterOnlyRecords = Object.entries(tracking)
-    .filter(([oppId, track]) => Boolean(track.salesforce_id) && !opportunityIdSet.has(oppId));
   const fallbackSources = Object.entries(sourceHealth).filter(([, value]) => value.fallback);
   const hasSourceRisk = fallbackSources.length >= 2 || (opportunitySourceMeta?.liveCount || 0) === 0;
   const displayNews = !showFallbackData && sourceHealth.news?.fallback ? [] : news;
@@ -1704,82 +1612,6 @@ function OTPipelineTrackerContent() {
 
       {/* Main Content */}
       <main className="max-w-[1800px] mx-auto px-6 py-4">
-        <section className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3">
-            <p className="text-[11px] uppercase tracking-wide text-cyan-200/80">Actionable Pursuits</p>
-            <p className="mt-1 text-xl font-semibold text-cyan-100">{actionablePursuits.length}</p>
-            <p className="text-[11px] text-cyan-200/70">OT equipment present + near-term urgency + non-speculative</p>
-          </div>
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
-            <p className="text-[11px] uppercase tracking-wide text-emerald-200/80">30-Day Action Dates</p>
-            <p className="mt-1 text-xl font-semibold text-emerald-100">{actionDates30.length}</p>
-            <p className="text-[11px] text-emerald-200/70">Opportunities with key date or response deadline within 30 days</p>
-          </div>
-          <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3">
-            <p className="text-[11px] uppercase tracking-wide text-indigo-200/80">Median Project Size</p>
-            <p className="mt-1 text-xl font-semibold text-indigo-100">{formatCurrency(medianProjectValue)}</p>
-            <p className="text-[11px] text-indigo-200/70">Less sensitive to mega-project outliers</p>
-          </div>
-          <div className="rounded-xl border border-slate-500/40 bg-slate-500/10 p-3">
-            <p className="text-[11px] uppercase tracking-wide text-slate-300/80">Value Coverage</p>
-            <p className="mt-1 text-xl font-semibold text-slate-100">{valuedCoveragePct.toFixed(0)}%</p>
-            <p className="text-[11px] text-slate-300/70">{valuedOpps.length}/{filteredOpps.length} opportunities have non-zero project value</p>
-          </div>
-        </section>
-        <section className="mb-4 rounded-xl border border-gray-800 bg-[#12121a] p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-white">Speed-to-Grid Indicators</h3>
-            <span className="text-[11px] text-gray-500">track friction and timeline risk</span>
-          </div>
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
-            {speedToGridSignals.map((signal) => (
-              <div key={signal.id} className="rounded-lg border border-gray-800 bg-[#0a0a0f] p-2">
-                <p className="text-[11px] uppercase tracking-wide text-cyan-300">{signal.label}</p>
-                <p className="mt-1 text-xl font-semibold text-white">{signal.count}</p>
-                <p className="text-[11px] text-gray-500">{signal.description}</p>
-                {signal.opportunities.length > 0 && (
-                  <p className="mt-1 line-clamp-2 text-[11px] text-gray-400">
-                    {signal.opportunities.join(' • ')}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-        <section className="mb-4 rounded-xl border border-gray-800 bg-[#12121a] p-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-white">Jupiter Coverage</h3>
-            <span className="text-[11px] text-gray-500">inside vs outside tracker</span>
-          </div>
-          <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
-            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2">
-              <p className="text-[11px] uppercase tracking-wide text-emerald-200/80">Synced In Current View</p>
-              <p className="text-lg font-semibold text-emerald-100">{jupiterSyncedInView}</p>
-            </div>
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2">
-              <p className="text-[11px] uppercase tracking-wide text-amber-200/80">Jupiter-Only Records</p>
-              <p className="text-lg font-semibold text-amber-100">{jupiterOnlyRecords.length}</p>
-            </div>
-            <div className="rounded-lg border border-slate-500/40 bg-slate-500/10 p-2">
-              <p className="text-[11px] uppercase tracking-wide text-slate-300/80">Coverage Gap</p>
-              <p className="text-lg font-semibold text-slate-100">
-                {jupiterOnlyRecords.length === 0 ? 'None' : 'Needs Inbound Sync'}
-              </p>
-            </div>
-          </div>
-          {jupiterOnlyRecords.length > 0 && (
-            <div className="mt-2 rounded-lg border border-gray-800 bg-[#0a0a0f] p-2 text-xs text-gray-400">
-              Missing from tracker feed: {jupiterOnlyRecords.slice(0, 5).map(([id]) => id).join(', ')}
-              {jupiterOnlyRecords.length > 5 ? ` +${jupiterOnlyRecords.length - 5} more` : ''}
-            </div>
-          )}
-        </section>
-        <p className="mb-4 text-xs text-gray-400">
-          Value metrics shown are total project/program amounts. OT-specific value is intentionally not estimated until opportunity scope is validated.
-        </p>
-        <p className="mb-4 text-xs text-gray-500">
-          Context ({timeframeFilter === 'rolling-year' ? 'rolling 1-year window' : 'all-time window'}): total valued project pipeline {formatCurrency(valuedPipeline)} across {valuedOpps.length} items; top-3 concentration {top3ConcentrationPct.toFixed(0)}%.
-        </p>
         <section className="mb-5 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_1.9fr]">
           <div className="rounded-xl border border-gray-800 bg-[#12121a] p-3">
             <div className="mb-2 flex items-center justify-between">
