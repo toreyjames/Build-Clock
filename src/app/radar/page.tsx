@@ -135,6 +135,14 @@ interface InvestmentComponent {
   stage: string;
 }
 
+interface SpeedToGridSignal {
+  id: 'interconnection' | 'permitting' | 'long-lead' | 'commissioning';
+  label: string;
+  description: string;
+  count: number;
+  opportunities: string[];
+}
+
 // Commercial discovery from scanning
 interface CommercialDiscovery {
   id: string;
@@ -416,6 +424,21 @@ function getDaysUntil(dateStr: string | null): number | null {
 function getOpportunityMilestoneDays(opportunity: Opportunity): number | null {
   const milestone = opportunity.responseDeadline || opportunity.keyDate;
   return getDaysUntil(milestone);
+}
+
+function getOpportunityText(opportunity: Opportunity): string {
+  return [
+    opportunity.title,
+    opportunity.subtitle,
+    opportunity.otScope,
+    opportunity.notes,
+    opportunity.keyDateDescription,
+    opportunity.fundingSource,
+    opportunity.procurementStage,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
 }
 
 function getOpportunityAnchorDate(opportunity: Opportunity): Date | null {
@@ -1587,6 +1610,46 @@ function OTPipelineTrackerContent() {
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
+  const speedToGridSignals = useMemo<SpeedToGridSignal[]>(() => {
+    const buckets: Record<SpeedToGridSignal['id'], { label: string; description: string; patterns: RegExp[] }> = {
+      interconnection: {
+        label: 'Interconnection',
+        description: 'Queue/POI/substation tie-in signals',
+        patterns: [/\binterconnection\b/i, /\bqueue\b/i, /\bpoi\b/i, /\bsubstation\b/i, /\btransmission upgrade\b/i],
+      },
+      permitting: {
+        label: 'Permitting',
+        description: 'Permit/NTP/regulatory milestone signals',
+        patterns: [/\bpermit\b/i, /\bpermitting\b/i, /\bdocket\b/i, /\brulemaking\b/i, /\bnotice to proceed\b/i, /\bntp\b/i],
+      },
+      'long-lead': {
+        label: 'Long-Lead Equipment',
+        description: 'Transformer/switchgear/protection lead-time signals',
+        patterns: [/\btransformer\b/i, /\bswitchgear\b/i, /\bbreaker\b/i, /\brelay\b/i, /\blead time\b/i, /\blong lead\b/i],
+      },
+      commissioning: {
+        label: 'Commissioning',
+        description: 'Energization/testing/COD window signals',
+        patterns: [/\bcommissioning\b/i, /\benergization\b/i, /\btesting\b/i, /\bcod\b/i, /\bcommercial operation\b/i, /\bin-service\b/i],
+      },
+    };
+
+    const signals = Object.entries(buckets).map(([id, config]) => {
+      const matches = filteredOpps.filter((opp) => {
+        const text = getOpportunityText(opp);
+        return config.patterns.some((pattern) => pattern.test(text));
+      });
+      return {
+        id: id as SpeedToGridSignal['id'],
+        label: config.label,
+        description: config.description,
+        count: matches.length,
+        opportunities: matches.slice(0, 3).map((opp) => opp.title),
+      };
+    });
+
+    return signals;
+  }, [filteredOpps]);
   const opportunityIdSet = new Set(opportunities.map((opp) => opp.id));
   const jupiterSyncedInView = filteredOpps.filter((opp) => Boolean(tracking[opp.id]?.salesforce_id)).length;
   const jupiterOnlyRecords = Object.entries(tracking)
@@ -1815,6 +1878,26 @@ function OTPipelineTrackerContent() {
             <p className="text-[11px] uppercase tracking-wide text-slate-300/80">Value Coverage</p>
             <p className="mt-1 text-xl font-semibold text-slate-100">{valuedCoveragePct.toFixed(0)}%</p>
             <p className="text-[11px] text-slate-300/70">{valuedOpps.length}/{filteredOpps.length} opportunities have non-zero project value</p>
+          </div>
+        </section>
+        <section className="mb-4 rounded-xl border border-gray-800 bg-[#12121a] p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-white">Speed-to-Grid Indicators</h3>
+            <span className="text-[11px] text-gray-500">track friction and timeline risk</span>
+          </div>
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
+            {speedToGridSignals.map((signal) => (
+              <div key={signal.id} className="rounded-lg border border-gray-800 bg-[#0a0a0f] p-2">
+                <p className="text-[11px] uppercase tracking-wide text-cyan-300">{signal.label}</p>
+                <p className="mt-1 text-xl font-semibold text-white">{signal.count}</p>
+                <p className="text-[11px] text-gray-500">{signal.description}</p>
+                {signal.opportunities.length > 0 && (
+                  <p className="mt-1 line-clamp-2 text-[11px] text-gray-400">
+                    {signal.opportunities.join(' • ')}
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
         </section>
         <section className="mb-4 rounded-xl border border-gray-800 bg-[#12121a] p-3">

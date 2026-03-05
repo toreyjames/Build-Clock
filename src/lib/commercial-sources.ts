@@ -53,6 +53,42 @@ const OT_KEYWORDS = {
   medium: ['utility cybersecurity', 'infrastructure security', 'grid security', 'digital transformation', 'automation upgrade', 'control center'],
 };
 
+const OT_EQUIPMENT_TERMS = [
+  'scada', 'dcs', 'ics', 'hmi', 'plc', 'rtu', 'relay', 'protection relay', 'substation automation',
+  'distributed control system', 'building management system', 'bms', 'mes', 'ems',
+  'control system', 'instrumentation', 'sis', 'safety instrumented system',
+];
+
+const SECTOR_OT_ANCHORS: Record<string, string[]> = {
+  grid: ['SCADA', 'substation automation', 'protective relay', 'EMS'],
+  'data-centers': ['BMS', 'EPMS', 'cooling controls', 'generator controls'],
+  manufacturing: ['PLC', 'MES', 'HMI', 'ICS'],
+  semiconductors: ['MES', 'DCS', 'tool control', 'fab automation'],
+  'ev-battery': ['BMS', 'MES', 'PLC', 'formation line controls'],
+  defense: ['ICS', 'SCADA', 'control system', 'test range instrumentation'],
+  aerospace: ['industrial control system', 'test stand controls', 'manufacturing execution system'],
+  metals: ['DCS', 'PLC', 'furnace controls', 'mill controls'],
+  minerals: ['process control', 'PLC', 'SCADA', 'ore processing controls'],
+  'oil-gas': ['SCADA', 'pipeline control', 'compressor controls', 'DCS'],
+  'clean-energy': ['plant control system', 'SCADA', 'carbon capture controls'],
+  chemicals: ['DCS', 'SIS', 'process control', 'instrumentation'],
+  pharma: ['BMS', 'process control', 'MES', 'cleanroom automation'],
+  'food-bev': ['PLC', 'line control', 'SCADA', 'packaging automation'],
+  nuclear: ['reactor control', 'plant control system', 'SCADA'],
+  water: ['SCADA', 'RTU', 'pump controls', 'treatment controls'],
+};
+
+function buildOtFocusedQuery(baseQuery: string, sector: string): string {
+  const anchors = SECTOR_OT_ANCHORS[sector] || ['SCADA', 'PLC', 'ICS'];
+  return `${baseQuery} (${anchors.join(' OR ')})`;
+}
+
+function extractOtEquipmentKeywords(text: string): string[] {
+  const lower = text.toLowerCase();
+  const found = OT_EQUIPMENT_TERMS.filter((term) => lower.includes(term));
+  return [...new Set(found.map((term) => term.toUpperCase()))];
+}
+
 // Major utilities to track
 const MAJOR_UTILITIES = [
   'Duke Energy', 'Southern Company', 'Dominion Energy', 'Exelon', 'NextEra Energy',
@@ -244,7 +280,7 @@ export function getCommercialCollectionModel(): CommercialCollectionModel {
     sourceLayers: SOURCE_LAYERS,
     sectorCoverage,
     explainability: {
-      rankingModel: 'source-priority -> newness -> OT relevance -> recency',
+      rankingModel: 'OT-equipment evidence gate -> source-priority -> newness -> recency',
       dedupeMethod: 'normalized title prefix (first 50 chars) across all source layers',
       refreshCadence: '5m UI refresh, 15m scheduler refresh',
     },
@@ -267,7 +303,8 @@ const STATE_PUC_SOURCES = [
 
 // Parse Google News RSS for commercial opportunities
 async function fetchCommercialNews(search: { query: string; sector: string; keywords: string[] }): Promise<CommercialOpportunity[]> {
-  const encodedQuery = encodeURIComponent(search.query);
+  const focusedQuery = buildOtFocusedQuery(search.query, search.sector);
+  const encodedQuery = encodeURIComponent(focusedQuery);
   const rssUrl = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-US&gl=US&ceid=US:en`;
 
   try {
@@ -292,6 +329,8 @@ async function fetchCommercialNews(search: { query: string; sector: string; keyw
 
       // Check for utility/enterprise mentions
       const text = `${title} ${description}`.toLowerCase();
+      const equipmentKeywords = extractOtEquipmentKeywords(text);
+      if (equipmentKeywords.length === 0) continue;
       let entity = 'Unknown';
       let entityType: 'utility' | 'enterprise' | 'state-local' = 'utility';
 
@@ -340,8 +379,8 @@ async function fetchCommercialNews(search: { query: string; sector: string; keyw
         }
       }
 
-      // Only include if at least medium relevance
-      if (otRelevance === 'low') continue;
+      // OT equipment presence is the primary inclusion condition.
+      if (otRelevance === 'low') otRelevance = 'high';
 
       // Extract value if mentioned
       let estimatedValue: number | null = null;
@@ -374,7 +413,7 @@ async function fetchCommercialNews(search: { query: string; sector: string; keyw
         location: state,
         state,
         otRelevance,
-        otKeywords: [...new Set([...foundKeywords, ...search.keywords])],
+        otKeywords: [...new Set([...equipmentKeywords, ...foundKeywords, ...search.keywords])],
         sector: search.sector,
         isNew,
         needsResearch: false,
@@ -419,6 +458,8 @@ async function fetchTradePubNews(): Promise<CommercialOpportunity[]> {
         if (!title || !link) continue;
 
         const text = `${title} ${description}`.toLowerCase();
+        const equipmentKeywords = extractOtEquipmentKeywords(text);
+        if (equipmentKeywords.length === 0) continue;
 
         // Quick OT relevance check
         let otRelevance: 'critical' | 'high' | 'medium' | 'low' = 'low';
@@ -452,7 +493,7 @@ async function fetchTradePubNews(): Promise<CommercialOpportunity[]> {
           location: 'USA',
           state: 'USA',
           otRelevance,
-          otKeywords: foundKeywords,
+          otKeywords: [...new Set([...equipmentKeywords, ...foundKeywords])],
           sector: feed.sector,
           isNew: publishedDate > sevenDaysAgo,
           needsResearch: false,
@@ -482,8 +523,8 @@ async function fetchUtilityProcurement(): Promise<CommercialOpportunity[]> {
     { query: '"selected" utility "cybersecurity contract"', type: 'award' },
   ];
 
-  for (const search of procurementSearches.slice(0, 4)) {
-    const encodedQuery = encodeURIComponent(search.query);
+  for (const search of procurementSearches) {
+    const encodedQuery = encodeURIComponent(buildOtFocusedQuery(search.query, 'grid'));
     const rssUrl = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-US&gl=US&ceid=US:en`;
 
     try {
@@ -503,6 +544,8 @@ async function fetchUtilityProcurement(): Promise<CommercialOpportunity[]> {
         if (!title || !link) continue;
 
         const text = `${title} ${description}`.toLowerCase();
+        const equipmentKeywords = extractOtEquipmentKeywords(text);
+        if (equipmentKeywords.length === 0) continue;
 
         // Must contain procurement indicators
         const hasProcurement = /\b(rfp|rfi|request for proposal|request for information|bid|procurement|contract award|selected|seeking proposals)\b/i.test(text);
@@ -547,7 +590,7 @@ async function fetchUtilityProcurement(): Promise<CommercialOpportunity[]> {
           location: state,
           state,
           otRelevance: 'high', // Actual procurement = high relevance
-          otKeywords: ['RFP', 'Procurement'],
+          otKeywords: [...new Set(['RFP', 'Procurement', ...equipmentKeywords])],
           sector: 'grid',
           isNew: publishedDate > sevenDaysAgo,
         });
@@ -575,8 +618,8 @@ async function fetchPUCFilings(): Promise<CommercialOpportunity[]> {
     { query: '"integrated resource plan" utility security', state: 'Multi' },
   ];
 
-  for (const search of pucSearches.slice(0, 4)) {
-    const encodedQuery = encodeURIComponent(search.query);
+  for (const search of pucSearches) {
+    const encodedQuery = encodeURIComponent(buildOtFocusedQuery(search.query, 'grid'));
     const rssUrl = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-US&gl=US&ceid=US:en`;
 
     try {
@@ -596,6 +639,8 @@ async function fetchPUCFilings(): Promise<CommercialOpportunity[]> {
         if (!title || !link) continue;
 
         const text = `${title} ${description}`.toLowerCase();
+        const equipmentKeywords = extractOtEquipmentKeywords(text);
+        if (equipmentKeywords.length === 0) continue;
 
         // Must contain regulatory indicators
         const hasRegulatory = /\b(puc|puct|cpuc|psc|commission|docket|order|ruling|rate case|irp|integrated resource plan|filing)\b/i.test(text);
@@ -639,7 +684,7 @@ async function fetchPUCFilings(): Promise<CommercialOpportunity[]> {
           location: state,
           state,
           otRelevance: 'high', // Regulatory mandate = high relevance
-          otKeywords: ['PUC', 'Regulatory', 'Docket'],
+          otKeywords: [...new Set(['PUC', 'Regulatory', 'Docket', ...equipmentKeywords])],
           sector: 'grid',
           isNew: publishedDate > sevenDaysAgo,
         });
@@ -723,8 +768,8 @@ async function fetchEnterpriseProjects(): Promise<CommercialOpportunity[]> {
   ];
 
   // Process a broad but bounded search set for sector coverage.
-  for (const search of projectSearches.slice(0, 30)) {
-    const encodedQuery = encodeURIComponent(search.query);
+  for (const search of projectSearches) {
+    const encodedQuery = encodeURIComponent(buildOtFocusedQuery(search.query, search.sector));
     const rssUrl = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-US&gl=US&ceid=US:en`;
 
     try {
@@ -744,6 +789,8 @@ async function fetchEnterpriseProjects(): Promise<CommercialOpportunity[]> {
         if (!title || !link) continue;
 
         const text = `${title} ${description}`.toLowerCase();
+        const equipmentKeywords = extractOtEquipmentKeywords(text);
+        if (equipmentKeywords.length === 0) continue;
 
         // Must contain project indicators
         const hasProject = /\b(construction|breaking ground|under construction|new facility|announced|building|expansion|plant|factory|fab|gigafactory|mill|refinery)\b/i.test(text);
@@ -820,7 +867,7 @@ async function fetchEnterpriseProjects(): Promise<CommercialOpportunity[]> {
           location: state,
           state,
           otRelevance: entity !== 'Unknown' ? 'high' : 'medium',
-          otKeywords: ['New Facility', sectorLabels[search.sector] || 'Industrial'],
+          otKeywords: [...new Set(['New Facility', sectorLabels[search.sector] || 'Industrial', ...equipmentKeywords])],
           sector: search.sector,
           isNew: publishedDate > sevenDaysAgo,
         });
