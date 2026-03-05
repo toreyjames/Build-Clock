@@ -127,6 +127,14 @@ interface RefreshHealthStatus {
   } | null;
 }
 
+interface InvestmentComponent {
+  id: string;
+  company: string;
+  component: string;
+  amount: number | null;
+  stage: string;
+}
+
 // Commercial discovery from scanning
 interface CommercialDiscovery {
   id: string;
@@ -191,8 +199,8 @@ function getClientSize(entity: string, value: number | null): { label: string; c
   return { label: 'Mid-Market', color: 'bg-gray-500/20 text-gray-400' };
 }
 
-// OT Relevance filter
-type OTFilter = 'all' | 'high' | 'critical';
+// OT Equipment filter (binary)
+type OTFilter = 'all' | 'ot-equipment' | 'no-ot-equipment';
 
 // Industry filter (Deloitte sectors)
 type IndustryFilter = 'all' | DeloitteIndustry;
@@ -304,6 +312,57 @@ function statusColor(status: OppStatus): string {
   if (status === 'meeting') return '#3b82f6';
   if (status === 'contacted') return '#eab308';
   return '#9ca3af';
+}
+
+function hasOtEquipment(opportunity: Opportunity): boolean {
+  if ((opportunity.otSystems || []).length > 0) return true;
+  const scope = (opportunity.otScope || '').toLowerCase();
+  return /\b(scada|dcs|ics|hmi|plc|bms|mes|ems|substation|control system|rtu|safety system)\b/i.test(scope);
+}
+
+function otEquipmentLabel(opportunity: Opportunity): string {
+  return hasOtEquipment(opportunity) ? 'OT Equipment' : 'No OT Equipment Confirmed';
+}
+
+function otEquipmentClass(opportunity: Opportunity): string {
+  return hasOtEquipment(opportunity)
+    ? 'bg-emerald-500/20 text-emerald-300'
+    : 'bg-slate-500/20 text-slate-300';
+}
+
+function getInvestmentComponents(opportunity: Opportunity): InvestmentComponent[] {
+  const components: InvestmentComponent[] = [];
+  const stageLabel = STAGE_LABELS[opportunity.procurementStage];
+
+  components.push({
+    id: `${opportunity.id}-sponsor`,
+    company: opportunity.entity,
+    component: 'Primary program envelope',
+    amount: opportunity.estimatedValue || null,
+    stage: stageLabel,
+  });
+
+  opportunity.likelyPrimes.forEach((prime, idx) => {
+    components.push({
+      id: `${opportunity.id}-prime-${idx}`,
+      company: prime,
+      component: 'Prime execution scope (validate package and timeline)',
+      amount: null,
+      stage: stageLabel,
+    });
+  });
+
+  opportunity.partnerOpportunities.forEach((partner, idx) => {
+    components.push({
+      id: `${opportunity.id}-partner-${idx}`,
+      company: partner,
+      component: 'Partner/ally pursuit lane',
+      amount: null,
+      stage: stageLabel,
+    });
+  });
+
+  return components.slice(0, 10);
 }
 
 function transmissionStyle(voltageKv: number | null, detailBand: string): { stroke: string; width: number; opacity: number } {
@@ -496,7 +555,7 @@ function generateExecutiveBriefPDF(opportunity: Opportunity, tracking?: OppTrack
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text(`WHY OT? - ${opportunity.otRelevance.toUpperCase()} RELEVANCE`, margin + 4, y + 5.5);
+  doc.text(`WHY OT? - ${hasOtEquipment(opportunity) ? 'OT EQUIPMENT PRESENT' : 'OT EQUIPMENT NOT CONFIRMED'}`, margin + 4, y + 5.5);
   y += 14;
 
   doc.setTextColor(0, 0, 0);
@@ -1367,8 +1426,8 @@ function OTPipelineTrackerContent() {
     }
 
     // OT filter
-    if (otFilter === 'high' && opp.otRelevance !== 'high' && opp.otRelevance !== 'critical') return false;
-    if (otFilter === 'critical' && opp.otRelevance !== 'critical') return false;
+    if (otFilter === 'ot-equipment' && !hasOtEquipment(opp)) return false;
+    if (otFilter === 'no-ot-equipment' && hasOtEquipment(opp)) return false;
 
     // Search
     if (searchQuery) {
@@ -1500,7 +1559,7 @@ function OTPipelineTrackerContent() {
   const top3ConcentrationPct = valuedPipeline > 0 ? (top3Value / valuedPipeline) * 100 : 0;
   const actionablePursuits = filteredOpps.filter((opp) => {
     const isPriorityUrgency = opp.urgency === 'this-week' || opp.urgency === 'this-month' || opp.urgency === 'this-quarter';
-    const isHighOT = opp.otRelevance === 'critical' || opp.otRelevance === 'high';
+    const isHighOT = hasOtEquipment(opp);
     const isNonSpeculative = opp.confidence !== 'speculative';
     return isPriorityUrgency && isHighOT && isNonSpeculative;
   });
@@ -1515,7 +1574,7 @@ function OTPipelineTrackerContent() {
       const deadline = getOpportunityMilestoneDays(opp);
       const urgencyScore =
         opp.urgency === 'this-week' ? 30 : opp.urgency === 'this-month' ? 24 : opp.urgency === 'this-quarter' ? 16 : 8;
-      const relevanceScore = opp.otRelevance === 'critical' ? 26 : opp.otRelevance === 'high' ? 18 : 10;
+      const relevanceScore = hasOtEquipment(opp) ? 24 : 8;
       const deadlineScore = deadline !== null && deadline <= 30 ? 24 : deadline !== null && deadline <= 90 ? 14 : 6;
       const confidenceScore = opp.confidence === 'confirmed' ? 14 : opp.confidence === 'likely' ? 8 : 3;
       const score = Math.log10(value + 1) * 12 + urgencyScore + relevanceScore + deadlineScore + confidenceScore + winProbability * 0.4;
@@ -1528,6 +1587,10 @@ function OTPipelineTrackerContent() {
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
+  const opportunityIdSet = new Set(opportunities.map((opp) => opp.id));
+  const jupiterSyncedInView = filteredOpps.filter((opp) => Boolean(tracking[opp.id]?.salesforce_id)).length;
+  const jupiterOnlyRecords = Object.entries(tracking)
+    .filter(([oppId, track]) => Boolean(track.salesforce_id) && !opportunityIdSet.has(oppId));
   const fallbackSources = Object.entries(sourceHealth).filter(([, value]) => value.fallback);
   const hasSourceRisk = fallbackSources.length >= 2 || (opportunitySourceMeta?.liveCount || 0) === 0;
   const displayNews = !showFallbackData && sourceHealth.news?.fallback ? [] : news;
@@ -1679,17 +1742,17 @@ function OTPipelineTrackerContent() {
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500">OT:</span>
               <div className="flex items-center bg-[#12121a] rounded-lg border border-gray-800 p-0.5 text-xs">
-                {(['all', 'high', 'critical'] as OTFilter[]).map(f => (
+                {(['all', 'ot-equipment', 'no-ot-equipment'] as OTFilter[]).map(f => (
                   <button
                     key={f}
                     onClick={() => setOtFilter(f)}
                     className={`px-2 py-1 rounded capitalize ${
                       otFilter === f
-                        ? f === 'critical' ? 'bg-red-500 text-white' : f === 'high' ? 'bg-orange-500 text-white' : 'bg-gray-600 text-white'
+                        ? f === 'ot-equipment' ? 'bg-emerald-500 text-white' : f === 'no-ot-equipment' ? 'bg-slate-500 text-white' : 'bg-gray-600 text-white'
                         : 'text-gray-400 hover:text-white'
                     }`}
                   >
-                    {f === 'all' ? 'All' : f === 'high' ? 'High+' : 'Critical'}
+                    {f === 'all' ? 'All' : f === 'ot-equipment' ? 'OT Equipment' : 'No OT Equipment'}
                   </button>
                 ))}
               </div>
@@ -1736,7 +1799,7 @@ function OTPipelineTrackerContent() {
           <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3">
             <p className="text-[11px] uppercase tracking-wide text-cyan-200/80">Actionable Pursuits</p>
             <p className="mt-1 text-xl font-semibold text-cyan-100">{actionablePursuits.length}</p>
-            <p className="text-[11px] text-cyan-200/70">High/critical OT + near-term urgency + non-speculative</p>
+            <p className="text-[11px] text-cyan-200/70">OT equipment present + near-term urgency + non-speculative</p>
           </div>
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
             <p className="text-[11px] uppercase tracking-wide text-emerald-200/80">30-Day Action Dates</p>
@@ -1753,6 +1816,34 @@ function OTPipelineTrackerContent() {
             <p className="mt-1 text-xl font-semibold text-slate-100">{valuedCoveragePct.toFixed(0)}%</p>
             <p className="text-[11px] text-slate-300/70">{valuedOpps.length}/{filteredOpps.length} opportunities have non-zero project value</p>
           </div>
+        </section>
+        <section className="mb-4 rounded-xl border border-gray-800 bg-[#12121a] p-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-white">Jupiter Coverage</h3>
+            <span className="text-[11px] text-gray-500">inside vs outside tracker</span>
+          </div>
+          <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2">
+              <p className="text-[11px] uppercase tracking-wide text-emerald-200/80">Synced In Current View</p>
+              <p className="text-lg font-semibold text-emerald-100">{jupiterSyncedInView}</p>
+            </div>
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2">
+              <p className="text-[11px] uppercase tracking-wide text-amber-200/80">Jupiter-Only Records</p>
+              <p className="text-lg font-semibold text-amber-100">{jupiterOnlyRecords.length}</p>
+            </div>
+            <div className="rounded-lg border border-slate-500/40 bg-slate-500/10 p-2">
+              <p className="text-[11px] uppercase tracking-wide text-slate-300/80">Coverage Gap</p>
+              <p className="text-lg font-semibold text-slate-100">
+                {jupiterOnlyRecords.length === 0 ? 'None' : 'Needs Inbound Sync'}
+              </p>
+            </div>
+          </div>
+          {jupiterOnlyRecords.length > 0 && (
+            <div className="mt-2 rounded-lg border border-gray-800 bg-[#0a0a0f] p-2 text-xs text-gray-400">
+              Missing from tracker feed: {jupiterOnlyRecords.slice(0, 5).map(([id]) => id).join(', ')}
+              {jupiterOnlyRecords.length > 5 ? ` +${jupiterOnlyRecords.length - 5} more` : ''}
+            </div>
+          )}
         </section>
         <p className="mb-4 text-xs text-gray-400">
           Value metrics shown are total project/program amounts. OT-specific value is intentionally not estimated until opportunity scope is validated.
@@ -1829,8 +1920,8 @@ function OTPipelineTrackerContent() {
                     </div>
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
-                    <span className={`rounded px-1 ${item.opp.otRelevance === 'critical' ? 'bg-rose-500/20 text-rose-300' : item.opp.otRelevance === 'high' ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-500/20 text-slate-300'}`}>
-                      {item.opp.otRelevance}
+                    <span className={`rounded px-1 ${otEquipmentClass(item.opp)}`}>
+                      {hasOtEquipment(item.opp) ? 'OT Equipment' : 'No OT Equipment'}
                     </span>
                     <span>{STAGE_LABELS[item.opp.procurementStage]}</span>
                     <span>•</span>
@@ -2384,7 +2475,7 @@ function TableView({
               <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium">Opportunity</th>
               <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium">Entity</th>
               <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium">Value</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium">OT</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium">OT Equipment</th>
               <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium">Stage</th>
               <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium">Status</th>
             </tr>
@@ -2420,10 +2511,8 @@ function TableView({
                     <div className="text-cyan-400 font-bold">{formatCurrency(opp.estimatedValue)}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge className={`text-xs ${
-                      opp.otRelevance === 'critical' ? 'bg-red-500/20 text-red-400' : 'bg-orange-500/20 text-orange-400'
-                    }`}>
-                      {opp.otRelevance.toUpperCase()}
+                    <Badge className={`text-xs ${otEquipmentClass(opp)}`}>
+                      {otEquipmentLabel(opp)}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-gray-400 text-xs">
@@ -2524,6 +2613,23 @@ function DetailPanel({
     return scored.sort((a, b) => b.score - a.score).slice(0, 6);
   }, [opportunity.sources]);
 
+  const investmentComponents = useMemo(
+    () => getInvestmentComponents(opportunity),
+    [opportunity],
+  );
+
+  const addPursuitLane = (component: InvestmentComponent) => {
+    const laneNote = [
+      `Pursuit lane: ${component.company}`,
+      `Component: ${component.component}`,
+      `Stage: ${component.stage}`,
+      'Next step: identify budget owner, package boundary, and procurement timing.',
+    ].join('\n');
+    const nextNotes = (editingNotes?.trim() ? `${editingNotes}\n\n` : '') + laneNote;
+    setEditingNotes(nextNotes);
+    saveNotes(opportunity.id, nextNotes);
+  };
+
   return (
     <div className="bg-[#12121a] rounded-xl border border-gray-800 overflow-hidden">
       {/* Header */}
@@ -2554,10 +2660,8 @@ function DetailPanel({
         <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-2">
             <h3 className="text-sm font-bold text-cyan-400">WHY OT?</h3>
-            <Badge className={`text-xs ${
-              opportunity.otRelevance === 'critical' ? 'bg-red-500/20 text-red-400' : 'bg-orange-500/20 text-orange-400'
-            }`}>
-              {opportunity.otRelevance.toUpperCase()}
+            <Badge className={`text-xs ${otEquipmentClass(opportunity)}`}>
+              {otEquipmentLabel(opportunity)}
             </Badge>
           </div>
 
@@ -2580,21 +2684,17 @@ function DetailPanel({
             </div>
           </div>
 
-          {/* OT Relevance Bar */}
+          {/* OT Equipment Signal */}
           <div className="mt-3">
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-gray-500">OT Relevance</span>
-              <span className={opportunity.otRelevance === 'critical' ? 'text-red-400' : 'text-orange-400'}>
-                {opportunity.otRelevance.toUpperCase()}
+              <span className="text-gray-500">Equipment Signal</span>
+              <span className={hasOtEquipment(opportunity) ? 'text-emerald-300' : 'text-slate-300'}>
+                {hasOtEquipment(opportunity) ? 'Present' : 'Not Confirmed'}
               </span>
             </div>
             <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full ${
-                  opportunity.otRelevance === 'critical' ? 'bg-red-500 w-full' :
-                  opportunity.otRelevance === 'high' ? 'bg-orange-500 w-4/5' :
-                  opportunity.otRelevance === 'medium' ? 'bg-yellow-500 w-3/5' : 'bg-gray-500 w-2/5'
-                }`}
+                className={`h-full rounded-full ${hasOtEquipment(opportunity) ? 'bg-emerald-500 w-full' : 'bg-slate-500 w-2/5'}`}
               />
             </div>
           </div>
@@ -2640,6 +2740,38 @@ function DetailPanel({
             <span className="text-green-400 text-sm">✓ Synced to Jupiter</span>
           </div>
         )}
+
+        {/* Program / Investment Breakdown */}
+        <div className="bg-[#0a0a0f] rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <span>🏗️</span>
+            <h3 className="text-sm font-medium text-white">Investment Breakdown (Refined View)</h3>
+          </div>
+          <p className="mb-2 text-xs text-gray-500">
+            Break large programs into company-level pursuit lanes with specific components.
+          </p>
+          <div className="space-y-2">
+            {investmentComponents.map((component) => (
+              <div key={component.id} className="rounded-lg border border-gray-800 bg-gray-800/40 p-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="text-sm text-cyan-200">{component.company}</div>
+                    <div className="text-xs text-gray-300">{component.component}</div>
+                    <div className="text-[11px] text-gray-500">
+                      {component.stage}{component.amount ? ` • ${formatCurrency(component.amount)}` : ' • value TBD'}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => addPursuitLane(component)}
+                    className="rounded border border-cyan-500/40 px-2 py-1 text-[11px] text-cyan-300 hover:bg-cyan-500/10"
+                  >
+                    Pursue lane
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Download PDF */}
         <button
