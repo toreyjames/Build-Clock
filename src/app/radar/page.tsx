@@ -354,6 +354,56 @@ function getOpportunityAnchorDate(opportunity: Opportunity): Date | null {
   return candidates[0];
 }
 
+function classifyInvestmentMode(opportunity: Opportunity): 'capex' | 'operations' | 'mixed' {
+  const text = [
+    opportunity.title,
+    opportunity.subtitle,
+    opportunity.otScope,
+    opportunity.fundingSource,
+    opportunity.keyDateDescription || '',
+  ]
+    .join(' ')
+    .toLowerCase();
+
+  const capexSignals = [
+    'construction',
+    'build',
+    'expansion',
+    'new plant',
+    'facility',
+    'greenfield',
+    'modernization',
+    'upgrade',
+    'retrofit',
+    'capital',
+    'equipment',
+    'capex',
+  ];
+  const operationsSignals = [
+    'operations',
+    'maintenance',
+    'o&m',
+    'managed service',
+    'sustainment',
+    'monitoring',
+    'service contract',
+    'operations support',
+    'opex',
+  ];
+
+  const capexScore = capexSignals.reduce((sum, keyword) => sum + (text.includes(keyword) ? 1 : 0), 0);
+  const operationsScore = operationsSignals.reduce((sum, keyword) => sum + (text.includes(keyword) ? 1 : 0), 0);
+
+  if (opportunity.procurementStage === 'execution' || opportunity.procurementStage === 'pre-solicitation') {
+    if (capexScore >= operationsScore) return 'capex';
+  }
+  if (opportunity.procurementStage === 'operational') return 'operations';
+
+  if (capexScore > operationsScore + 1) return 'capex';
+  if (operationsScore > capexScore + 1) return 'operations';
+  return 'mixed';
+}
+
 function getRelativeTime(dateStr: string): string {
   const now = new Date();
   const date = new Date(dateStr);
@@ -1470,10 +1520,11 @@ function OTPipelineTrackerContent() {
   });
   const criticalOpps = filteredOpps.filter((opp) => opp.otRelevance === 'critical');
   const highPlusOpps = filteredOpps.filter((opp) => opp.otRelevance === 'critical' || opp.otRelevance === 'high');
-  const deadline30 = filteredOpps.filter((opp) => {
-    const days = getOpportunityMilestoneDays(opp);
-    return days !== null && days >= 0 && days <= 30;
-  });
+  const capexLinkedOpps = filteredOpps.filter((opp) => classifyInvestmentMode(opp) === 'capex');
+  const operationsLinkedOpps = filteredOpps.filter((opp) => classifyInvestmentMode(opp) === 'operations');
+  const capexLinkedValue = capexLinkedOpps.reduce((sum, opp) => sum + (opp.estimatedValue || 0), 0);
+  const operationsLinkedValue = operationsLinkedOpps.reduce((sum, opp) => sum + (opp.estimatedValue || 0), 0);
+  const capexToOperationsRatio = operationsLinkedValue > 0 ? capexLinkedValue / operationsLinkedValue : null;
   const topActionQueue = [...filteredOpps]
     .map((opp) => {
       const value = opp.estimatedValue || 0;
@@ -1700,14 +1751,14 @@ function OTPipelineTrackerContent() {
             <p className="text-[11px] text-emerald-200/70">Project Value x Win Probability ({probabilityTrackedCount} tracked)</p>
           </div>
           <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3">
-            <p className="text-[11px] uppercase tracking-wide text-rose-200/80">Critical OT</p>
-            <p className="mt-1 text-xl font-semibold text-rose-100">{criticalOpps.length}</p>
-            <p className="text-[11px] text-rose-200/70">{highPlusOpps.length} high+critical total</p>
+            <p className="text-[11px] uppercase tracking-wide text-rose-200/80">CAPEX-Linked Value</p>
+            <p className="mt-1 text-xl font-semibold text-rose-100">{formatCurrency(capexLinkedValue)}</p>
+            <p className="text-[11px] text-rose-200/70">{capexLinkedOpps.length} capex-linked opportunities</p>
           </div>
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
-            <p className="text-[11px] uppercase tracking-wide text-amber-200/80">30-Day Milestones</p>
-            <p className="mt-1 text-xl font-semibold text-amber-100">{deadline30.length}</p>
-            <p className="text-[11px] text-amber-200/70">{formatCurrency(deadline30.reduce((sum, opp) => sum + (opp.estimatedValue || 0), 0))}</p>
+            <p className="text-[11px] uppercase tracking-wide text-amber-200/80">Operations-Linked Value</p>
+            <p className="mt-1 text-xl font-semibold text-amber-100">{formatCurrency(operationsLinkedValue)}</p>
+            <p className="text-[11px] text-amber-200/70">{operationsLinkedOpps.length} operations-linked opportunities</p>
           </div>
           <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3">
             <p className="text-[11px] uppercase tracking-wide text-indigo-200/80">Median Project Size</p>
@@ -1725,6 +1776,9 @@ function OTPipelineTrackerContent() {
         </p>
         <p className="mb-4 text-xs text-gray-500">
           Context ({timeframeFilter === 'rolling-year' ? 'rolling 1-year window' : 'all-time window'}): total valued project pipeline {formatCurrency(valuedPipeline)} across {valuedOpps.length} items; top-3 concentration {top3ConcentrationPct.toFixed(0)}%.
+        </p>
+        <p className="mb-4 text-xs text-gray-500">
+          CAPEX/Ops proxy: {capexToOperationsRatio === null ? 'insufficient operations-linked value to compute ratio' : `${capexToOperationsRatio.toFixed(2)}x`} • critical OT count {criticalOpps.length} ({highPlusOpps.length} high+critical).
         </p>
 
         <section className="mb-5 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_1.9fr]">
