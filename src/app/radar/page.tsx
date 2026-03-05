@@ -1764,22 +1764,41 @@ function OTPipelineTrackerContent() {
           <div className="rounded-xl border border-gray-800 bg-[#12121a] p-3">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-white">Investment by Deloitte Sector</h3>
-              <span className="text-[11px] text-gray-500">current filtered portfolio</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-gray-500">click to filter</span>
+                {industryFilter !== 'all' && (
+                  <button
+                    onClick={() => setIndustryFilter('all')}
+                    className="rounded border border-gray-700 px-2 py-0.5 text-[10px] text-gray-300 hover:border-cyan-500/40 hover:text-cyan-300"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               {sectorInvestmentBreakdown.rows.map((row) => {
                 const widthPct = sectorInvestmentBreakdown.maxValue > 0 ? (row.value / sectorInvestmentBreakdown.maxValue) * 100 : 0;
+                const isActive = industryFilter === row.industry;
                 return (
-                  <div key={row.industry} className="space-y-1 rounded-lg border border-gray-800 bg-[#0a0a0f] p-2">
+                  <button
+                    key={row.industry}
+                    onClick={() => setIndustryFilter(row.industry)}
+                    className={`w-full space-y-1 rounded-lg border p-2 text-left transition-colors ${
+                      isActive
+                        ? 'border-cyan-400/70 bg-cyan-500/10'
+                        : 'border-gray-800 bg-[#0a0a0f] hover:border-cyan-500/40'
+                    }`}
+                  >
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-gray-200">{row.label}</span>
+                      <span className={isActive ? 'text-cyan-100' : 'text-gray-200'}>{row.label}</span>
                       <span className="text-cyan-300">{formatCurrency(row.value)}</span>
                     </div>
                     <div className="h-2 rounded bg-gray-800">
                       <div className="h-2 rounded bg-cyan-500/80" style={{ width: `${Math.max(2, widthPct)}%` }} />
                     </div>
                     <div className="text-[10px] text-gray-500">{row.count} opportunities</div>
-                  </div>
+                  </button>
                 );
               })}
               {sectorInvestmentBreakdown.rows.length === 0 && (

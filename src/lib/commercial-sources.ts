@@ -26,6 +26,26 @@ interface CommercialOpportunity {
   needsResearch?: boolean;      // Flag if too broad to action (default false)
 }
 
+interface SectorCoverageRow {
+  sector: string;
+  configuredQueries: number;
+  targetQueries: number;
+  executedQueries: number;
+  capturedItems: number;
+}
+
+interface CommercialCollectionModel {
+  strategyVersion: string;
+  updatedAt: string;
+  sourceLayers: Array<{ name: string; description: string; priority: number }>;
+  sectorCoverage: SectorCoverageRow[];
+  explainability: {
+    rankingModel: string;
+    dedupeMethod: string;
+    refreshCadence: string;
+  };
+}
+
 // OT-relevant keywords for scoring
 const OT_KEYWORDS = {
   critical: ['SCADA', 'DCS', 'industrial control', 'NERC CIP', 'OT security', 'ICS security', 'control system cyber'],
@@ -120,6 +140,9 @@ const COMMERCIAL_SEARCHES = [
   { query: 'Lockheed Boeing Raytheon plant expansion', sector: 'defense', keywords: ['defense', 'expansion'] },
   { query: 'submarine production expansion', sector: 'defense', keywords: ['submarine', 'production'] },
   { query: 'Army Navy facility modernization', sector: 'defense', keywords: ['military', 'modernization'] },
+  { query: 'missile defense radar modernization contract award', sector: 'defense', keywords: ['missile defense', 'radar'] },
+  { query: 'counter UAS defense system production expansion', sector: 'defense', keywords: ['counter-UAS', 'defense'] },
+  { query: 'integrated air and missile defense command system procurement', sector: 'defense', keywords: ['air defense', 'procurement'] },
 
   // STEEL / METALS
   { query: 'steel mill construction expansion USA', sector: 'metals', keywords: ['steel', 'mill'] },
@@ -172,6 +195,61 @@ const COMMERCIAL_SEARCHES = [
   // Water/Wastewater
   { query: 'water utility SCADA modernization', sector: 'water', keywords: ['water', 'SCADA'] },
 ];
+
+// Sector-level query budget (how deep we search per refresh cycle by sector).
+const SECTOR_QUERY_BUDGET: Record<string, number> = {
+  defense: 5,
+  aerospace: 3,
+  'oil-gas': 4,
+  minerals: 4,
+  metals: 4,
+  manufacturing: 4,
+  semiconductors: 4,
+  'ev-battery': 3,
+  chemicals: 3,
+  pharma: 3,
+  'food-bev': 2,
+  grid: 4,
+  'data-centers': 3,
+  nuclear: 2,
+  water: 2,
+  'clean-energy': 2,
+};
+
+const SOURCE_LAYERS = [
+  { name: 'Official Procurement & Regulatory', description: 'RFP portals, PUC dockets, federal funding notices', priority: 1 },
+  { name: 'Enterprise Program Signals', description: 'Projects, awards, filings, facility announcements', priority: 2 },
+  { name: 'Market Intel', description: 'Trade publications and news trend signals for early detection', priority: 3 },
+];
+
+export function getCommercialCollectionModel(): CommercialCollectionModel {
+  const configuredBySector: Record<string, number> = {};
+  for (const search of COMMERCIAL_SEARCHES) {
+    configuredBySector[search.sector] = (configuredBySector[search.sector] || 0) + 1;
+  }
+
+  const sectorCoverage = Object.keys(SECTOR_QUERY_BUDGET)
+    .map((sector) => ({
+      sector,
+      configuredQueries: configuredBySector[sector] || 0,
+      targetQueries: SECTOR_QUERY_BUDGET[sector] || 0,
+      executedQueries: 0,
+      capturedItems: 0,
+    }))
+    .sort((a, b) => b.targetQueries - a.targetQueries);
+
+  return {
+    strategyVersion: 'commercial-v2',
+    updatedAt: new Date().toISOString(),
+    sourceLayers: SOURCE_LAYERS,
+    sectorCoverage,
+    explainability: {
+      rankingModel: 'source-priority -> newness -> OT relevance -> recency',
+      dedupeMethod: 'normalized title prefix (first 50 chars) across all source layers',
+      refreshCadence: '5m UI refresh, 15m scheduler refresh',
+    },
+  };
+}
 
 // State PUC RSS feeds and docket searches (where available)
 const STATE_PUC_SOURCES = [
@@ -598,6 +676,9 @@ async function fetchEnterpriseProjects(): Promise<CommercialOpportunity[]> {
     { query: 'munitions plant construction Army', sector: 'defense', entityType: 'enterprise' as const },
     { query: 'shipyard modernization expansion', sector: 'defense', entityType: 'enterprise' as const },
     { query: 'Lockheed Raytheon Boeing facility', sector: 'defense', entityType: 'enterprise' as const },
+    { query: 'missile defense radar modernization contract award', sector: 'defense', entityType: 'enterprise' as const },
+    { query: 'counter UAS defense system production expansion', sector: 'defense', entityType: 'enterprise' as const },
+    { query: 'integrated air and missile defense command system procurement', sector: 'defense', entityType: 'enterprise' as const },
 
     // Manufacturing Reshoring
     { query: '"reshoring" factory construction USA', sector: 'manufacturing', entityType: 'enterprise' as const },
@@ -642,7 +723,7 @@ async function fetchEnterpriseProjects(): Promise<CommercialOpportunity[]> {
   ];
 
   // Process a broad but bounded search set for sector coverage.
-  for (const search of projectSearches.slice(0, 20)) {
+  for (const search of projectSearches.slice(0, 30)) {
     const encodedQuery = encodeURIComponent(search.query);
     const rssUrl = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-US&gl=US&ceid=US:en`;
 
@@ -1746,6 +1827,7 @@ export async function fetchCommercialOpportunities(limit: number = 30): Promise<
   opportunities: CommercialOpportunity[];
   newCount: number;
   sources: { name: string; count: number; status: string }[];
+  collectionModel: CommercialCollectionModel;
 }> {
   const allOpportunities: CommercialOpportunity[] = [];
   const seenTitles = new Set<string>();
@@ -1882,24 +1964,40 @@ export async function fetchCommercialOpportunities(limit: number = 30): Promise<
   sourceStats.push({ name: 'EIA Grid Data', count: eiaCount, status: eiaCount > 0 ? 'ok' : 'empty' });
 
   // 11. Fetch from commercial news searches (lower priority - intel/context)
-  // Diversify across sectors - pick searches from different categories
-  const diverseSearches = [
-    // One from each major sector
-    COMMERCIAL_SEARCHES.find(s => s.sector === 'manufacturing'),
-    COMMERCIAL_SEARCHES.find(s => s.sector === 'semiconductors'),
-    COMMERCIAL_SEARCHES.find(s => s.sector === 'defense'),
-    COMMERCIAL_SEARCHES.find(s => s.sector === 'aerospace'),
-    COMMERCIAL_SEARCHES.find(s => s.sector === 'ev-battery'),
-    COMMERCIAL_SEARCHES.find(s => s.sector === 'pharma'),
-    COMMERCIAL_SEARCHES.find(s => s.sector === 'metals'),
-    COMMERCIAL_SEARCHES.find(s => s.sector === 'minerals'),
-    COMMERCIAL_SEARCHES.find(s => s.sector === 'oil-gas'),
-    COMMERCIAL_SEARCHES.find(s => s.sector === 'grid'),
-    COMMERCIAL_SEARCHES.find(s => s.sector === 'data-centers'),
-  ].filter(Boolean) as typeof COMMERCIAL_SEARCHES;
+  // Execute multiple searches per sector to maximize coverage while staying deterministic.
+  const groupedSearches = COMMERCIAL_SEARCHES.reduce<Record<string, Array<(typeof COMMERCIAL_SEARCHES)[number]>>>((acc, search) => {
+    if (!acc[search.sector]) acc[search.sector] = [];
+    acc[search.sector].push(search);
+    return acc;
+  }, {});
+
+  const sectorCoverageMap: Record<string, SectorCoverageRow> = {};
+  for (const [sector, targetQueries] of Object.entries(SECTOR_QUERY_BUDGET)) {
+    sectorCoverageMap[sector] = {
+      sector,
+      configuredQueries: groupedSearches[sector]?.length || 0,
+      targetQueries,
+      executedQueries: 0,
+      capturedItems: 0,
+    };
+  }
+
+  const selectedSearches = Object.entries(SECTOR_QUERY_BUDGET).flatMap(([sector, queryBudget]) => {
+    const bucket = groupedSearches[sector] || [];
+    const picked = bucket.slice(0, queryBudget);
+    sectorCoverageMap[sector].executedQueries = picked.length;
+    return picked;
+  });
 
   let newsCount = 0;
-  const results = await Promise.all(diverseSearches.map(s => fetchCommercialNews(s)));
+  const results = await Promise.all(selectedSearches.map((search) => fetchCommercialNews(search)));
+  results.forEach((opps, idx) => {
+    const sector = selectedSearches[idx]?.sector;
+    if (sectorCoverageMap[sector]) {
+      sectorCoverageMap[sector].capturedItems += opps.length;
+    }
+  });
+
   for (const opps of results) {
     for (const opp of opps) {
       const titleKey = opp.title.toLowerCase().substring(0, 50);
@@ -1961,11 +2059,14 @@ export async function fetchCommercialOpportunities(limit: number = 30): Promise<
   // Enrich broad opportunities with specific details
   const sliced = allOpportunities.slice(0, limit);
   const enrichedOpportunities = await enrichOpportunities(sliced);
+  const collectionModel = getCommercialCollectionModel();
+  collectionModel.sectorCoverage = Object.values(sectorCoverageMap).sort((a, b) => b.capturedItems - a.capturedItems);
 
   return {
     opportunities: enrichedOpportunities,
     newCount,
     sources: sourceStats,
+    collectionModel,
   };
 }
 

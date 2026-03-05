@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchCommercialOpportunities } from '@/lib/commercial-sources';
+import { fetchCommercialOpportunities, getCommercialCollectionModel } from '@/lib/commercial-sources';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +13,7 @@ export async function GET() {
       opportunities: result.opportunities,
       newCount: result.newCount,
       sources: result.sources,
+      collectionModel: result.collectionModel,
       summary: {
         total: result.opportunities.length,
         newThisWeek: result.newCount,
@@ -25,16 +26,20 @@ export async function GET() {
           utility: result.opportunities.filter(o => o.entityType === 'utility').length,
           enterprise: result.opportunities.filter(o => o.entityType === 'enterprise').length,
         },
+        sectorsCovered: result.collectionModel.sectorCoverage.filter((row) => row.executedQueries > 0).length,
+        totalSectorQueriesExecuted: result.collectionModel.sectorCoverage.reduce((sum, row) => sum + row.executedQueries, 0),
       },
     });
   } catch (error) {
     console.error('Commercial API error:', error);
+    const fallbackModel = getCommercialCollectionModel();
     return NextResponse.json({
       success: false,
       error: 'Failed to fetch commercial opportunities',
       opportunities: [],
       newCount: 0,
       sources: [],
+      collectionModel: fallbackModel,
     }, { status: 500 });
   }
 }
