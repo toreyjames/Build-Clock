@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { fetchCommercialOpportunities } from '@/lib/commercial-sources';
 
-export const revalidate = 1800; // Cache for 30 minutes
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {

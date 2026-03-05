@@ -3,6 +3,8 @@ import { OPPORTUNITIES } from '@/lib/opportunities-data';
 import { createClient } from '@supabase/supabase-js';
 import { fetchSAMOpportunities } from '@/lib/sam-gov';
 
+export const dynamic = 'force-dynamic';
+
 // Try to use Supabase if configured, otherwise fall back to static data
 async function getCuratedOpportunities() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

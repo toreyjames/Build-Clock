@@ -99,9 +99,33 @@ create policy "Allow public insert on signals"
   on signals for insert
   with check (true);
 
+-- Refresh runs telemetry table (cron observability)
+create table if not exists refresh_runs (
+  id bigint generated always as identity primary key,
+  trigger text not null default 'cron',
+  status text not null check (status in ('ok', 'partial', 'error')),
+  started_at timestamp with time zone not null,
+  finished_at timestamp with time zone not null,
+  duration_ms integer not null default 0,
+  details jsonb not null default '{}'::jsonb,
+  error_message text,
+  created_at timestamp with time zone default now()
+);
+
+alter table refresh_runs enable row level security;
+
+create policy "Allow public read access on refresh_runs"
+  on refresh_runs for select
+  using (true);
+
+create policy "Allow public insert on refresh_runs"
+  on refresh_runs for insert
+  with check (true);
+
 -- Create indexes for common queries
 create index if not exists idx_opportunities_pillar on opportunities(genesis_pillar);
 create index if not exists idx_opportunities_urgency on opportunities(urgency);
 create index if not exists idx_opportunities_sector on opportunities(sector);
 create index if not exists idx_opportunities_ot_relevance on opportunities(ot_relevance);
 create index if not exists idx_signals_published on signals(published_at desc);
+create index if not exists idx_refresh_runs_started_at on refresh_runs(started_at desc);

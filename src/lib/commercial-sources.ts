@@ -147,6 +147,9 @@ const COMMERCIAL_SEARCHES = [
   { query: 'critical minerals refinery construction', sector: 'minerals', keywords: ['critical minerals'] },
   { query: 'copper smelter modernization USA', sector: 'metals', keywords: ['smelter', 'copper'] },
   { query: 'alumina refining expansion project', sector: 'metals', keywords: ['refining', 'alumina'] },
+  { query: 'copper mine expansion project USA', sector: 'minerals', keywords: ['copper', 'mine'] },
+  { query: 'lithium mining project construction USA', sector: 'minerals', keywords: ['lithium', 'mining'] },
+  { query: 'rare earth mining and processing facility USA', sector: 'minerals', keywords: ['rare earth', 'mining'] },
 
   // OIL / GAS / COAL
   { query: 'natural gas processing plant expansion USA', sector: 'oil-gas', keywords: ['natural gas', 'processing'] },
@@ -627,6 +630,9 @@ async function fetchEnterpriseProjects(): Promise<CommercialOpportunity[]> {
     { query: 'critical minerals mine processing facility expansion', sector: 'minerals', entityType: 'enterprise' as const },
     { query: 'copper smelter modernization USA', sector: 'metals', entityType: 'enterprise' as const },
     { query: 'aluminum refining expansion facility', sector: 'metals', entityType: 'enterprise' as const },
+    { query: 'copper mine expansion project USA', sector: 'minerals', entityType: 'enterprise' as const },
+    { query: 'lithium mining project construction USA', sector: 'minerals', entityType: 'enterprise' as const },
+    { query: 'rare earth mining and processing facility USA', sector: 'minerals', entityType: 'enterprise' as const },
 
     // Drone / UAS / Space industrial base
     { query: 'drone manufacturing facility expansion USA', sector: 'defense', entityType: 'enterprise' as const },

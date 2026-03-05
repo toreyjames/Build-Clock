@@ -7,7 +7,7 @@ import { fetchNews } from '@/lib/news';
 import { fetchSECFilings } from '@/lib/sec-filings';
 import { fetchEarningsSignals, fetchStateProcurementSignals, fetchUtilityIRSignals } from '@/lib/commercial-signals';
 
-export const revalidate = 1800; // Revalidate every 30 minutes
+export const dynamic = 'force-dynamic';
 
 // Sample data for when APIs are unavailable
 const SAMPLE_SAM = [

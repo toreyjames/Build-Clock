@@ -113,6 +113,20 @@ interface LiveEvent {
   level: 'ok' | 'warn' | 'info';
 }
 
+interface RefreshHealthStatus {
+  scheduler?: {
+    cadenceMinutes?: number;
+    healthy?: boolean;
+    ageMinutes?: number | null;
+  };
+  latestRun?: {
+    status?: string;
+    finishedAt?: string | null;
+    durationMs?: number | null;
+    error?: string | null;
+  } | null;
+}
+
 // Commercial discovery from scanning
 interface CommercialDiscovery {
   id: string;
@@ -658,6 +672,7 @@ function OTPipelineTrackerContent() {
   const [addedDiscoveries, setAddedDiscoveries] = useState<Set<string>>(new Set());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
+  const [refreshHealth, setRefreshHealth] = useState<RefreshHealthStatus | null>(null);
   const [showFallbackData, setShowFallbackData] = useState(false);
   const [sourceHealth, setSourceHealth] = useState<Record<string, SourceHealthItem>>({});
   const [opportunitySourceMeta, setOpportunitySourceMeta] = useState<{
@@ -1208,6 +1223,33 @@ function OTPipelineTrackerContent() {
     return () => clearInterval(intervalId);
   }, [fetchPipelineData]);
 
+  useEffect(() => {
+    let active = true;
+
+    const loadRefreshHealth = async () => {
+      try {
+        const res = await fetch('/api/refresh/status', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (active) {
+          setRefreshHealth(data as RefreshHealthStatus);
+        }
+      } catch {
+        // Best-effort health status; ignore transient network errors.
+      }
+    };
+
+    void loadRefreshHealth();
+    const intervalId = setInterval(() => {
+      void loadRefreshHealth();
+    }, 60 * 1000);
+
+    return () => {
+      active = false;
+      clearInterval(intervalId);
+    };
+  }, []);
+
   // Allow deep-linking from other pages, e.g. /radar?id=opp-id
   useEffect(() => {
     if (opportunities.length === 0) return;
@@ -1492,6 +1534,10 @@ function OTPipelineTrackerContent() {
   const displayEarningsSignals = !showFallbackData && sourceHealth.earnings?.fallback ? [] : earningsSignals;
   const displayUtilityIrSignals = !showFallbackData && sourceHealth.utilityIr?.fallback ? [] : utilityIrSignals;
   const displayStateProcSignals = !showFallbackData && sourceHealth.stateProc?.fallback ? [] : stateProcSignals;
+  const schedulerHealthy = Boolean(refreshHealth?.scheduler?.healthy);
+  const schedulerAge = refreshHealth?.scheduler?.ageMinutes;
+  const schedulerLastRun = refreshHealth?.latestRun?.finishedAt || null;
+  const schedulerStatusLabel = refreshHealth?.latestRun?.status || 'unknown';
 
   if (loading) {
     return (
@@ -1557,6 +1603,12 @@ function OTPipelineTrackerContent() {
 	                <div className="mt-1 text-[10px] text-gray-500">
 	                  Auto-refresh every 5m{lastRefreshAt ? ` • Last ${new Date(lastRefreshAt).toLocaleTimeString()}` : ''}
 	                </div>
+                  <div className={`mt-1 text-[10px] ${schedulerHealthy ? 'text-emerald-300' : 'text-amber-300'}`}>
+                    Scheduler {schedulerHealthy ? 'healthy' : 'degraded'} •
+                    {schedulerAge !== null && schedulerAge !== undefined ? ` ${schedulerAge}m ago` : ' no recent run'}
+                    {schedulerLastRun ? ` • ${new Date(schedulerLastRun).toLocaleTimeString()}` : ''}
+                    {schedulerStatusLabel ? ` • ${schedulerStatusLabel}` : ''}
+                  </div>
 	              </div>
 	              <div className="text-right">
 	                <div className="text-lg font-bold text-cyan-400">{formatCurrency(totalPipeline)}</div>
