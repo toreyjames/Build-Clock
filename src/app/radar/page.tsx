@@ -168,20 +168,6 @@ interface CommercialDiscovery {
   needsResearch?: boolean;
 }
 
-interface GridInfraLayer {
-  lines: Array<{ d: string; voltageKv: number | null; voltageClass: string; status: string | null; detailBand: string }>;
-  generationSites: Array<{
-    x: number;
-    y: number;
-    name: string;
-    state: string | null;
-    fuelPrimary: string;
-    opCapMw: number | null;
-    planCapMw: number | null;
-    retCapMw: number | null;
-  }>;
-}
-
 // Market type (for commercial filter)
 type MarketType = 'all' | 'commercial' | 'federal';
 const MARKET_MAP: Record<string, MarketType> = {
@@ -271,26 +257,6 @@ const STATE_CENTROIDS: Record<string, { lat: number; lng: number }> = {
   WI: { lat: 43.7844, lng: -88.7879 }, WY: { lat: 43.0759, lng: -107.2903 }, DC: { lat: 38.9072, lng: -77.0369 },
 };
 
-const PIPELINE_SEGMENTS = [
-  { id: 'permian-gulf', points: [{ lat: 31.8, lng: -102.4 }, { lat: 30.2, lng: -97.7 }, { lat: 29.3, lng: -94.8 }] },
-  { id: 'appalachia-gulf', points: [{ lat: 40.4, lng: -80.0 }, { lat: 35.2, lng: -86.8 }, { lat: 30.2, lng: -91.0 }] },
-  { id: 'midcon-midwest', points: [{ lat: 35.5, lng: -97.5 }, { lat: 39.1, lng: -94.6 }, { lat: 41.9, lng: -87.7 }] },
-];
-
-const PORTS = [
-  { id: 'houston', name: 'Port Houston', lat: 29.73, lng: -95.24 },
-  { id: 'la-long-beach', name: 'Port of LA/LB', lat: 33.74, lng: -118.24 },
-  { id: 'savannah', name: 'Port of Savannah', lat: 32.08, lng: -81.09 },
-  { id: 'newark', name: 'Port Newark', lat: 40.67, lng: -74.14 },
-  { id: 'seattle', name: 'Port of Seattle', lat: 47.60, lng: -122.34 },
-];
-
-const WATER_BODIES = [
-  { id: 'great-lakes', name: 'Great Lakes', lat: 44.8, lng: -84.5, rx: 95, ry: 42 },
-  { id: 'gulf', name: 'Gulf of Mexico', lat: 27.2, lng: -90.5, rx: 120, ry: 46 },
-  { id: 'chesapeake', name: 'Chesapeake Bay', lat: 38.8, lng: -76.3, rx: 28, ry: 12 },
-];
-
 function latLngToMap(lat: number, lng: number): { x: number; y: number } {
   const projectInset = (bounds: LatLngBounds, rect: MapRect): { x: number; y: number } => {
     const nx = (lng - bounds.minLng) / (bounds.maxLng - bounds.minLng);
@@ -371,36 +337,6 @@ function getInvestmentComponents(opportunity: Opportunity): InvestmentComponent[
   });
 
   return components.slice(0, 10);
-}
-
-function transmissionStyle(voltageKv: number | null, detailBand: string): { stroke: string; width: number; opacity: number } {
-  const detailBoost = detailBand === '>1:1.2M' ? 0.15 : detailBand === '1:1.2M-1:5M' ? 0.08 : 0;
-  if (voltageKv === null) return { stroke: '#22d3ee66', width: 1, opacity: 0.4 + detailBoost };
-  if (voltageKv >= 500) return { stroke: '#ef4444', width: 2.4, opacity: 0.75 + detailBoost };
-  if (voltageKv >= 345) return { stroke: '#f97316', width: 2.1, opacity: 0.67 + detailBoost };
-  if (voltageKv >= 220) return { stroke: '#facc15', width: 1.8, opacity: 0.6 + detailBoost };
-  if (voltageKv >= 100) return { stroke: '#22d3ee', width: 1.4, opacity: 0.5 + detailBoost };
-  return { stroke: '#38bdf8', width: 1.1, opacity: 0.42 + detailBoost };
-}
-
-function generationFuelColor(fuel: string): string {
-  const normalized = fuel.trim().toLowerCase();
-  if (normalized.startsWith('renew')) return '#22c55e';
-  if (normalized.includes('nuclear')) return '#a855f7';
-  if (normalized.includes('petro') || normalized.includes('oil')) return '#f97316';
-  if (normalized.includes('coal')) return '#334155';
-  if (normalized.includes('gas') || normalized.includes('ng')) return '#3b82f6';
-  if (normalized.includes('hydro')) return '#0ea5e9';
-  return '#e879f9';
-}
-
-function toPath(points: Array<{ lat: number; lng: number }>): string {
-  return points
-    .map((p, idx) => {
-      const { x, y } = latLngToMap(p.lat, p.lng);
-      return `${idx === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-    })
-    .join(' ');
 }
 
 function formatCurrency(value: number | null): string {
@@ -713,7 +649,6 @@ function OTPipelineTrackerContent() {
   const [earningsSignals, setEarningsSignals] = useState<CommercialSignalItem[]>([]);
   const [utilityIrSignals, setUtilityIrSignals] = useState<CommercialSignalItem[]>([]);
   const [stateProcSignals, setStateProcSignals] = useState<CommercialSignalItem[]>([]);
-  const [gridInfra, setGridInfra] = useState<GridInfraLayer>({ lines: [], generationSites: [] });
   const [discoveries, setDiscoveries] = useState<CommercialDiscovery[]>([]);
   const [discoveriesLoading, setDiscoveriesLoading] = useState(false);
   const [newDiscoveryCount, setNewDiscoveryCount] = useState(0);
@@ -726,12 +661,7 @@ function OTPipelineTrackerContent() {
   const [industryFilter, setIndustryFilter] = useState<IndustryFilter>('all');
   const [otFilter, setOtFilter] = useState<OTFilter>('all');
   const [timeframeFilter, setTimeframeFilter] = useState<TimeframeFilter>('rolling-year');
-  const showInfra = true;
-  const showGeneration = true;
   const showOpportunities = true;
-  const showPipelines = false;
-  const showPorts = false;
-  const showWater = false;
 
   // Cloud sync
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
@@ -1350,83 +1280,6 @@ function OTPipelineTrackerContent() {
     }
   }, [opportunities, searchParams, selectedOpp]);
 
-  useEffect(() => {
-    async function fetchGridInfra() {
-      try {
-        const res = await fetch('/api/grid-infra');
-        const data = await res.json();
-        const lines = ((data.lines || []) as Array<{
-          geometry?: { type?: string; coordinates?: unknown };
-          voltageKv?: number | null;
-          voltageClass?: string;
-          status?: string | null;
-          detailBand?: string;
-        }>)
-          .flatMap((feature) => {
-            const geometry = feature.geometry;
-            if (!geometry?.coordinates) return [];
-            const coordLists =
-              geometry.type === 'LineString'
-                ? [geometry.coordinates as number[][]]
-                : geometry.type === 'MultiLineString'
-                  ? (geometry.coordinates as number[][][])
-                  : [];
-            return coordLists.map((coords) => {
-              const stride = coords.length > 500 ? 3 : coords.length > 250 ? 2 : 1;
-              const d = coords
-                .filter((_, i) => i % stride === 0 || i === coords.length - 1)
-                .map((coord, i) => {
-                  const x = coord[0];
-                  const y = coord[1];
-                  const nx = (x - US_BOUNDS.xmin) / (US_BOUNDS.xmax - US_BOUNDS.xmin);
-                  const ny = 1 - (y - US_BOUNDS.ymin) / (US_BOUNDS.ymax - US_BOUNDS.ymin);
-                  return `${i === 0 ? 'M' : 'L'} ${(nx * MAP_W).toFixed(1)} ${(ny * MAP_H).toFixed(1)}`;
-                })
-                .join(' ');
-              return {
-                d,
-                voltageKv: feature.voltageKv ?? null,
-                voltageClass: feature.voltageClass || 'Unknown',
-                status: feature.status ?? null,
-                detailBand: feature.detailBand || 'Unknown',
-              };
-            });
-          });
-
-        const generationSites = ((data.generationSites || []) as Array<{
-          lat?: number | null;
-          lng?: number | null;
-          name?: string;
-          state?: string | null;
-          fuelPrimary?: string;
-          opCapMw?: number | null;
-          planCapMw?: number | null;
-          retCapMw?: number | null;
-        }>)
-          .map((site) => {
-            if (typeof site.lat !== 'number' || typeof site.lng !== 'number') return null;
-            const point = latLngToMap(site.lat, site.lng);
-            return {
-              x: point.x,
-              y: point.y,
-              name: site.name || 'Unknown plant',
-              state: site.state ?? null,
-              fuelPrimary: site.fuelPrimary || 'Unknown',
-              opCapMw: site.opCapMw ?? null,
-              planCapMw: site.planCapMw ?? null,
-              retCapMw: site.retCapMw ?? null,
-            };
-          })
-          .filter((site): site is NonNullable<typeof site> => site !== null);
-
-        setGridInfra({ lines, generationSites });
-      } catch (error) {
-        console.error('Failed to load grid-infra layer for radar map', error);
-      }
-    }
-    fetchGridInfra();
-  }, []);
-
   // Filter opportunities
   const filteredOpps = opportunities.filter(opp => {
     // Timeframe filter
@@ -1541,13 +1394,6 @@ function OTPipelineTrackerContent() {
   const hoveredMarker = useMemo(
     () => mapMarkers.find((marker) => marker.id === hoveredMarkerId) || null,
     [mapMarkers, hoveredMarkerId],
-  );
-
-  const pipelinePaths = useMemo(() => PIPELINE_SEGMENTS.map((seg) => ({ id: seg.id, d: toPath(seg.points) })), []);
-  const portPoints = useMemo(() => PORTS.map((port) => ({ ...port, point: latLngToMap(port.lat, port.lng) })), []);
-  const waterAreas = useMemo(
-    () => WATER_BODIES.map((w) => ({ ...w, point: latLngToMap(w.lat, w.lng) })),
-    [],
   );
 
   // Group by status for kanban
@@ -2025,9 +1871,9 @@ function OTPipelineTrackerContent() {
 
             <div className="order-4 mb-4 bg-[#12121a] rounded-xl border border-gray-800 p-3">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-white">Geographic Context Map (Optional)</h3>
+                <h3 className="text-sm font-semibold text-white">Opportunity Map</h3>
                 <div className="flex items-center gap-2 text-[11px]">
-                  <div className="text-xs text-gray-500">Context layer · {mapMarkers.length} opportunity overlays</div>
+                  <div className="text-xs text-gray-500">{mapMarkers.length} opportunities mapped from the current list</div>
                 </div>
               </div>
               <div className="relative overflow-hidden rounded-lg border border-gray-800 bg-[#090b10]">
@@ -2052,41 +1898,6 @@ function OTPipelineTrackerContent() {
                     ))}
                   </svg>
                   <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} className="absolute inset-0 h-full w-full">
-                    {showWater && waterAreas.map(area => (
-                      <ellipse key={area.id} cx={area.point.x} cy={area.point.y} rx={area.rx} ry={area.ry} fill="#1d4ed833" stroke="#60a5fa66" strokeWidth={1.2} />
-                    ))}
-                    {showInfra && gridInfra.lines.slice(0, 2200).map((line, idx) => {
-                      const style = transmissionStyle(line.voltageKv, line.detailBand);
-                      return (
-                        <path
-                          key={`line-${idx}`}
-                          d={line.d}
-                          fill="none"
-                          stroke={style.stroke}
-                          strokeWidth={style.width}
-                          opacity={style.opacity}
-                        />
-                      );
-                    })}
-                    {showPipelines && pipelinePaths.map(path => (
-                      <path key={path.id} d={path.d} fill="none" stroke="#fb923c99" strokeWidth={2.2} strokeDasharray="6 4" />
-                    ))}
-                    {showGeneration && gridInfra.generationSites.slice(0, 1800).map((site, idx) => {
-                      const radius = site.opCapMw ? Math.min(8, Math.max(2.2, Math.log10(site.opCapMw + 1) * 2)) : 2.4;
-                      const color = generationFuelColor(site.fuelPrimary);
-                      return (
-                        <g key={`gen-${idx}`}>
-                          <circle cx={site.x} cy={site.y} r={radius + 1} fill="#02061799" />
-                          <circle cx={site.x} cy={site.y} r={radius} fill={color} opacity={0.86} />
-                          <title>{`${site.name}${site.state ? ` (${site.state})` : ''} • ${site.fuelPrimary} • ${site.opCapMw ? `${site.opCapMw} MW` : 'MW n/a'}`}</title>
-                        </g>
-                      );
-                    })}
-                    {showPorts && portPoints.map(port => (
-                      <g key={port.id}>
-                        <circle cx={port.point.x} cy={port.point.y} r={4.5} fill="#34d399cc" stroke="#042f2e" strokeWidth={1} />
-                      </g>
-                    ))}
                     {showOpportunities && mapMarkers.map(marker => (
                       <g
                         key={marker.id}
