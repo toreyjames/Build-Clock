@@ -145,6 +145,22 @@ const COMMERCIAL_SEARCHES = [
   { query: 'rare earth processing plant USA', sector: 'minerals', keywords: ['rare earth', 'processing'] },
   { query: 'lithium processing facility USA', sector: 'minerals', keywords: ['lithium', 'processing'] },
   { query: 'critical minerals refinery construction', sector: 'minerals', keywords: ['critical minerals'] },
+  { query: 'copper smelter modernization USA', sector: 'metals', keywords: ['smelter', 'copper'] },
+  { query: 'alumina refining expansion project', sector: 'metals', keywords: ['refining', 'alumina'] },
+
+  // OIL / GAS / COAL
+  { query: 'natural gas processing plant expansion USA', sector: 'oil-gas', keywords: ['natural gas', 'processing'] },
+  { query: 'LNG terminal expansion project cybersecurity', sector: 'oil-gas', keywords: ['LNG', 'terminal'] },
+  { query: 'pipeline compressor station modernization', sector: 'oil-gas', keywords: ['pipeline', 'compressor'] },
+  { query: 'refinery turnaround modernization project', sector: 'oil-gas', keywords: ['refinery', 'turnaround'] },
+  { query: 'coal plant modernization carbon capture upgrade', sector: 'clean-energy', keywords: ['coal', 'modernization'] },
+
+  // DRONE / UAS / SPACE
+  { query: 'drone manufacturing facility expansion USA', sector: 'defense', keywords: ['drone', 'manufacturing'] },
+  { query: 'UAS production plant construction', sector: 'defense', keywords: ['UAS', 'production'] },
+  { query: 'space launch facility expansion USA', sector: 'aerospace', keywords: ['space', 'launch facility'] },
+  { query: 'satellite manufacturing plant expansion', sector: 'aerospace', keywords: ['satellite', 'manufacturing'] },
+  { query: 'space systems integration facility new plant', sector: 'aerospace', keywords: ['space systems', 'facility'] },
 
   // Nuclear (Commercial)
   { query: 'nuclear plant cybersecurity upgrade', sector: 'nuclear', keywords: ['nuclear', 'cyber'] },
@@ -598,10 +614,29 @@ async function fetchEnterpriseProjects(): Promise<CommercialOpportunity[]> {
 
     // Chemicals
     { query: 'chemical plant construction expansion', sector: 'chemicals', entityType: 'enterprise' as const },
+
+    // Oil / Gas / Refining / LNG
+    { query: 'natural gas processing plant expansion USA', sector: 'oil-gas', entityType: 'enterprise' as const },
+    { query: 'LNG terminal expansion project', sector: 'oil-gas', entityType: 'enterprise' as const },
+    { query: 'refinery turnaround modernization project', sector: 'oil-gas', entityType: 'enterprise' as const },
+
+    // Coal modernization
+    { query: 'coal plant modernization upgrade carbon capture', sector: 'clean-energy', entityType: 'enterprise' as const },
+
+    // Mining / Smelting / Refining
+    { query: 'critical minerals mine processing facility expansion', sector: 'minerals', entityType: 'enterprise' as const },
+    { query: 'copper smelter modernization USA', sector: 'metals', entityType: 'enterprise' as const },
+    { query: 'aluminum refining expansion facility', sector: 'metals', entityType: 'enterprise' as const },
+
+    // Drone / UAS / Space industrial base
+    { query: 'drone manufacturing facility expansion USA', sector: 'defense', entityType: 'enterprise' as const },
+    { query: 'UAS production plant construction', sector: 'defense', entityType: 'enterprise' as const },
+    { query: 'space launch facility expansion USA', sector: 'aerospace', entityType: 'enterprise' as const },
+    { query: 'satellite manufacturing plant expansion', sector: 'aerospace', entityType: 'enterprise' as const },
   ];
 
-  // Process more searches for broader coverage
-  for (const search of projectSearches.slice(0, 8)) {
+  // Process a broad but bounded search set for sector coverage.
+  for (const search of projectSearches.slice(0, 20)) {
     const encodedQuery = encodeURIComponent(search.query);
     const rssUrl = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-US&gl=US&ceid=US:en`;
 
@@ -1847,15 +1882,18 @@ export async function fetchCommercialOpportunities(limit: number = 30): Promise<
     COMMERCIAL_SEARCHES.find(s => s.sector === 'manufacturing'),
     COMMERCIAL_SEARCHES.find(s => s.sector === 'semiconductors'),
     COMMERCIAL_SEARCHES.find(s => s.sector === 'defense'),
+    COMMERCIAL_SEARCHES.find(s => s.sector === 'aerospace'),
     COMMERCIAL_SEARCHES.find(s => s.sector === 'ev-battery'),
     COMMERCIAL_SEARCHES.find(s => s.sector === 'pharma'),
     COMMERCIAL_SEARCHES.find(s => s.sector === 'metals'),
+    COMMERCIAL_SEARCHES.find(s => s.sector === 'minerals'),
+    COMMERCIAL_SEARCHES.find(s => s.sector === 'oil-gas'),
     COMMERCIAL_SEARCHES.find(s => s.sector === 'grid'),
     COMMERCIAL_SEARCHES.find(s => s.sector === 'data-centers'),
   ].filter(Boolean) as typeof COMMERCIAL_SEARCHES;
 
   let newsCount = 0;
-  const results = await Promise.all(diverseSearches.slice(0, 6).map(s => fetchCommercialNews(s)));
+  const results = await Promise.all(diverseSearches.map(s => fetchCommercialNews(s)));
   for (const opps of results) {
     for (const opp of opps) {
       const titleKey = opp.title.toLowerCase().substring(0, 50);
