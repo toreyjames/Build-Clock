@@ -1826,7 +1826,6 @@ function OTPipelineTrackerContent() {
                     </div>
                     <div className="text-right text-xs">
                       <p className="font-semibold text-emerald-300">{formatCurrency(item.opp.estimatedValue)}</p>
-                      <p className="text-gray-400">{item.winProbability}% win</p>
                     </div>
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
