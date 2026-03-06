@@ -180,6 +180,15 @@ const MANUFACTURING_TARGETS = [
   'Dow', 'DuPont', 'BASF', 'LyondellBasell', 'Eastman', 'Celanese', 'Huntsman',
   // Paper/Packaging
   'International Paper', 'WestRock', 'Packaging Corp', 'Graphic Packaging',
+  // Frontier defense / space / dual-use
+  'Anduril', 'Anduril Industries', 'Palantir', 'Shield AI', 'Skydio', 'Saronic', 'Saildrone',
+  'SpaceX', 'Space Exploration Technologies', 'Rocket Lab', 'Intuitive Machines', 'Planet Labs', 'Astra Space',
+  'Relativity Space', 'Firefly Aerospace',
+  // Frontier nuclear / fusion
+  'Aalo', 'Aalo Atomics', 'Valar', 'Valar Atomics', 'Oklo', 'X-energy', 'Kairos', 'TerraPower',
+  'Commonwealth Fusion Systems', 'Helion', 'TAE Technologies',
+  // Extra life sciences / biotech manufacturing
+  'Amgen', 'Gilead', 'Regeneron', 'Biogen', 'Novo Nordisk', 'Roche', 'Sanofi',
 ];
 
 // Commercial-focused news searches
@@ -1074,6 +1083,13 @@ async function fetchSECFilings(): Promise<CommercialOpportunity[]> {
     'SCADA',
     'industrial control',
     'grid modernization',
+    'biomanufacturing',
+    'pharmaceutical manufacturing',
+    'fusion',
+    'advanced reactor',
+    'space launch',
+    'satellite manufacturing',
+    'defense production',
   ];
 
   // Company CIK mappings for our target companies
@@ -1138,7 +1154,7 @@ async function fetchSECFilings(): Promise<CommercialOpportunity[]> {
     // Parse Atom feed entries
     const entryMatches = xml.match(/<entry>([\s\S]*?)<\/entry>/g) || [];
 
-    for (const entryXml of entryMatches.slice(0, 50)) {
+    for (const entryXml of entryMatches.slice(0, 200)) {
       const title = entryXml.match(/<title[^>]*>([\s\S]*?)<\/title>/)?.[1] || '';
       const link = entryXml.match(/<link[^>]*href="([^"]+)"/)?.[1] || '';
       const updated = entryXml.match(/<updated>([\s\S]*?)<\/updated>/)?.[1] || '';
@@ -1455,6 +1471,94 @@ async function fetchUSASpending(): Promise<CommercialOpportunity[]> {
     }
   } catch (error) {
     console.error('USAspending fetch error:', error);
+  }
+
+  return opportunities;
+}
+
+// USAspending watchlist scan for frontier/private names (Anduril, SpaceX, etc.)
+async function fetchWatchlistFederalAwards(): Promise<CommercialOpportunity[]> {
+  const opportunities: CommercialOpportunity[] = [];
+
+  const watchlist = [
+    { name: 'ANDURIL', sector: 'defense' },
+    { name: 'SPACE EXPLORATION TECHNOLOGIES', sector: 'aerospace' },
+    { name: 'SPACEX', sector: 'aerospace' },
+    { name: 'PALANTIR', sector: 'defense' },
+    { name: 'ROCKET LAB', sector: 'aerospace' },
+    { name: 'INTUITIVE MACHINES', sector: 'aerospace' },
+    { name: 'PLANET LABS', sector: 'aerospace' },
+    { name: 'SKYDIO', sector: 'defense' },
+    { name: 'SHIELD AI', sector: 'defense' },
+    { name: 'AALO', sector: 'nuclear' },
+    { name: 'VALAR', sector: 'nuclear' },
+  ] as const;
+
+  const apiUrl = 'https://api.usaspending.gov/api/v2/search/spending_by_award/';
+  const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const endDate = new Date().toISOString().split('T')[0];
+
+  for (const company of watchlist) {
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filters: {
+            time_period: [{ start_date: startDate, end_date: endDate }],
+            award_type_codes: ['A', 'B', 'C', 'D'],
+            recipient_search_text: [company.name],
+            award_amounts: [{ lower_bound: 1000000 }],
+          },
+          fields: [
+            'Award ID',
+            'Recipient Name',
+            'Award Amount',
+            'Description',
+            'Start Date',
+            'Awarding Agency',
+            'NAICS Code',
+          ],
+          limit: 10,
+          page: 1,
+          sort: 'Award Amount',
+          order: 'desc',
+        }),
+        next: { revalidate: 3600 }
+      });
+
+      if (!response.ok) continue;
+      const data = await response.json();
+
+      for (const award of (data.results || [])) {
+        const description = award['Description'] || '';
+        const publishedDate = new Date(award['Start Date'] || Date.now());
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        opportunities.push({
+          id: `watch-${company.name}-${award['Award ID'] || Buffer.from(description).toString('base64').substring(0, 12)}`,
+          title: `${award['Awarding Agency'] || 'Federal'}: ${award['Recipient Name'] || company.name}`,
+          entity: award['Recipient Name'] || company.name,
+          entityType: 'enterprise',
+          source: 'contract-award',
+          sourceUrl: `https://www.usaspending.gov/award/${award['Award ID']}`,
+          sourceName: 'USAspending (Watchlist)',
+          publishedAt: publishedDate.toISOString(),
+          summary: description.length > 300 ? description.substring(0, 297) + '...' : description,
+          estimatedValue: award['Award Amount'] || null,
+          location: 'USA',
+          state: 'USA',
+          otRelevance: (award['Award Amount'] || 0) >= 10000000 ? 'high' : 'medium',
+          otKeywords: ['Watchlist Award', company.name],
+          sector: company.sector,
+          isNew: publishedDate > sevenDaysAgo,
+          needsResearch: false,
+        });
+      }
+    } catch (error) {
+      console.error(`Watchlist USAspending error for ${company.name}:`, error);
+    }
   }
 
   return opportunities;
@@ -2129,6 +2233,19 @@ export async function fetchCommercialOpportunities(limit: number = 30): Promise<
     }
   }
   sourceStats.push({ name: 'USAspending', count: usaCount, status: usaCount > 0 ? 'ok' : 'empty' });
+
+  // 6b. Fetch watchlist federal awards for frontier/private names
+  const watchlistOpps = await fetchWatchlistFederalAwards();
+  let watchlistCount = 0;
+  for (const opp of watchlistOpps) {
+    const titleKey = opp.title.toLowerCase().substring(0, 50);
+    if (!seenTitles.has(titleKey)) {
+      seenTitles.add(titleKey);
+      allOpportunities.push(opp);
+      watchlistCount++;
+    }
+  }
+  sourceStats.push({ name: 'Frontier Watchlist Awards', count: watchlistCount, status: watchlistCount > 0 ? 'ok' : 'empty' });
 
   // 7. Fetch CHIPS Act semiconductor investments
   const chipsOpps = await fetchCHIPSProjects();
