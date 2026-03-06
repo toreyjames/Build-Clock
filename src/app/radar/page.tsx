@@ -1413,7 +1413,6 @@ function OTPipelineTrackerContent() {
     .slice(0, 5);
   const fallbackSources = Object.entries(sourceHealth).filter(([, value]) => value.fallback);
   const hasSourceRisk = fallbackSources.length >= 2 || (opportunitySourceMeta?.liveCount || 0) === 0;
-  const displayNews = !showFallbackData && sourceHealth.news?.fallback ? [] : news;
   const displayEarningsSignals = !showFallbackData && sourceHealth.earnings?.fallback ? [] : earningsSignals;
   const displayUtilityIrSignals = !showFallbackData && sourceHealth.utilityIr?.fallback ? [] : utilityIrSignals;
   const displayStateProcSignals = !showFallbackData && sourceHealth.stateProc?.fallback ? [] : stateProcSignals;
@@ -1808,49 +1807,6 @@ function OTPipelineTrackerContent() {
                 selectedOpp={selectedOpp}
                 setSelectedOpp={setSelectedOpp}
               />
-            </div>
-
-            {/* Latest News */}
-            <div className="order-3 mt-4">
-              <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-lg">📰</span>
-                    <h3 className="font-bold text-white">Metric-Linked Evidence</h3>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    {displayNews.slice(0, 3).map((item) => {
-                      const fresh = freshnessBadge(item.publishedAt);
-                      const newsFallback = sourceHealth.news?.fallback ?? false;
-                      return (
-                      <a
-                        key={item.id}
-                        href={item.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block p-3 bg-[#12121a] rounded-lg border border-gray-800 hover:border-gray-600 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 mb-1 text-xs">
-                          <span className="text-cyan-400">{item.source}</span>
-                          <span className="text-gray-600">{getRelativeTime(item.publishedAt)}</span>
-                        </div>
-                        <div className="mb-1 flex items-center gap-1 text-[10px]">
-                          <span className={`rounded px-1 ${fresh.className}`}>{fresh.label}</span>
-                          <span className={`rounded px-1 ${newsFallback ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
-                            {newsFallback ? 'fallback' : 'live'}
-                          </span>
-                        </div>
-                        <div className="text-sm text-white line-clamp-2">{item.title}</div>
-                      </a>
-                    )})}
-                    {displayNews.length === 0 && (
-                      <div className="col-span-3 text-center py-8 text-gray-500 text-sm">
-                        {sourceHealth.news?.fallback && !showFallbackData
-                          ? 'News source is in fallback mode. Toggle "Fallback data ON" to view sample feed items.'
-                          : 'No recent news'}
-                      </div>
-                    )}
-                  </div>
-              </div>
             </div>
 
           </div>
@@ -2598,7 +2554,7 @@ function DetailPanel({
         <div className="bg-[#0a0a0f] rounded-lg p-3">
           <div className="flex items-center gap-2 mb-2">
             <span>📰</span>
-            <h3 className="text-sm font-medium text-white">Recent Coverage</h3>
+            <h3 className="text-sm font-medium text-white">Project Articles</h3>
           </div>
           {oppNewsLoading ? (
             <p className="text-sm text-gray-500">Loading related news…</p>
