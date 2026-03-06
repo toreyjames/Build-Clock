@@ -124,6 +124,19 @@ function extractBuildRestartKeywords(text: string): string[] {
   return [...new Set(found.map((term) => term.toUpperCase()))];
 }
 
+function isVerifiedOpportunity(opportunity: CommercialOpportunity): boolean {
+  if (opportunity.source === 'news' || opportunity.source === 'trade-pub') return false;
+
+  try {
+    const hostname = new URL(opportunity.sourceUrl).hostname.toLowerCase();
+    if (hostname.includes('news.google.com')) return false;
+  } catch {
+    return false;
+  }
+
+  return true;
+}
+
 // Major utilities to track
 const MAJOR_UTILITIES = [
   'Duke Energy', 'Southern Company', 'Dominion Energy', 'Exelon', 'NextEra Energy',
@@ -2242,8 +2255,10 @@ export async function fetchCommercialOpportunities(limit: number = 30): Promise<
   }
   sourceStats.push({ name: 'Trade Publications', count: tradeCount, status: tradeCount > 0 ? 'ok' : 'empty' });
 
-  // Sort: prioritize actual opportunities (RFP, PUC, Project, Contract Awards) over news
-  allOpportunities.sort((a, b) => {
+  const verifiedOpportunities = allOpportunities.filter(isVerifiedOpportunity);
+
+  // Sort: prioritize actual opportunities (RFP, PUC, Project, Contract Awards) over signals
+  verifiedOpportunities.sort((a, b) => {
     // Source priority: procurement > contracts > puc > project > news
     const sourceOrder: Record<string, number> = {
       'press-release': 0, // RFPs, projects, grid/interconnection
@@ -2273,10 +2288,10 @@ export async function fetchCommercialOpportunities(limit: number = 30): Promise<
     return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
   });
 
-  const newCount = allOpportunities.filter(o => o.isNew).length;
+  const newCount = verifiedOpportunities.filter(o => o.isNew).length;
 
   // Enrich broad opportunities with specific details
-  const sliced = allOpportunities.slice(0, limit);
+  const sliced = verifiedOpportunities.slice(0, limit);
   const enrichedOpportunities = await enrichOpportunities(sliced);
   const collectionModel = getCommercialCollectionModel();
   collectionModel.sectorCoverage = Object.values(sectorCoverageMap).sort((a, b) => b.capturedItems - a.capturedItems);
