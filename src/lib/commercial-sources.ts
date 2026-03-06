@@ -676,6 +676,96 @@ async function fetchFrontierSignals(): Promise<CommercialOpportunity[]> {
   return opportunities;
 }
 
+async function fetchIndustrialPressWires(): Promise<CommercialOpportunity[]> {
+  const opportunities: CommercialOpportunity[] = [];
+  const wireFeeds = [
+    { name: 'PR Newswire', url: 'https://www.prnewswire.com/rss/news-releases-list.rss' },
+    { name: 'GlobeNewswire', url: 'https://www.globenewswire.com/RssFeed/orgclass/1/feedtitle/GlobeNewswire%20-%20News%20about%20Public%20Companies' },
+  ];
+
+  const signalPattern = /\b(plant|facility|factory|construction|groundbreaking|restart|recommission|smelter|refinery|mining|mine|processing|biomanufacturing|fill-finish|drug manufacturing|advanced manufacturing|expansion)\b/i;
+
+  for (const feed of wireFeeds) {
+    try {
+      const response = await fetch(feed.url, { next: { revalidate: 1800 } });
+      if (!response.ok) continue;
+
+      const xml = await response.text();
+      const itemMatches = xml.match(/<item>([\s\S]*?)<\/item>/g) || [];
+
+      for (const itemXml of itemMatches.slice(0, 40)) {
+        const title = itemXml.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1') || '';
+        const link = itemXml.match(/<link>([\s\S]*?)<\/link>/)?.[1] || '';
+        const pubDate = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1] || '';
+        const description = itemXml.match(/<description>([\s\S]*?)<\/description>/)?.[1]?.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').replace(/<[^>]*>/g, '') || '';
+
+        if (!title || !link) continue;
+        const text = `${title} ${description}`.toLowerCase();
+
+        if (!signalPattern.test(text)) continue;
+
+        const matchesWatchCompany = MANUFACTURING_TARGETS.some((target) => text.includes(target.toLowerCase()));
+        const mentionsTnSmelter = /\btennessee\b/.test(text) && /\bsmelter|aluminum|copper\b/.test(text);
+        if (!matchesWatchCompany && !mentionsTnSmelter) continue;
+
+        let sector = 'manufacturing';
+        if (/pharma|biotech|drug|biomanufacturing|therapeutics|hims/i.test(text)) sector = 'pharma';
+        else if (/smelter|aluminum|copper|steel|metals/i.test(text)) sector = 'metals';
+        else if (/mining|mine|lithium|rare earth|critical minerals/i.test(text)) sector = 'minerals';
+        else if (/nuclear|fusion|reactor/i.test(text)) sector = 'nuclear';
+        else if (/space|launch|satellite|rocket/i.test(text)) sector = 'aerospace';
+
+        let entity = 'Industrial Announcement';
+        for (const target of MANUFACTURING_TARGETS) {
+          if (text.includes(target.toLowerCase())) {
+            entity = target;
+            break;
+          }
+        }
+
+        let estimatedValue: number | null = null;
+        const billionMatch = text.match(/\$(\d+(?:,\d{3})*(?:\.\d+)?)\s*billion/i);
+        const millionMatch = text.match(/\$(\d+(?:,\d{3})*(?:\.\d+)?)\s*million/i);
+        if (billionMatch) estimatedValue = parseFloat(billionMatch[1].replace(/,/g, '')) * 1_000_000_000;
+        else if (millionMatch) estimatedValue = parseFloat(millionMatch[1].replace(/,/g, '')) * 1_000_000;
+
+        const stateMatch = text.match(/\b(Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming)\b/i);
+        const state = stateMatch ? stateMatch[1] : 'USA';
+
+        const equipmentKeywords = extractOtEquipmentKeywords(text);
+        const buildKeywords = extractBuildRestartKeywords(text);
+        const publishedDate = pubDate ? new Date(pubDate) : new Date();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        opportunities.push({
+          id: `wire-${Buffer.from(link).toString('base64').substring(0, 16)}`,
+          title: title.length > 120 ? title.substring(0, 117) + '...' : title,
+          entity,
+          entityType: 'enterprise',
+          source: 'press-release',
+          sourceUrl: link,
+          sourceName: feed.name,
+          publishedAt: publishedDate.toISOString(),
+          summary: description.length > 300 ? description.substring(0, 297) + '...' : description,
+          estimatedValue,
+          location: state,
+          state,
+          otRelevance: buildKeywords.length > 0 || equipmentKeywords.length > 0 ? 'high' : 'medium',
+          otKeywords: [...new Set(['Press Wire', ...buildKeywords, ...equipmentKeywords])],
+          sector,
+          isNew: publishedDate > sevenDaysAgo,
+          needsResearch: false,
+        });
+      }
+    } catch (error) {
+      console.error(`Industrial wire error for ${feed.name}:`, error);
+    }
+  }
+
+  return opportunities;
+}
+
 // Fetch actual opportunities from utility RFP/procurement announcements
 async function fetchUtilityProcurement(): Promise<CommercialOpportunity[]> {
   const opportunities: CommercialOpportunity[] = [];
@@ -2311,6 +2401,19 @@ export async function fetchCommercialOpportunities(limit: number = 30): Promise<
     }
   }
   sourceStats.push({ name: 'Frontier Signals', count: frontierCount, status: frontierCount > 0 ? 'ok' : 'empty' });
+
+  // 11b. Fetch industrial/pharma/mining press wire announcements (non-Google)
+  const wireOpps = await fetchIndustrialPressWires();
+  let wireCount = 0;
+  for (const opp of wireOpps) {
+    const titleKey = opp.title.toLowerCase().substring(0, 50);
+    if (!seenTitles.has(titleKey)) {
+      seenTitles.add(titleKey);
+      allOpportunities.push(opp);
+      wireCount++;
+    }
+  }
+  sourceStats.push({ name: 'Industrial Press Wires', count: wireCount, status: wireCount > 0 ? 'ok' : 'empty' });
 
   // 12. Fetch from commercial news searches (lower priority - intel/context)
   // Execute multiple searches per sector to maximize coverage while staying deterministic.
