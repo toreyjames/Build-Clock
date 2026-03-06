@@ -6,6 +6,13 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const result = await fetchCommercialOpportunities(30);
+    const bySectorValue = result.opportunities.reduce<Record<string, number>>((acc, opportunity) => {
+      const value = opportunity.estimatedValue || 0;
+      if (!value) return acc;
+      acc[opportunity.sector] = (acc[opportunity.sector] || 0) + value;
+      return acc;
+    }, {});
+    const pharmaValueTotal = bySectorValue['pharma'] || 0;
 
     return NextResponse.json({
       success: true,
@@ -25,6 +32,10 @@ export async function GET() {
         byType: {
           utility: result.opportunities.filter(o => o.entityType === 'utility').length,
           enterprise: result.opportunities.filter(o => o.entityType === 'enterprise').length,
+        },
+        valueRollups: {
+          pharmaTotal: pharmaValueTotal,
+          sectorTotals: bySectorValue,
         },
         sectorsCovered: result.collectionModel.sectorCoverage.filter((row) => row.executedQueries > 0).length,
         totalSectorQueriesExecuted: result.collectionModel.sectorCoverage.reduce((sum, row) => sum + row.executedQueries, 0),

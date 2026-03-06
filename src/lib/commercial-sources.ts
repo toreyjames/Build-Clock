@@ -693,7 +693,7 @@ async function fetchIndustrialPressWires(): Promise<CommercialOpportunity[]> {
       const xml = await response.text();
       const itemMatches = xml.match(/<item>([\s\S]*?)<\/item>/g) || [];
 
-      for (const itemXml of itemMatches.slice(0, 40)) {
+      for (const itemXml of itemMatches.slice(0, 80)) {
         const title = itemXml.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1') || '';
         const link = itemXml.match(/<link>([\s\S]*?)<\/link>/)?.[1] || '';
         const pubDate = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1] || '';
@@ -704,16 +704,17 @@ async function fetchIndustrialPressWires(): Promise<CommercialOpportunity[]> {
 
         if (!signalPattern.test(text)) continue;
 
-        const matchesWatchCompany = MANUFACTURING_TARGETS.some((target) => text.includes(target.toLowerCase()));
-        const mentionsTnSmelter = /\btennessee\b/.test(text) && /\bsmelter|aluminum|copper\b/.test(text);
-        if (!matchesWatchCompany && !mentionsTnSmelter) continue;
-
         let sector = 'manufacturing';
         if (/pharma|biotech|drug|biomanufacturing|therapeutics|hims/i.test(text)) sector = 'pharma';
         else if (/smelter|aluminum|copper|steel|metals/i.test(text)) sector = 'metals';
         else if (/mining|mine|lithium|rare earth|critical minerals/i.test(text)) sector = 'minerals';
         else if (/nuclear|fusion|reactor/i.test(text)) sector = 'nuclear';
         else if (/space|launch|satellite|rocket/i.test(text)) sector = 'aerospace';
+
+        const mentionsTnSmelter = /\btennessee\b/.test(text) && /\bsmelter|aluminum|copper\b/.test(text);
+        const sectorIsPriority = sector === 'pharma' || sector === 'metals' || sector === 'minerals';
+        const matchesWatchCompany = MANUFACTURING_TARGETS.some((target) => text.includes(target.toLowerCase()));
+        if (!sectorIsPriority && !mentionsTnSmelter && !matchesWatchCompany) continue;
 
         let entity = 'Industrial Announcement';
         for (const target of MANUFACTURING_TARGETS) {
@@ -760,6 +761,77 @@ async function fetchIndustrialPressWires(): Promise<CommercialOpportunity[]> {
       }
     } catch (error) {
       console.error(`Industrial wire error for ${feed.name}:`, error);
+    }
+  }
+
+  return opportunities;
+}
+
+async function fetchMiningRestartPermits(): Promise<CommercialOpportunity[]> {
+  const opportunities: CommercialOpportunity[] = [];
+  const queries = [
+    'mining permit restart tennessee smelter',
+    'smelter restart permit',
+    'mine restart environmental assessment',
+    'critical minerals processing facility permit',
+  ];
+
+  for (const term of queries) {
+    try {
+      const params = new URLSearchParams({
+        per_page: '20',
+        order: 'newest',
+      });
+      params.append('conditions[term]', term);
+      const url = `https://www.federalregister.gov/api/v1/documents.json?${params.toString()}`;
+
+      const response = await fetch(url, { next: { revalidate: 3600 } });
+      if (!response.ok) continue;
+
+      const data = await response.json();
+      const docs = Array.isArray(data.results) ? data.results : [];
+
+      for (const doc of docs) {
+        const title = String(doc.title || '').trim();
+        const htmlUrl = String(doc.html_url || doc.pdf_url || '');
+        const summary = String(doc.abstract || '');
+        if (!title || !htmlUrl) continue;
+
+        const text = `${title} ${summary}`.toLowerCase();
+        if (!/\b(mining|mine|smelter|refinery|processing|critical minerals|lithium|copper|aluminum|restart|reopen)\b/i.test(text)) continue;
+
+        const publishedDate = new Date(doc.publication_date || Date.now());
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        let sector = 'minerals';
+        if (/smelter|aluminum|copper|steel|metals/i.test(text)) sector = 'metals';
+
+        const stateMatch = text.match(/\b(tennessee|alabama|arizona|colorado|idaho|minnesota|montana|nevada|new mexico|north carolina|utah|wyoming)\b/i);
+        const state = stateMatch ? stateMatch[1] : 'USA';
+
+        opportunities.push({
+          id: `fr-mining-${Buffer.from(htmlUrl).toString('base64').substring(0, 14)}`,
+          title: title.length > 120 ? `${title.substring(0, 117)}...` : title,
+          entity: 'Federal Register',
+          entityType: 'state-local',
+          source: 'press-release',
+          sourceUrl: htmlUrl,
+          sourceName: 'Federal Register (Permits)',
+          publishedAt: publishedDate.toISOString(),
+          summary: summary.length > 300 ? `${summary.substring(0, 297)}...` : summary,
+          estimatedValue: null,
+          location: state,
+          state,
+          otRelevance: /restart|reopen|construction|facility|processing/i.test(text) ? 'high' : 'medium',
+          otKeywords: ['Mining Permit', 'Restart Signal'],
+          sector,
+          isNew: publishedDate > sevenDaysAgo,
+          needsResearch: false,
+        });
+      }
+    } catch (error) {
+      console.error(`Federal Register mining permit error for "${term}":`, error);
     }
   }
 
@@ -2414,6 +2486,19 @@ export async function fetchCommercialOpportunities(limit: number = 30): Promise<
     }
   }
   sourceStats.push({ name: 'Industrial Press Wires', count: wireCount, status: wireCount > 0 ? 'ok' : 'empty' });
+
+  // 11c. Fetch official mining/smelter restart permit notices
+  const miningPermitOpps = await fetchMiningRestartPermits();
+  let miningPermitCount = 0;
+  for (const opp of miningPermitOpps) {
+    const titleKey = opp.title.toLowerCase().substring(0, 50);
+    if (!seenTitles.has(titleKey)) {
+      seenTitles.add(titleKey);
+      allOpportunities.push(opp);
+      miningPermitCount++;
+    }
+  }
+  sourceStats.push({ name: 'Mining Restart Permits', count: miningPermitCount, status: miningPermitCount > 0 ? 'ok' : 'empty' });
 
   // 12. Fetch from commercial news searches (lower priority - intel/context)
   // Execute multiple searches per sector to maximize coverage while staying deterministic.
