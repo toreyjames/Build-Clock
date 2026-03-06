@@ -66,6 +66,10 @@ const BUILD_RESTART_TERMS = [
   'offshore drilling', 'onshore drilling', 'drilling program', 'new rig',
   'refinery expansion', 'refinery restart', 'refinery modernization',
   'nuclear restart', 'reactor restart', 'smr construction',
+  'production line expansion', 'assembly line expansion', 'capacity expansion',
+  'facility modernization', 'depot modernization', 'test range modernization',
+  'arsenal modernization', 'shipyard modernization', 'munition plant',
+  'new factory line', 'pilot line', 'factory retrofit',
 ];
 
 const SECTOR_OT_ANCHORS: Record<string, string[]> = {
@@ -86,6 +90,22 @@ const SECTOR_OT_ANCHORS: Record<string, string[]> = {
   nuclear: ['reactor control', 'plant control system', 'SCADA'],
   water: ['SCADA', 'RTU', 'pump controls', 'treatment controls'],
 };
+
+const DEFENSE_SIGNAL_TERMS = [
+  'defense tech', 'dual-use', 'munitions', 'shipyard', 'submarine', 'missile defense',
+  'air and missile defense', 'counter-uas', 'uas', 'drone', 'autonomy',
+  'test range', 'command and control', 'c2', 'radar', 'arsenal',
+  'production ramp', 'low-rate initial production', 'lrip', 'capacity increase',
+  'factory expansion', 'reindustrialization',
+];
+
+const FRONTIER_SIGNAL_TERMS = [
+  'fusion', 'tokamak', 'stellarator', 'advanced reactor', 'smr', 'microreactor',
+  'nuclear restart', 'reactor restart', 'enrichment', 'fuel cycle',
+  'advanced manufacturing', 'additive manufacturing', 'ai factory', 'robotics',
+  'space launch', 'launch site', 'reusable rocket', 'satellite factory',
+  'orbital', 'constellation', 'spaceport', 'hypersonic',
+];
 
 function buildOtFocusedQuery(baseQuery: string, sector: string): string {
   const anchors = SECTOR_OT_ANCHORS[sector] || ['SCADA', 'PLC', 'ICS'];
@@ -256,7 +276,7 @@ const COMMERCIAL_SEARCHES = [
 
 // Sector-level query budget (how deep we search per refresh cycle by sector).
 const SECTOR_QUERY_BUDGET: Record<string, number> = {
-  defense: 5,
+  defense: 8,
   aerospace: 3,
   'oil-gas': 4,
   minerals: 4,
@@ -274,10 +294,30 @@ const SECTOR_QUERY_BUDGET: Record<string, number> = {
   'clean-energy': 2,
 };
 
+const FRONTIER_SIGNAL_SEARCHES = [
+  { query: 'Reindustrialize conference defense manufacturing announcements', sector: 'defense', keywords: ['reindustrialization', 'defense manufacturing'] },
+  { query: 'CoreMemory defense tech industrial base signal', sector: 'defense', keywords: ['defense tech', 'industrial base'] },
+  { query: 'defense tech startup factory expansion united states', sector: 'defense', keywords: ['defense tech', 'factory expansion'] },
+  { query: 'counter UAS production line expansion USA', sector: 'defense', keywords: ['counter-UAS', 'production line'] },
+  { query: 'missile defense component manufacturing expansion', sector: 'defense', keywords: ['missile defense', 'manufacturing'] },
+  { query: 'munitions plant restart or modernization', sector: 'defense', keywords: ['munitions', 'restart'] },
+  { query: 'shipyard digital modernization OT controls', sector: 'defense', keywords: ['shipyard', 'modernization'] },
+  { query: 'test range instrumentation modernization contract', sector: 'defense', keywords: ['test range', 'instrumentation'] },
+  { query: 'fusion pilot plant construction united states', sector: 'nuclear', keywords: ['fusion', 'pilot plant'] },
+  { query: 'advanced nuclear reactor demonstration site construction', sector: 'nuclear', keywords: ['advanced nuclear', 'new build'] },
+  { query: 'nuclear fuel cycle enrichment facility expansion usa', sector: 'nuclear', keywords: ['fuel cycle', 'expansion'] },
+  { query: 'advanced manufacturing robotics facility expansion usa', sector: 'manufacturing', keywords: ['advanced manufacturing', 'robotics'] },
+  { query: 'additive manufacturing production line expansion aerospace defense', sector: 'manufacturing', keywords: ['additive manufacturing', 'production line'] },
+  { query: 'space launch facility expansion usa', sector: 'aerospace', keywords: ['space launch', 'facility'] },
+  { query: 'commercial satellite manufacturing plant expansion', sector: 'aerospace', keywords: ['satellite', 'manufacturing'] },
+  { query: 'spacex starship production site expansion', sector: 'aerospace', keywords: ['spacex', 'production expansion'] },
+];
+
 const SOURCE_LAYERS = [
   { name: 'Official Procurement & Regulatory', description: 'RFP portals, PUC dockets, federal funding notices', priority: 1 },
   { name: 'Enterprise Program Signals', description: 'Projects, awards, filings, facility announcements', priority: 2 },
-  { name: 'Market Intel', description: 'Trade publications and news trend signals for early detection', priority: 3 },
+  { name: 'Frontier Signals', description: 'Early defense, nuclear/fusion, advanced manufacturing, and space indicators tagged for follow-up', priority: 3 },
+  { name: 'Market Intel', description: 'Trade publications and news trend signals for early detection', priority: 4 },
 ];
 
 export function getCommercialCollectionModel(): CommercialCollectionModel {
@@ -525,6 +565,89 @@ async function fetchTradePubNews(): Promise<CommercialOpportunity[]> {
       }
     } catch (error) {
       console.error(`Trade pub error for ${feed.name}:`, error);
+    }
+  }
+
+  return opportunities;
+}
+
+async function fetchFrontierSignals(): Promise<CommercialOpportunity[]> {
+  const opportunities: CommercialOpportunity[] = [];
+
+  for (const search of FRONTIER_SIGNAL_SEARCHES) {
+    const encodedQuery = encodeURIComponent(buildOtFocusedQuery(search.query, search.sector));
+    const rssUrl = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-US&gl=US&ceid=US:en`;
+
+    try {
+      const response = await fetch(rssUrl, { next: { revalidate: 1800 } });
+      if (!response.ok) continue;
+
+      const xml = await response.text();
+      const itemMatches = xml.match(/<item>([\s\S]*?)<\/item>/g) || [];
+
+      for (const itemXml of itemMatches.slice(0, 4)) {
+        const title = itemXml.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1') || '';
+        const link = itemXml.match(/<link>([\s\S]*?)<\/link>/)?.[1] || '';
+        const pubDate = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1] || '';
+        const description = itemXml.match(/<description>([\s\S]*?)<\/description>/)?.[1]?.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').replace(/<[^>]*>/g, '') || '';
+        const sourceName = itemXml.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1] || 'News';
+
+        if (!title || !link) continue;
+
+        const text = `${title} ${description}`.toLowerCase();
+        const equipmentKeywords = extractOtEquipmentKeywords(text);
+        const buildKeywords = extractBuildRestartKeywords(text);
+        const defenseKeywords = DEFENSE_SIGNAL_TERMS.filter((term) => text.includes(term));
+        const frontierKeywords = FRONTIER_SIGNAL_TERMS.filter((term) => text.includes(term));
+        const hasAction = /\b(contract|award|selection|solicitation|procurement|production|facility|plant|line|modernization|expansion|new build|restart|pilot|demonstration)\b/i.test(text);
+
+        if (equipmentKeywords.length === 0 && buildKeywords.length === 0 && ((defenseKeywords.length === 0 && frontierKeywords.length === 0) || !hasAction)) {
+          continue;
+        }
+
+        let entity = 'Frontier Program';
+        for (const ent of MANUFACTURING_TARGETS) {
+          if (text.includes(ent.toLowerCase())) {
+            entity = ent;
+            break;
+          }
+        }
+
+        let estimatedValue: number | null = null;
+        const billionMatch = text.match(/\$(\d+(?:,\d{3})*(?:\.\d+)?)\s*billion/i);
+        const millionMatch = text.match(/\$(\d+(?:,\d{3})*(?:\.\d+)?)\s*million/i);
+        if (billionMatch) estimatedValue = parseFloat(billionMatch[1].replace(/,/g, '')) * 1_000_000_000;
+        else if (millionMatch) estimatedValue = parseFloat(millionMatch[1].replace(/,/g, '')) * 1_000_000;
+
+        const stateMatch = text.match(/\b(Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming)\b/i);
+        const state = stateMatch ? stateMatch[1] : 'USA';
+
+        const publishedDate = pubDate ? new Date(pubDate) : new Date();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        opportunities.push({
+          id: `frontier-${Buffer.from(link).toString('base64').substring(0, 16)}`,
+          title: title.length > 120 ? title.substring(0, 117) + '...' : title,
+          entity,
+          entityType: 'enterprise',
+          source: 'news',
+          sourceUrl: link,
+          sourceName: `${sourceName} (Frontier)`,
+          publishedAt: publishedDate.toISOString(),
+          summary: description.length > 300 ? description.substring(0, 297) + '...' : description,
+          estimatedValue,
+          location: state,
+          state,
+          otRelevance: equipmentKeywords.length > 0 || buildKeywords.length > 0 ? 'high' : 'medium',
+          otKeywords: [...new Set(['Frontier Signal', ...equipmentKeywords, ...buildKeywords, ...defenseKeywords, ...frontierKeywords, ...search.keywords])],
+          sector: search.sector,
+          isNew: publishedDate > sevenDaysAgo,
+          needsResearch: false,
+        });
+      }
+    } catch (error) {
+      console.error(`Frontier signal search error for "${search.query}":`, error);
     }
   }
 
@@ -2046,7 +2169,20 @@ export async function fetchCommercialOpportunities(limit: number = 30): Promise<
   }
   sourceStats.push({ name: 'EIA Grid Data', count: eiaCount, status: eiaCount > 0 ? 'ok' : 'empty' });
 
-  // 11. Fetch from commercial news searches (lower priority - intel/context)
+  // 11. Fetch frontier signals (smaller but actionable defense/nuclear/space indicators)
+  const frontierDefenseOpps = await fetchFrontierSignals();
+  let frontierCount = 0;
+  for (const opp of frontierDefenseOpps) {
+    const titleKey = opp.title.toLowerCase().substring(0, 50);
+    if (!seenTitles.has(titleKey)) {
+      seenTitles.add(titleKey);
+      allOpportunities.push(opp);
+      frontierCount++;
+    }
+  }
+  sourceStats.push({ name: 'Frontier Signals', count: frontierCount, status: frontierCount > 0 ? 'ok' : 'empty' });
+
+  // 12. Fetch from commercial news searches (lower priority - intel/context)
   // Execute multiple searches per sector to maximize coverage while staying deterministic.
   const groupedSearches = COMMERCIAL_SEARCHES.reduce<Record<string, Array<(typeof COMMERCIAL_SEARCHES)[number]>>>((acc, search) => {
     if (!acc[search.sector]) acc[search.sector] = [];
@@ -2093,7 +2229,7 @@ export async function fetchCommercialOpportunities(limit: number = 30): Promise<
   }
   sourceStats.push({ name: 'Market Intel', count: newsCount, status: 'ok' });
 
-  // 12. Fetch from trade publications
+  // 13. Fetch from trade publications
   const tradePubOpps = await fetchTradePubNews();
   let tradeCount = 0;
   for (const opp of tradePubOpps) {
