@@ -59,6 +59,15 @@ const OT_EQUIPMENT_TERMS = [
   'control system', 'instrumentation', 'sis', 'safety instrumented system',
 ];
 
+const BUILD_RESTART_TERMS = [
+  'new build', 'new-build', 'new plant', 'greenfield', 'brownfield',
+  'breaking ground', 'under construction', 'construction start', 'groundbreaking',
+  'restart', 'restarting', 'reactivation', 'recommission', 'return to service',
+  'offshore drilling', 'onshore drilling', 'drilling program', 'new rig',
+  'refinery expansion', 'refinery restart', 'refinery modernization',
+  'nuclear restart', 'reactor restart', 'smr construction',
+];
+
 const SECTOR_OT_ANCHORS: Record<string, string[]> = {
   grid: ['SCADA', 'substation automation', 'protective relay', 'EMS'],
   'data-centers': ['BMS', 'EPMS', 'cooling controls', 'generator controls'],
@@ -86,6 +95,12 @@ function buildOtFocusedQuery(baseQuery: string, sector: string): string {
 function extractOtEquipmentKeywords(text: string): string[] {
   const lower = text.toLowerCase();
   const found = OT_EQUIPMENT_TERMS.filter((term) => lower.includes(term));
+  return [...new Set(found.map((term) => term.toUpperCase()))];
+}
+
+function extractBuildRestartKeywords(text: string): string[] {
+  const lower = text.toLowerCase();
+  const found = BUILD_RESTART_TERMS.filter((term) => lower.includes(term));
   return [...new Set(found.map((term) => term.toUpperCase()))];
 }
 
@@ -215,6 +230,10 @@ const COMMERCIAL_SEARCHES = [
   { query: 'LNG terminal expansion project cybersecurity', sector: 'oil-gas', keywords: ['LNG', 'terminal'] },
   { query: 'pipeline compressor station modernization', sector: 'oil-gas', keywords: ['pipeline', 'compressor'] },
   { query: 'refinery turnaround modernization project', sector: 'oil-gas', keywords: ['refinery', 'turnaround'] },
+  { query: 'new offshore drilling platform construction USA', sector: 'oil-gas', keywords: ['offshore drilling', 'new build'] },
+  { query: 'new onshore drilling program basin development', sector: 'oil-gas', keywords: ['onshore drilling', 'development'] },
+  { query: 'new refinery construction or major expansion USA', sector: 'oil-gas', keywords: ['refinery', 'new plant'] },
+  { query: 'refinery restart and recommissioning project', sector: 'oil-gas', keywords: ['refinery restart', 'recommissioning'] },
   { query: 'coal plant modernization carbon capture upgrade', sector: 'clean-energy', keywords: ['coal', 'modernization'] },
 
   // DRONE / UAS / SPACE
@@ -227,6 +246,9 @@ const COMMERCIAL_SEARCHES = [
   // Nuclear (Commercial)
   { query: 'nuclear plant cybersecurity upgrade', sector: 'nuclear', keywords: ['nuclear', 'cyber'] },
   { query: 'SMR small modular reactor project', sector: 'nuclear', keywords: ['SMR', 'modular reactor'] },
+  { query: 'nuclear reactor restart project USA', sector: 'nuclear', keywords: ['nuclear restart', 'reactor restart'] },
+  { query: 'retired nuclear plant return to service', sector: 'nuclear', keywords: ['return to service', 'nuclear'] },
+  { query: 'new nuclear power plant construction USA', sector: 'nuclear', keywords: ['new nuclear', 'construction'] },
 
   // Water/Wastewater
   { query: 'water utility SCADA modernization', sector: 'water', keywords: ['water', 'SCADA'] },
@@ -280,7 +302,7 @@ export function getCommercialCollectionModel(): CommercialCollectionModel {
     sourceLayers: SOURCE_LAYERS,
     sectorCoverage,
     explainability: {
-      rankingModel: 'OT-equipment evidence gate -> source-priority -> newness -> recency',
+      rankingModel: 'OT-equipment OR new-build/restart evidence gate -> source-priority -> newness -> recency',
       dedupeMethod: 'normalized title prefix (first 50 chars) across all source layers',
       refreshCadence: '5m UI refresh, 15m scheduler refresh',
     },
@@ -330,7 +352,8 @@ async function fetchCommercialNews(search: { query: string; sector: string; keyw
       // Check for utility/enterprise mentions
       const text = `${title} ${description}`.toLowerCase();
       const equipmentKeywords = extractOtEquipmentKeywords(text);
-      if (equipmentKeywords.length === 0) continue;
+      const buildKeywords = extractBuildRestartKeywords(text);
+      if (equipmentKeywords.length === 0 && buildKeywords.length === 0) continue;
       let entity = 'Unknown';
       let entityType: 'utility' | 'enterprise' | 'state-local' = 'utility';
 
@@ -413,7 +436,7 @@ async function fetchCommercialNews(search: { query: string; sector: string; keyw
         location: state,
         state,
         otRelevance,
-        otKeywords: [...new Set([...equipmentKeywords, ...foundKeywords, ...search.keywords])],
+        otKeywords: [...new Set([...equipmentKeywords, ...buildKeywords, ...foundKeywords, ...search.keywords])],
         sector: search.sector,
         isNew,
         needsResearch: false,
@@ -459,7 +482,8 @@ async function fetchTradePubNews(): Promise<CommercialOpportunity[]> {
 
         const text = `${title} ${description}`.toLowerCase();
         const equipmentKeywords = extractOtEquipmentKeywords(text);
-        if (equipmentKeywords.length === 0) continue;
+        const buildKeywords = extractBuildRestartKeywords(text);
+        if (equipmentKeywords.length === 0 && buildKeywords.length === 0) continue;
 
         // Quick OT relevance check
         let otRelevance: 'critical' | 'high' | 'medium' | 'low' = 'low';
@@ -473,7 +497,7 @@ async function fetchTradePubNews(): Promise<CommercialOpportunity[]> {
           }
         }
 
-        if (otRelevance === 'low') continue;
+        if (otRelevance === 'low') otRelevance = 'high';
 
         const publishedDate = pubDate ? new Date(pubDate) : new Date();
         const sevenDaysAgo = new Date();
@@ -493,7 +517,7 @@ async function fetchTradePubNews(): Promise<CommercialOpportunity[]> {
           location: 'USA',
           state: 'USA',
           otRelevance,
-          otKeywords: [...new Set([...equipmentKeywords, ...foundKeywords])],
+          otKeywords: [...new Set([...equipmentKeywords, ...buildKeywords, ...foundKeywords])],
           sector: feed.sector,
           isNew: publishedDate > sevenDaysAgo,
           needsResearch: false,
@@ -545,7 +569,8 @@ async function fetchUtilityProcurement(): Promise<CommercialOpportunity[]> {
 
         const text = `${title} ${description}`.toLowerCase();
         const equipmentKeywords = extractOtEquipmentKeywords(text);
-        if (equipmentKeywords.length === 0) continue;
+        const buildKeywords = extractBuildRestartKeywords(text);
+        if (equipmentKeywords.length === 0 && buildKeywords.length === 0) continue;
 
         // Must contain procurement indicators
         const hasProcurement = /\b(rfp|rfi|request for proposal|request for information|bid|procurement|contract award|selected|seeking proposals)\b/i.test(text);
@@ -590,7 +615,7 @@ async function fetchUtilityProcurement(): Promise<CommercialOpportunity[]> {
           location: state,
           state,
           otRelevance: 'high', // Actual procurement = high relevance
-          otKeywords: [...new Set(['RFP', 'Procurement', ...equipmentKeywords])],
+          otKeywords: [...new Set(['RFP', 'Procurement', ...equipmentKeywords, ...buildKeywords])],
           sector: 'grid',
           isNew: publishedDate > sevenDaysAgo,
         });
@@ -640,7 +665,8 @@ async function fetchPUCFilings(): Promise<CommercialOpportunity[]> {
 
         const text = `${title} ${description}`.toLowerCase();
         const equipmentKeywords = extractOtEquipmentKeywords(text);
-        if (equipmentKeywords.length === 0) continue;
+        const buildKeywords = extractBuildRestartKeywords(text);
+        if (equipmentKeywords.length === 0 && buildKeywords.length === 0) continue;
 
         // Must contain regulatory indicators
         const hasRegulatory = /\b(puc|puct|cpuc|psc|commission|docket|order|ruling|rate case|irp|integrated resource plan|filing)\b/i.test(text);
@@ -684,7 +710,7 @@ async function fetchPUCFilings(): Promise<CommercialOpportunity[]> {
           location: state,
           state,
           otRelevance: 'high', // Regulatory mandate = high relevance
-          otKeywords: [...new Set(['PUC', 'Regulatory', 'Docket', ...equipmentKeywords])],
+          otKeywords: [...new Set(['PUC', 'Regulatory', 'Docket', ...equipmentKeywords, ...buildKeywords])],
           sector: 'grid',
           isNew: publishedDate > sevenDaysAgo,
         });
@@ -748,9 +774,18 @@ async function fetchEnterpriseProjects(): Promise<CommercialOpportunity[]> {
     { query: 'natural gas processing plant expansion USA', sector: 'oil-gas', entityType: 'enterprise' as const },
     { query: 'LNG terminal expansion project', sector: 'oil-gas', entityType: 'enterprise' as const },
     { query: 'refinery turnaround modernization project', sector: 'oil-gas', entityType: 'enterprise' as const },
+    { query: 'new offshore drilling platform construction USA', sector: 'oil-gas', entityType: 'enterprise' as const },
+    { query: 'new onshore drilling program basin development', sector: 'oil-gas', entityType: 'enterprise' as const },
+    { query: 'new refinery construction or major expansion USA', sector: 'oil-gas', entityType: 'enterprise' as const },
+    { query: 'refinery restart and recommissioning project', sector: 'oil-gas', entityType: 'enterprise' as const },
 
     // Coal modernization
     { query: 'coal plant modernization upgrade carbon capture', sector: 'clean-energy', entityType: 'enterprise' as const },
+
+    // Nuclear new build / restart
+    { query: 'nuclear reactor restart project USA', sector: 'nuclear', entityType: 'enterprise' as const },
+    { query: 'retired nuclear plant return to service', sector: 'nuclear', entityType: 'enterprise' as const },
+    { query: 'new nuclear power plant construction USA', sector: 'nuclear', entityType: 'enterprise' as const },
 
     // Mining / Smelting / Refining
     { query: 'critical minerals mine processing facility expansion', sector: 'minerals', entityType: 'enterprise' as const },
@@ -790,7 +825,8 @@ async function fetchEnterpriseProjects(): Promise<CommercialOpportunity[]> {
 
         const text = `${title} ${description}`.toLowerCase();
         const equipmentKeywords = extractOtEquipmentKeywords(text);
-        if (equipmentKeywords.length === 0) continue;
+        const buildKeywords = extractBuildRestartKeywords(text);
+        if (equipmentKeywords.length === 0 && buildKeywords.length === 0) continue;
 
         // Must contain project indicators
         const hasProject = /\b(construction|breaking ground|under construction|new facility|announced|building|expansion|plant|factory|fab|gigafactory|mill|refinery)\b/i.test(text);
@@ -867,7 +903,7 @@ async function fetchEnterpriseProjects(): Promise<CommercialOpportunity[]> {
           location: state,
           state,
           otRelevance: entity !== 'Unknown' ? 'high' : 'medium',
-          otKeywords: [...new Set(['New Facility', sectorLabels[search.sector] || 'Industrial', ...equipmentKeywords])],
+          otKeywords: [...new Set(['New Facility', sectorLabels[search.sector] || 'Industrial', ...equipmentKeywords, ...buildKeywords])],
           sector: search.sector,
           isNew: publishedDate > sevenDaysAgo,
         });

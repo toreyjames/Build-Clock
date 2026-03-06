@@ -805,6 +805,10 @@ function OTPipelineTrackerContent() {
           pursuit_lead: jupiterModal.pursuitLead,
           win_probability: jupiterModal.winProbability,
           genesis_pillar: jupiterModal.opportunity.genesisPillar,
+          procurement_stage: jupiterModal.opportunity.procurementStage,
+          urgency: jupiterModal.opportunity.urgency,
+          sector: jupiterModal.opportunity.sector,
+          confidence: jupiterModal.opportunity.confidence,
           ot_systems: jupiterModal.opportunity.otSystems,
           regulatory_drivers: jupiterModal.opportunity.regulatoryDrivers,
         }),
@@ -1387,7 +1391,6 @@ function OTPipelineTrackerContent() {
   });
 
   // Pipeline metrics (decision-first, less distortion from mega-project outliers)
-  const totalPipeline = filteredOpps.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
   const topActionQueue = [...filteredOpps]
     .map((opp) => {
       const value = opp.estimatedValue || 0;
@@ -1490,9 +1493,14 @@ function OTPipelineTrackerContent() {
                     {schedulerStatusLabel ? ` • ${schedulerStatusLabel}` : ''}
                   </div>
 	              </div>
-	              <div className="text-right">
-	                <div className="text-lg font-bold text-cyan-400">{formatCurrency(totalPipeline)}</div>
-	                <div className="text-[10px] text-gray-500">total project value • {filteredOpps.length} opportunities</div>
+	              <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-wide text-cyan-200/80">Live Signal Pulse</div>
+                  <div className="mt-1 flex items-end gap-1">
+                    <span className="h-2 w-1 rounded bg-cyan-400 animate-pulse"></span>
+                    <span className="h-3 w-1 rounded bg-cyan-300 animate-pulse [animation-delay:120ms]"></span>
+                    <span className="h-4 w-1 rounded bg-cyan-200 animate-pulse [animation-delay:240ms]"></span>
+                    <span className="ml-2 text-xs font-semibold text-cyan-100">{filteredOpps.length} tracked</span>
+                  </div>
 	              </div>
 	            </div>
           </div>
@@ -1928,8 +1936,6 @@ function OTPipelineTrackerContent() {
                 </>
               )}
               <span>{filteredOpps.length} opportunities</span>
-              <span>|</span>
-              <span>{formatCurrency(totalPipeline)} total project value</span>
             </div>
           </div>
         </div>

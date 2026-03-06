@@ -6,7 +6,8 @@ import {
   checkJupiterDuplicates,
   PushToJupiterPayload,
 } from '@/lib/webhooks';
-import { GenesisPillar, OTSystem, RegulatoryDriver } from '@/lib/types';
+import { GenesisPillar, OTSystem, RegulatoryDriver, ProcurementStage, Urgency } from '@/lib/types';
+import { buildJupiterLanguage, defaultProbabilityFromConfidence, deriveSalesforceStage } from '@/lib/jupiter-language';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,10 @@ interface PushToJupiterRequest {
   genesis_pillar: GenesisPillar;
   ot_systems: OTSystem[];
   regulatory_drivers: RegulatoryDriver[];
+  procurement_stage?: ProcurementStage;
+  urgency?: Urgency;
+  sector?: string;
+  confidence?: 'confirmed' | 'likely' | 'speculative';
 }
 
 /**
@@ -46,9 +51,12 @@ export async function POST(request: Request) {
       );
     }
 
+    const computedDefault = defaultProbabilityFromConfidence(body.confidence);
+    const effectiveWinProbability = body.win_probability ?? computedDefault ?? 50;
+
     // Validate win_probability
     const validProbabilities = [10, 25, 50, 75, 90];
-    if (!validProbabilities.includes(body.win_probability)) {
+    if (!validProbabilities.includes(effectiveWinProbability)) {
       return NextResponse.json(
         {
           success: false,
@@ -59,6 +67,10 @@ export async function POST(request: Request) {
     }
 
     const genesisUrl = `https://usbuildclock.vercel.app/radar?id=${body.opportunity_id}`;
+    const salesforceStage = deriveSalesforceStage({
+      procurementStage: body.procurement_stage || null,
+      genesisStatus: null,
+    });
 
     // Build the webhook payload
     const payload: PushToJupiterPayload = {
@@ -68,14 +80,27 @@ export async function POST(request: Request) {
         entity: body.entity,
         amount: body.amount,
         close_date: body.close_date,
-        stage: 'Qualification',
+        stage: salesforceStage,
         description: body.description || '',
         pursuit_lead: body.pursuit_lead,
-        win_probability: body.win_probability,
+        win_probability: effectiveWinProbability,
         genesis_url: genesisUrl,
         genesis_pillar: body.genesis_pillar,
         ot_systems: body.ot_systems || [],
         regulatory_drivers: body.regulatory_drivers || [],
+        crm_language: buildJupiterLanguage({
+          opportunity_id: body.opportunity_id,
+          title: body.title,
+          entity: body.entity,
+          amount: body.amount,
+          close_date: body.close_date,
+          win_probability: effectiveWinProbability,
+          stage_name: salesforceStage,
+          genesis_pillar: body.genesis_pillar,
+          sector: body.sector || null,
+          urgency: body.urgency || null,
+          confidence: body.confidence || null,
+        }),
       },
     };
 
@@ -84,6 +109,7 @@ export async function POST(request: Request) {
       payload,
       initiated_at: new Date().toISOString(),
       pursuit_lead: body.pursuit_lead,
+      salesforce_stage: salesforceStage,
     });
 
     // Update opportunity_tracking with pursuit lead and win probability
@@ -106,7 +132,7 @@ export async function POST(request: Request) {
           .from('opportunity_tracking')
           .update({
             pursuit_lead: body.pursuit_lead,
-            win_probability: body.win_probability,
+            win_probability: effectiveWinProbability,
             jupiter_push_pending: true,
             last_updated: new Date().toISOString(),
             activity: [...(existing.activity || []), activityEntry],
@@ -120,7 +146,7 @@ export async function POST(request: Request) {
             status: 'contacted', // Move to contacted when pushing to Jupiter
             notes: '',
             pursuit_lead: body.pursuit_lead,
-            win_probability: body.win_probability,
+            win_probability: effectiveWinProbability,
             jupiter_push_pending: true,
             last_updated: new Date().toISOString(),
             activity: [activityEntry],
@@ -153,7 +179,7 @@ export async function POST(request: Request) {
           opportunity_id: body.opportunity_id,
           webhooks_fired: result.results.length,
           pursuit_lead: body.pursuit_lead,
-          win_probability: body.win_probability,
+          win_probability: effectiveWinProbability,
         },
       });
     } else if (result.results.length === 0) {

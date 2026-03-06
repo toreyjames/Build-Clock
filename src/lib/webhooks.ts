@@ -36,6 +36,20 @@ export interface PushToJupiterPayload {
     genesis_pillar: GenesisPillar;
     ot_systems: OTSystem[];
     regulatory_drivers: RegulatoryDriver[];
+    crm_language?: {
+      source_system: string;
+      source_record_id: string;
+      opportunity_name: string;
+      account_name: string;
+      amount: number | null;
+      close_date: string | null;
+      stage_name: string;
+      probability: number;
+      genesis_pillar: string;
+      sector: string | null;
+      urgency: string | null;
+      confidence: string | null;
+    };
   };
 }
 

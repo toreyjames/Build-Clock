@@ -1,22 +1,9 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { logSyncActivity } from '@/lib/webhooks';
+import { normalizeSalesforceStageToGenesisStatus, SF_STAGE_TO_GENESIS_STATUS } from '@/lib/jupiter-language';
 
 export const dynamic = 'force-dynamic';
-
-// Map Salesforce stages to Genesis stages
-const STAGE_MAP: Record<string, string> = {
-  'Qualification': 'contacted',
-  'Needs Analysis': 'contacted',
-  'Value Proposition': 'meeting',
-  'Meeting Scheduled': 'meeting',
-  'Proposal': 'proposal',
-  'Proposal/Price Quote': 'proposal',
-  'Negotiation': 'proposal',
-  'Negotiation/Review': 'proposal',
-  'Closed Won': 'closed',
-  'Closed Lost': 'closed',
-};
 
 /**
  * POST /api/webhooks/jupiter-inbound
@@ -58,7 +45,7 @@ export async function POST(request: Request) {
     }
 
     // Map Salesforce stage to Genesis status
-    const mappedStatus = STAGE_MAP[stage] || null;
+    const mappedStatus = normalizeSalesforceStageToGenesisStatus(stage);
 
     // Log the inbound sync
     await logSyncActivity(
@@ -183,7 +170,7 @@ export async function GET() {
       owner_name: 'string (optional) - Opportunity owner name',
       probability: 'number (optional) - Win probability percentage',
     },
-    stage_mapping: STAGE_MAP,
+    stage_mapping: SF_STAGE_TO_GENESIS_STATUS,
     example_payload: {
       genesis_id: 'palisades-restart',
       salesforce_id: '006xxxxxxxxxxxx',
