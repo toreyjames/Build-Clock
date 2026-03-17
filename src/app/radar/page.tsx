@@ -608,12 +608,53 @@ function generateExecutiveBriefPDF(opportunity: Opportunity, tracking?: OppTrack
   doc.rect(0, 280, pageWidth, 17, 'F');
   doc.setTextColor(150, 150, 150);
   doc.setFontSize(8);
-  doc.text('OT Pipeline Tracker | Confidential', margin, 288);
+  doc.text('OT Vantage | Confidential', margin, 288);
   doc.text(`ID: ${opportunity.id}`, pageWidth - margin - 40, 288);
 
   // Save the PDF
   const filename = `OT-Brief-${opportunity.entity.replace(/[^a-zA-Z0-9]/g, '-')}-${opportunity.id}.pdf`;
   doc.save(filename);
+}
+
+// OT Radar signal from ot-asset-canon
+interface RadarSignal {
+  id: string;
+  source: string;
+  sourceId: string;
+  timestamp: string;
+  entity: string;
+  sector: string;
+  signalType: string;
+  location: string;
+  value: number;
+  description: string;
+  url: string;
+  otRelevanceScore: number;
+  otKeywords: string[];
+}
+
+function resolveRadarStateCode(location: string): string | null {
+  if (!location) return null;
+  const stateAbbr = location.match(/\b([A-Z]{2})\b/)?.[1];
+  if (stateAbbr && STATE_CENTROIDS[stateAbbr]) return stateAbbr;
+  const stateNames: Record<string, string> = {
+    'alabama': 'AL', 'alaska': 'AK', 'arizona': 'AZ', 'arkansas': 'AR', 'california': 'CA',
+    'colorado': 'CO', 'connecticut': 'CT', 'delaware': 'DE', 'florida': 'FL', 'georgia': 'GA',
+    'hawaii': 'HI', 'idaho': 'ID', 'illinois': 'IL', 'indiana': 'IN', 'iowa': 'IA',
+    'kansas': 'KS', 'kentucky': 'KY', 'louisiana': 'LA', 'maine': 'ME', 'maryland': 'MD',
+    'massachusetts': 'MA', 'michigan': 'MI', 'minnesota': 'MN', 'mississippi': 'MS', 'missouri': 'MO',
+    'montana': 'MT', 'nebraska': 'NE', 'nevada': 'NV', 'new hampshire': 'NH', 'new jersey': 'NJ',
+    'new mexico': 'NM', 'new york': 'NY', 'north carolina': 'NC', 'north dakota': 'ND', 'ohio': 'OH',
+    'oklahoma': 'OK', 'oregon': 'OR', 'pennsylvania': 'PA', 'rhode island': 'RI', 'south carolina': 'SC',
+    'south dakota': 'SD', 'tennessee': 'TN', 'texas': 'TX', 'utah': 'UT', 'vermont': 'VT',
+    'virginia': 'VA', 'washington': 'WA', 'west virginia': 'WV', 'wisconsin': 'WI', 'wyoming': 'WY',
+    'district of columbia': 'DC',
+  };
+  const lower = location.toLowerCase();
+  for (const [name, code] of Object.entries(stateNames)) {
+    if (lower.includes(name)) return code;
+  }
+  return null;
 }
 
 function OTPipelineTrackerContent() {
@@ -632,6 +673,75 @@ function OTPipelineTrackerContent() {
   const [editingNotes, setEditingNotes] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [hoveredMarkerId, setHoveredMarkerId] = useState<string | null>(null);
+
+  // OT Radar state
+  const [radarSignals, setRadarSignals] = useState<RadarSignal[]>([]);
+  const [radarStatus, setRadarStatus] = useState<string>('loading');
+  const [showRadarOnMap, setShowRadarOnMap] = useState(true);
+  const [selectedRadarSignal, setSelectedRadarSignal] = useState<RadarSignal | null>(null);
+
+  // Fetch OT Radar signals
+  const fetchRadarSignals = useCallback(async () => {
+    try {
+      const res = await fetch('/api/radar/signals?limit=200');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.signals)) {
+        setRadarSignals(data.signals);
+        setRadarStatus(data.radarStatus || 'connected');
+      } else {
+        setRadarStatus('error');
+      }
+    } catch {
+      setRadarStatus('error');
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchRadarSignals();
+    const interval = setInterval(() => void fetchRadarSignals(), 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchRadarSignals]);
+
+  // Radar map markers
+  const radarMapMarkers = useMemo(() => {
+    if (!showRadarOnMap) return [];
+    const slotsByState: Record<string, number> = {};
+
+    return radarSignals
+      .map((sig) => {
+        const stateCode = resolveRadarStateCode(sig.location);
+        if (!stateCode || !STATE_CENTROIDS[stateCode]) return null;
+        const centroid = STATE_CENTROIDS[stateCode];
+        const point = latLngToMap(centroid.lat, centroid.lng);
+
+        const slot = slotsByState[stateCode] ?? 0;
+        slotsByState[stateCode] = slot + 1;
+        const angle = slot * 2.399963; // golden angle
+        const spread = slot === 0 ? 0 : Math.sqrt(slot) * 8;
+        const jx = Math.cos(angle) * spread;
+        const jy = Math.sin(angle) * spread;
+
+        return {
+          id: sig.id,
+          entity: sig.entity,
+          description: sig.description,
+          source: sig.source,
+          signalType: sig.signalType,
+          sector: sig.sector,
+          otRelevanceScore: sig.otRelevanceScore,
+          otKeywords: sig.otKeywords,
+          url: sig.url,
+          location: sig.location,
+          stateCode,
+          point: {
+            x: Math.min(MAP_W - 8, Math.max(8, point.x + jx)),
+            y: Math.min(MAP_H - 8, Math.max(8, point.y + jy)),
+          },
+          selected: selectedRadarSignal?.id === sig.id,
+        };
+      })
+      .filter((m): m is NonNullable<typeof m> => m !== null);
+  }, [radarSignals, showRadarOnMap, selectedRadarSignal?.id]);
 
   // Filters
   const [marketFilter, setMarketFilter] = useState<MarketType>('commercial');
@@ -1433,15 +1543,15 @@ function OTPipelineTrackerContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-gray-100">
+    <div className="radar-neo min-h-screen bg-[#060606] text-zinc-100">
       {/* Header */}
-      <header className="border-b border-gray-800 bg-[#0d0d14]">
+      <header className="radar-header border-b border-zinc-800 bg-[#090909]">
         <div className="max-w-[1800px] mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div>
-                <h1 className="text-xl font-bold text-white">OT Pipeline Tracker</h1>
-                <p className="text-xs text-gray-500">Scan • Qualify • Track • Close</p>
+                <h1 className="text-xl font-bold uppercase tracking-[0.18em] text-zinc-100">OT VANTAGE</h1>
+                <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">scan • qualify • track • close</p>
               </div>
 
               {/* Sync Status */}
@@ -1475,11 +1585,11 @@ function OTPipelineTrackerContent() {
 
 	            <div className="flex items-center gap-3">
 	              <div className="text-right">
-	                <button
-	                  onClick={() => void fetchPipelineData(true)}
-	                  className="rounded-md border border-cyan-500/40 px-2 py-1 text-xs text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-50"
-	                  disabled={isRefreshing || loading}
-	                >
+		                <button
+		                  onClick={() => void fetchPipelineData(true)}
+		                  className="rounded-md border border-lime-300/40 bg-lime-300/5 px-2 py-1 text-xs uppercase tracking-[0.12em] text-lime-200 hover:bg-lime-300/10 disabled:opacity-50"
+		                  disabled={isRefreshing || loading}
+		                >
 	                  {isRefreshing ? 'Refreshing...' : 'Refresh now'}
 	                </button>
 	                <div className="mt-1 text-[10px] text-gray-500">
@@ -1492,28 +1602,37 @@ function OTPipelineTrackerContent() {
                     {schedulerStatusLabel ? ` • ${schedulerStatusLabel}` : ''}
                   </div>
 	              </div>
-	              <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2">
-                  <div className="text-[10px] uppercase tracking-wide text-cyan-200/80">Live Signal Pulse</div>
-                  <div className="mt-1 flex items-end gap-1">
-                    <span className="h-2 w-1 rounded bg-cyan-400 animate-pulse"></span>
-                    <span className="h-3 w-1 rounded bg-cyan-300 animate-pulse [animation-delay:120ms]"></span>
-                    <span className="h-4 w-1 rounded bg-cyan-200 animate-pulse [animation-delay:240ms]"></span>
-                    <span className="ml-2 text-xs font-semibold text-cyan-100">{filteredOpps.length} tracked</span>
-                  </div>
-	              </div>
-	            </div>
+		              <div className="rounded-lg border border-lime-300/30 bg-lime-300/5 px-3 py-2">
+	                  <div className="text-[10px] uppercase tracking-[0.12em] text-lime-200/70">Live Signal Pulse</div>
+	                  <div className="mt-1 flex items-end gap-1">
+	                    <span className="h-2 w-1 rounded bg-lime-400 animate-pulse"></span>
+	                    <span className="h-3 w-1 rounded bg-lime-300 animate-pulse [animation-delay:120ms]"></span>
+	                    <span className="h-4 w-1 rounded bg-lime-200 animate-pulse [animation-delay:240ms]"></span>
+	                    <span className="ml-2 text-xs font-semibold text-lime-100">{filteredOpps.length} tracked</span>
+	                  </div>
+		              </div>
+		              {radarStatus === 'connected' && (
+		                <div className="rounded-lg border border-cyan-400/30 bg-cyan-400/5 px-3 py-2">
+	                    <div className="text-[10px] uppercase tracking-[0.12em] text-cyan-200/70">OT Radar</div>
+	                    <div className="mt-1 flex items-center gap-1.5">
+	                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+	                      <span className="text-xs font-semibold text-cyan-100">{radarSignals.length} signals</span>
+	                    </div>
+		                </div>
+		              )}
+		            </div>
           </div>
         </div>
       </header>
 
 	      {/* Filters */}
-	      <div className="border-b border-gray-800 bg-[#0d0d14]/50">
+		      <div className="radar-filterbar border-b border-zinc-800 bg-[#080808]/80">
 	        <div className="max-w-[1800px] mx-auto px-6 py-2">
-          <div className="flex items-center gap-4">
+	          <div className="flex items-center gap-4">
             {/* Market Filter */}
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500">Market:</span>
-              <div className="flex items-center bg-[#12121a] rounded-lg border border-gray-800 p-0.5 text-xs">
+	              <div className="flex items-center rounded-lg border border-zinc-700 bg-[#0d0d0d] p-0.5 text-xs">
                 {(['all', 'commercial', 'federal'] as MarketType[]).map(m => (
                   <button
                     key={m}
@@ -1533,11 +1652,11 @@ function OTPipelineTrackerContent() {
             {/* Industry Filter (Deloitte) */}
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500">Industry:</span>
-              <select
-                value={industryFilter}
-                onChange={(e) => setIndustryFilter(e.target.value as IndustryFilter)}
-                className="bg-[#12121a] border border-gray-800 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-cyan-500"
-              >
+	              <select
+	                value={industryFilter}
+	                onChange={(e) => setIndustryFilter(e.target.value as IndustryFilter)}
+	                className="rounded-lg border border-zinc-700 bg-[#0d0d0d] px-2 py-1 text-xs text-white focus:outline-none focus:border-lime-300/60"
+	              >
                 <option value="all">All Industries</option>
                 <optgroup label="Energy, Resources & Industrials">
                   <option value="eri-power">⚡ Power & Utilities</option>
@@ -1565,7 +1684,7 @@ function OTPipelineTrackerContent() {
             {/* OT Filter */}
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500">OT:</span>
-              <div className="flex items-center bg-[#12121a] rounded-lg border border-gray-800 p-0.5 text-xs">
+	              <div className="flex items-center rounded-lg border border-zinc-700 bg-[#0d0d0d] p-0.5 text-xs">
                 {(['all', 'ot-equipment', 'no-ot-equipment'] as OTFilter[]).map(f => (
                   <button
                     key={f}
@@ -1585,7 +1704,7 @@ function OTPipelineTrackerContent() {
             {/* Timeframe Filter */}
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500">Frame:</span>
-              <div className="flex items-center bg-[#12121a] rounded-lg border border-gray-800 p-0.5 text-xs">
+	              <div className="flex items-center rounded-lg border border-zinc-700 bg-[#0d0d0d] p-0.5 text-xs">
                 {(['rolling-year', 'all-time'] as TimeframeFilter[]).map((frame) => (
                   <button
                     key={frame}
@@ -1609,18 +1728,50 @@ function OTPipelineTrackerContent() {
                 placeholder="Search opportunities..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#12121a] border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500"
-              />
+	                className="w-full rounded-lg border border-zinc-700 bg-[#0d0d0d] px-3 py-1.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-lime-300/60"
+	              />
 	          </div>
 	        </div>
 	      </div>
 
       </div>
 
+      {/* OT Radar Signal Feed */}
+      {radarSignals.length > 0 && (
+        <div className="max-w-[1800px] mx-auto px-6 pt-3">
+          <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/5 px-4 py-2.5 flex items-center gap-3 overflow-hidden">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-cyan-400 text-sm">📡</span>
+              <span className="text-xs font-semibold text-cyan-300 uppercase tracking-wider">OT Radar</span>
+              <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[10px] text-cyan-300 font-medium">
+                {radarStatus === 'connected' ? 'LIVE' : radarStatus.toUpperCase()}
+              </span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto flex-1 scrollbar-hide">
+              {radarSignals.slice(0, 8).map((sig) => (
+                <button
+                  key={sig.id}
+                  onClick={() => setSelectedRadarSignal(selectedRadarSignal?.id === sig.id ? null : sig)}
+                  className={`flex-shrink-0 rounded-lg border px-3 py-1.5 text-left text-xs transition-colors ${
+                    selectedRadarSignal?.id === sig.id
+                      ? 'border-cyan-400 bg-cyan-500/20'
+                      : 'border-zinc-700 bg-zinc-800/60 hover:border-cyan-500/40'
+                  }`}
+                >
+                  <span className="text-cyan-300 font-semibold">{sig.entity.slice(0, 30)}</span>{' '}
+                  <span className="text-zinc-400">{sig.signalType.replace(/-/g, ' ')}</span>
+                </button>
+              ))}
+            </div>
+            <span className="flex-shrink-0 text-[10px] text-zinc-500">{radarSignals.length} total</span>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="max-w-[1800px] mx-auto px-6 py-4">
         <section className="mb-5 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_1.9fr]">
-          <div className="rounded-xl border border-gray-800 bg-[#12121a] p-3">
+	          <div className="radar-panel rounded-xl border border-zinc-800 bg-[#0b0b0b] p-3">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-white">Investment by Deloitte Sector</h3>
               <div className="flex items-center gap-2">
@@ -1666,7 +1817,7 @@ function OTPipelineTrackerContent() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-gray-800 bg-[#12121a] p-3">
+	          <div className="radar-panel rounded-xl border border-zinc-800 bg-[#0b0b0b] p-3">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-white">Top Action Queue</h3>
               <span className="text-[11px] text-gray-500">ranked by value, urgency, OT relevance, timing</span>
@@ -1704,11 +1855,11 @@ function OTPipelineTrackerContent() {
         <div className="grid grid-cols-12 gap-6">
           {/* Pipeline View */}
           <div className="col-span-8 flex flex-col">
-            <div className="order-1 mb-3 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-2 text-xs text-cyan-100/90">
-              Flow: Action Queue -&gt; Pipeline Board -&gt; Evidence -&gt; Geographic Context.
-            </div>
+	            <div className="order-1 mb-3 rounded-lg border border-lime-300/20 bg-lime-300/5 p-2 text-xs uppercase tracking-[0.1em] text-lime-100/90">
+	              Flow: Action Queue -&gt; Pipeline Board -&gt; Evidence -&gt; Geographic Context.
+	            </div>
 
-            <div className="order-4 mb-4 bg-[#12121a] rounded-xl border border-gray-800 p-3">
+	            <div className="radar-panel order-4 mb-4 rounded-xl border border-zinc-800 bg-[#0b0b0b] p-3">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold text-white">Opportunity Map</h3>
                 <div className="flex items-center gap-2 text-[11px]">
@@ -1740,7 +1891,7 @@ function OTPipelineTrackerContent() {
                     {showOpportunities && mapMarkers.map(marker => (
                       <g
                         key={marker.id}
-                        onClick={() => setSelectedOpp(opportunities.find(o => o.id === marker.id) || null)}
+                        onClick={() => { setSelectedRadarSignal(null); setSelectedOpp(opportunities.find(o => o.id === marker.id) || null); }}
                         onMouseEnter={() => setHoveredMarkerId(marker.id)}
                         onMouseLeave={() => setHoveredMarkerId(null)}
                         className="cursor-pointer"
@@ -1754,6 +1905,23 @@ function OTPipelineTrackerContent() {
                           opacity={marker.selected ? 0.95 : 0.62}
                           stroke={marker.selected ? '#ffffff' : 'none'}
                           strokeWidth={marker.selected ? 2 : 0}
+                        />
+                      </g>
+                    ))}
+                    {/* OT Radar signal markers (triangles) */}
+                    {radarMapMarkers.map(marker => (
+                      <g
+                        key={`radar-${marker.id}`}
+                        onClick={() => { setSelectedOpp(null); setSelectedRadarSignal(marker.selected ? null : radarSignals.find(s => s.id === marker.id) || null); }}
+                        className="cursor-pointer"
+                      >
+                        <title>{`${marker.entity} — ${marker.signalType} (${marker.source})`}</title>
+                        <polygon
+                          points={`${marker.point.x},${marker.point.y - 7} ${marker.point.x - 5},${marker.point.y + 4} ${marker.point.x + 5},${marker.point.y + 4}`}
+                          fill="#22d3ee"
+                          opacity={marker.selected ? 0.95 : 0.5}
+                          stroke={marker.selected ? '#ffffff' : 'none'}
+                          strokeWidth={marker.selected ? 1.5 : 0}
                         />
                       </g>
                     ))}
@@ -1791,12 +1959,25 @@ function OTPipelineTrackerContent() {
                   </svg>
                 </div>
               </div>
-              <div className="mt-2 flex items-center gap-4 text-[11px] text-gray-400">
+              <div className="mt-2 flex items-center gap-4 text-[11px] text-gray-400 flex-wrap">
                 <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-400"></span>On radar</span>
                 <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400"></span>Contacted</span>
                 <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400"></span>Meeting</span>
                 <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-400"></span>Proposal</span>
                 <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-400"></span>Closed</span>
+                <span className="border-l border-zinc-700 pl-3 inline-flex items-center gap-1">
+                  <span className="text-cyan-400" style={{ fontSize: '8px' }}>▲</span> Radar Signal
+                </span>
+                <button
+                  onClick={() => setShowRadarOnMap(!showRadarOnMap)}
+                  className={`ml-auto rounded border px-2 py-0.5 text-[10px] transition-colors ${
+                    showRadarOnMap
+                      ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300'
+                      : 'border-zinc-700 text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  {showRadarOnMap ? `Radar ON (${radarMapMarkers.length})` : 'Radar OFF'}
+                </button>
               </div>
             </div>
 
@@ -1813,7 +1994,69 @@ function OTPipelineTrackerContent() {
 
           {/* Detail Panel */}
           <div className="col-span-4">
-            {selectedOpp ? (
+            {selectedRadarSignal ? (
+              <div className="bg-[#12121a] rounded-xl border border-cyan-500/30 overflow-hidden">
+                <div className="p-4 bg-gradient-to-r from-cyan-900/30 to-blue-900/20 border-b border-cyan-500/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-cyan-400 text-lg">📡</span>
+                    <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[10px] text-cyan-300 font-medium uppercase">{selectedRadarSignal.source}</span>
+                    <span className="rounded bg-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-300">{selectedRadarSignal.signalType.replace(/-/g, ' ')}</span>
+                    <button onClick={() => setSelectedRadarSignal(null)} className="ml-auto text-gray-400 hover:text-white">×</button>
+                  </div>
+                  <h2 className="text-lg font-bold text-white">{selectedRadarSignal.entity}</h2>
+                  {selectedRadarSignal.location && (
+                    <p className="text-sm text-gray-400 mt-1">📍 {selectedRadarSignal.location}</p>
+                  )}
+                </div>
+                <div className="p-4 space-y-4 max-h-[calc(100vh-400px)] overflow-y-auto">
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">DESCRIPTION</div>
+                    <p className="text-sm text-gray-200 leading-relaxed">{selectedRadarSignal.description}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-[#0a0a0f] rounded-lg p-3">
+                      <div className="text-xs text-gray-500 mb-1">OT Relevance</div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-cyan-500" style={{ width: `${Math.min(100, selectedRadarSignal.otRelevanceScore)}%` }} />
+                        </div>
+                        <span className="text-sm font-bold text-cyan-400">{selectedRadarSignal.otRelevanceScore}</span>
+                      </div>
+                    </div>
+                    <div className="bg-[#0a0a0f] rounded-lg p-3">
+                      <div className="text-xs text-gray-500 mb-1">Value</div>
+                      <div className="text-sm font-bold text-emerald-400">
+                        {selectedRadarSignal.value ? formatCurrency(selectedRadarSignal.value) : 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-[#0a0a0f] rounded-lg p-3">
+                    <div className="text-xs text-gray-500 mb-1">SECTOR</div>
+                    <span className="rounded bg-cyan-500/20 px-2 py-1 text-xs text-cyan-300">{selectedRadarSignal.sector}</span>
+                  </div>
+                  {selectedRadarSignal.otKeywords.length > 0 && (
+                    <div className="bg-[#0a0a0f] rounded-lg p-3">
+                      <div className="text-xs text-gray-500 mb-2">OT KEYWORDS</div>
+                      <div className="flex flex-wrap gap-1">
+                        {selectedRadarSignal.otKeywords.map((kw) => (
+                          <span key={kw} className="rounded bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 text-xs text-cyan-300">{kw}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {selectedRadarSignal.url && (
+                    <a
+                      href={selectedRadarSignal.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full text-center py-2.5 rounded-lg text-sm font-medium bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/30 transition-colors"
+                    >
+                      View Source →
+                    </a>
+                  )}
+                </div>
+              </div>
+            ) : selectedOpp ? (
               <DetailPanel
                 opportunity={selectedOpp}
                 tracking={tracking[selectedOpp.id]}
@@ -1825,7 +2068,7 @@ function OTPipelineTrackerContent() {
               />
             ) : (
               <div className="bg-[#12121a] rounded-xl border border-gray-800 p-8 text-center">
-                <p className="text-gray-500">Select an opportunity</p>
+                <p className="text-gray-500">Select an opportunity or radar signal</p>
               </div>
             )}
           </div>
@@ -1880,7 +2123,7 @@ function OTPipelineTrackerContent() {
         <div className="max-w-[1800px] mx-auto px-6 py-3">
           <div className="flex items-center justify-between text-xs text-gray-500">
             <div className="flex items-center gap-4">
-              <span className="font-medium text-gray-400">OT Pipeline Tracker</span>
+              <span className="font-medium text-gray-400">OT Vantage</span>
               <span>|</span>
               <span>Confidential</span>
             </div>
