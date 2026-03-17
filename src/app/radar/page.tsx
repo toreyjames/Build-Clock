@@ -1408,14 +1408,25 @@ function OTPipelineTrackerContent() {
   });
 
   const sectorInvestmentBreakdown = useMemo(() => {
-    const totals: Partial<Record<DeloitteIndustry, { value: number; count: number }>> = {};
+    const totals: Partial<Record<DeloitteIndustry, { value: number; count: number; radarCount: number }>> = {};
 
     filteredOpps.forEach((opp) => {
       const industry = getDeloitteIndustry(opp.sector || opp.genesisPillar);
-      const current = totals[industry] || { value: 0, count: 0 };
+      const current = totals[industry] || { value: 0, count: 0, radarCount: 0 };
       totals[industry] = {
         value: current.value + (opp.estimatedValue || 0),
         count: current.count + 1,
+        radarCount: current.radarCount,
+      };
+    });
+
+    radarSignals.forEach((sig) => {
+      const industry = getDeloitteIndustry(sig.sector);
+      const current = totals[industry] || { value: 0, count: 0, radarCount: 0 };
+      totals[industry] = {
+        value: current.value + (sig.value || 0),
+        count: current.count,
+        radarCount: current.radarCount + 1,
       };
     });
 
@@ -1425,13 +1436,14 @@ function OTPipelineTrackerContent() {
         label: DELOITTE_INDUSTRY_INFO[industry].label,
         value: totals[industry]?.value || 0,
         count: totals[industry]?.count || 0,
+        radarCount: totals[industry]?.radarCount || 0,
       }))
-      .filter((row) => row.count > 0)
+      .filter((row) => row.count > 0 || row.radarCount > 0)
       .sort((a, b) => b.value - a.value);
 
     const maxValue = rows.reduce((max, row) => Math.max(max, row.value), 0);
     return { rows, maxValue };
-  }, [filteredOpps]);
+  }, [filteredOpps, radarSignals]);
 
   const mapMarkers = useMemo(() => {
     const markerSlotsByState: Record<string, number> = {};
@@ -1807,7 +1819,9 @@ function OTPipelineTrackerContent() {
                     <div className="h-2 rounded bg-gray-800">
                       <div className="h-2 rounded bg-cyan-500/80" style={{ width: `${Math.max(2, widthPct)}%` }} />
                     </div>
-                    <div className="text-[10px] text-gray-500">{row.count} opportunities</div>
+                    <div className="text-[10px] text-gray-500">
+                      {row.count} opportunities{row.radarCount > 0 && <span className="text-cyan-400/60"> + {row.radarCount} signals</span>}
+                    </div>
                   </button>
                 );
               })}

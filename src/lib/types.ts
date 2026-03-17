@@ -406,11 +406,12 @@ export const DELOITTE_INDUSTRY_INFO: Record<DeloitteIndustry, {
 
 // Map sectors/pillars to Deloitte industries
 export const SECTOR_TO_DELOITTE: Record<string, DeloitteIndustry> = {
-  // Grid/Power
+  // Grid/Power/Energy
   'grid': 'eri-power',
   'power': 'eri-power',
   'nuclear': 'eri-power',
   'clean-energy': 'eri-power',
+  'energy': 'eri-power',
 
   // Oil & Gas / Chemicals
   'chemicals': 'eri-oil-gas',
@@ -427,6 +428,7 @@ export const SECTOR_TO_DELOITTE: Record<string, DeloitteIndustry> = {
   'metals': 'eri-mining',
   'minerals': 'eri-mining',
   'critical-minerals': 'eri-mining',
+  'critical_minerals': 'eri-mining',
 
   // Defense
   'defense': 'gps-defense',
@@ -437,10 +439,11 @@ export const SECTOR_TO_DELOITTE: Record<string, DeloitteIndustry> = {
   'semiconductors': 'tmt-tech',
   'ai-compute': 'tmt-tech',
 
-  // Pharma
+  // Pharma / Life Sciences
   'pharma': 'lshc-pharma',
   'pharma-biotech': 'lshc-pharma',
   'healthcare': 'lshc-pharma',
+  'life-sciences': 'lshc-pharma',
 
   // Automotive
   'ev-battery': 'consumer-auto',
@@ -449,6 +452,12 @@ export const SECTOR_TO_DELOITTE: Record<string, DeloitteIndustry> = {
   // Consumer Products
   'consumer': 'consumer-products',
   'cpg': 'consumer-products',
+
+  // Additional radar signal sectors
+  'semiconductor': 'tmt-tech',
+  'data-center': 'tmt-tech',
+  'chemical': 'eri-oil-gas',
+  'infrastructure': 'eri-industrial',
 };
 
 // Helper function to get Deloitte industry from sector
